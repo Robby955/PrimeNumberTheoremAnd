@@ -2,6 +2,46 @@ import PrimeNumberTheoremAnd.IEANTN.Kadiri
 import PrimeNumberTheoremAnd.IEANTN.KadiriGoodHeights
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
 
+/-!
+# Multiplicity-weighted Hadamard identities for the Kadiri zero-free region
+
+`Kadiri.lean` states the Hadamard expansion of `-ζ'/ζ` (`hadamard_identity`) and the real-part
+identity for the Hadamard constant (`re_hadamardB_eq`) as plain `tsum`s over the zero set
+`riemannZeta.zeroes_rect (.Ioo 0 1) .univ`, with each zero appearing once regardless of its
+order, and with a sorried placeholder constant `hadamardB`. The Hadamard product itself repeats
+each zero according to its multiplicity, so those statements agree with the product only if
+every non-trivial zero is simple, which is not known.
+
+This file proves the multiplicity-corrected forms. The constant `xiHadamardB` is extracted from
+the xi Hadamard factorization of `RiemannZetaHadamard.lean`, and `hadamard_identity_weighted`
+and `re_hadamardB_weighted_eq` restate the two sorried lemmas with the order-weighted sum
+`riemannZeta.zeroes_sum` in place of the plain `tsum`s. The names mirror the originals so that
+the eventual replacement diff in `Kadiri.lean` stays readable.
+
+The reflection section in the middle proves the zero-symmetry input: `ρ ↦ 1 - ρ`, induced by
+the functional equation `riemannXi_one_sub`, is an involution of the non-trivial zero set that
+preserves `riemannZeta.order` and hence leaves the weighted sums invariant
+(`zeroes_sum_comp_one_sub`).
+
+## Conventions
+
+* Zero sums are `riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)` (`ZetaDefinitions.lean`):
+  a `tsum` over the subtype of zeros in the window `re ∈ Ioo 0 1`, `im ∈ univ`, with each term
+  multiplied by `riemannZeta.order ρ`. As a `tsum` it takes the junk value `0` when the family
+  is not summable. The window is exactly `NontrivialZeros`, and it captures every zero of
+  `riemannXi` (`u6aRiemannXi_divisorZeroIndex₀_val_mem_nontrivialZero`), so nothing is lost in
+  passing from the global xi divisor to this window.
+* The zero kernel is the convergence-paired `1/ρ + 1/(s - ρ)`, as in Kadiri's source equation;
+  the two halves are not separately summable.
+* The gamma term is spelled `digamma (s/2 + 1)`, that is `Γ'/Γ(s/2 + 1)`, matching the gamma
+  factor `Γ(s/2 + 1)` of `zetaGammaFactor`; expansions written with `Γ'/Γ(s/2)` differ by the
+  shift `digamma (s/2 + 1) = digamma (s/2) + 2/s` (`Complex.digamma_apply_add_one`).
+* The zero-set symmetry used here is `ρ ↦ 1 - ρ`, not conjugation: real parts are invariant
+  under conjugation, so the conjugation half of the classical `ρ ↔ 1 - conj ρ` symmetrization
+  carries no extra information for real-part sums, while `ρ ↦ 1 - ρ` transports multiplicities
+  exactly through `riemannXi_one_sub`.
+-/
+
 noncomputable section
 
 namespace Kadiri
@@ -9,14 +49,30 @@ namespace Kadiri
 open Complex
 open scoped Topology
 
-/-- Candidate replacement for the placeholder `hadamardB` in `Kadiri.lean`.
+/-! ## The xi Hadamard constant -/
 
-It is the unique derivative-at-zero constant of a degree-one no-monomial Hadamard
-factorization of Riemann's xi function. -/
+/-- The Hadamard constant of Riemann's xi function: the value `P.derivative.eval 0` for a
+degree-one, no-monomial Hadamard factorization
+`ξ z = exp (P.eval z) * ∏' ρ, (1 - z/ρ) * exp (z/ρ)` of `riemannXi`, the product running over
+the xi divisor with multiplicity. The value does not depend on the choice of factorization
+(`existsUnique_riemannXi_hadamard_polynomial_derivative_eval_zero`); `Classical.choose`
+extracts it.
+
+Since `P.degree ≤ 1` the derivative is constant, and the genus-one kernel vanishes termwise at
+the origin, so `xiHadamardB = logDeriv riemannXi 0`, the constant `B = ξ'(0)/ξ(0)` of
+Davenport, chapter 12, classically equal to `-γ/2 - 1 + log(4π)/2` (the closed form is not
+proved here). Kadiri's blueprint entry for `hadamardB` displays `B` inside a product expansion
+of `(s - 1)ζ(s)`; that display is the xi factorization read through
+`ξ s = (s - 1) * π^(-s/2) * Γ(s/2 + 1) * ζ s`, with the archimedean factors absorbed into `ξ`.
+
+`Kadiri.lean` declares `hadamardB` as a sorried placeholder for this constant; `xiHadamardB`,
+`hadamard_identity_weighted` and `re_hadamardB_weighted_eq` are the candidate replacements for
+the placeholder and its two sorried identities. -/
 def xiHadamardB : ℂ :=
   Classical.choose existsUnique_riemannXi_hadamard_polynomial_derivative_eval_zero.exists
 
-/-- The xi-derived Hadamard constant is represented by a degree-one xi Hadamard polynomial. -/
+/-- Choice specification for `xiHadamardB`: some degree-one polynomial `P` realizes the
+no-monomial xi Hadamard factorization with `xiHadamardB = P.derivative.eval 0`. -/
 theorem xiHadamardB_spec :
     ∃ P : Polynomial ℂ, P.degree ≤ 1 ∧
       (∀ z : ℂ, riemannXi z =
@@ -25,7 +81,14 @@ theorem xiHadamardB_spec :
       xiHadamardB = Polynomial.eval 0 P.derivative :=
   Classical.choose_spec existsUnique_riemannXi_hadamard_polynomial_derivative_eval_zero.exists
 
-/-- Logarithmic-derivative form of the xi Hadamard factorization using `xiHadamardB`. -/
+/-- Logarithmic derivative of the xi Hadamard factorization, at any `z` avoiding the xi
+divisor values: `logDeriv ξ z = xiHadamardB + ∑' ρ, (1/(z - ρ) + 1/ρ)`.
+
+The sum runs over `Complex.Hadamard.divisorZeroIndex₀ riemannXi Set.univ`, which enumerates
+the zeros of `ξ` with multiplicity (one index per unit of divisor). The summand is the
+convergence-paired genus-one kernel; neither `∑' 1/ρ` nor `∑' 1/(z - ρ)` is separately
+summable. The pairing here is written `1/(z - ρ) + 1/ρ`, while the downstream `zeroes_sum`
+statements use the order `1/ρ + 1/(s - ρ)` of Kadiri's equation. -/
 theorem xiHadamardB_logDeriv {z : ℂ}
     (hz : ∀ p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
       z ≠ Complex.Hadamard.divisorZeroIndex₀_val p) :
@@ -43,11 +106,20 @@ theorem xiHadamardB_logDeriv {z : ℂ}
       _ = xiHadamardB := hB.symm
   rw [hconst]
 
-/-- Order-weighted global reindex from xi divisor indices to `riemannZeta.zeroes_sum`:
-any summable function of the divisor value tsums to the order-weighted zero sum over the
-critical strip.  Each fiber of the divisor index over a non-trivial zero is finite with
-cardinality `riemannZeta.order`, and the divisor values are exactly the non-trivial zeros,
-so the sigma decomposition collapses fiberwise to the weighted sum. -/
+/-! ## The weighted Hadamard identity -/
+
+/-- Order-weighted reindex from the xi divisor to `riemannZeta.zeroes_sum`: a summable
+function of the divisor value tsums to the weighted zero sum over the critical strip.
+
+The bridge has two halves, both from `KadiriGoodHeights.lean`: every xi divisor value lies in
+the window `re ∈ Ioo 0 1`, `im ∈ univ` of non-trivial zeros
+(`u6aRiemannXi_divisorZeroIndex₀_val_mem_nontrivialZero`), and the divisor fiber over each
+non-trivial zero is finite with exactly `riemannZeta.order ρ` elements
+(`u6aRiemannXi_divisorZeroIndex₀_equiv_nontrivialZeroSigma`). The sigma decomposition then
+collapses fiberwise to the weighted sum
+`riemannZeta.zeroes_sum (.Ioo 0 1) .univ φ = ∑' ρ, φ ρ * riemannZeta.order ρ`
+(`ZetaDefinitions.lean`). The summability hypothesis is required for the collapse; recall
+both `tsum`s take the junk value `0` on non-summable families. -/
 theorem tsum_riemannXi_divisorZeroIndex₀_eq_zeroes_sum {α : Type*} [RCLike α] (φ : ℂ → α)
     (hsum : Summable fun p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) ↦
       φ (Complex.Hadamard.divisorZeroIndex₀_val p)) :
@@ -77,7 +149,36 @@ theorem tsum_riemannXi_divisorZeroIndex₀_eq_zeroes_sum {α : Type*} [RCLike α
   unfold riemannZeta.zeroes_sum
   exact tsum_congr h3
 
-/-- Multiplicity-weighted Hadamard expansion of `-ζ'/ζ` on Kadiri's downstream half-plane. -/
+/-- Hadamard expansion of `-ζ'/ζ` on the half-plane `1 < re s`, with the zero sum counted
+with multiplicity (Kadiri's equation after (16); Davenport, chapter 12):
+
+`-ζ'/ζ(s) = -B - log(π)/2 + 1/(s - 1) + Γ'/Γ(s/2 + 1)/2 - ∑ ρ, (1/ρ + 1/(s - ρ))`.
+
+This is the multiplicity-weighted form of the sorried `hadamard_identity` in `Kadiri.lean`,
+which it is intended to replace; the name mirrors the original so the replacement diff stays
+readable. Dictionary, term by term:
+
+* `xiHadamardB` plays the role of the placeholder `hadamardB`: it is the additive constant of
+  the xi Hadamard factorization (`xiHadamardB_logDeriv`), and the displayed identity is that
+  factorization differentiated logarithmically through
+  `ξ s = (s - 1) * π^(-s/2) * Γ(s/2 + 1) * ζ s`
+  (`logDeriv_completedZetaFactor_eq_logDeriv_riemannXi`). The `1/(s - 1)` term comes from the
+  pole factor `s - 1`, the `-log(π)/2` term from `π^(-s/2)`, and the digamma term from the
+  gamma factor.
+* `(1/2) * digamma (s/2 + 1)` is `Γ'/Γ(s/2 + 1)/2`, matching the gamma-factor normalization
+  `Γ(s/2 + 1)` of `zetaGammaFactor`. Versions written with `Γ'/Γ(s/2)` differ by `1/s` in
+  this term, via the shift `digamma (s/2 + 1) = digamma (s/2) + 2/s`
+  (`Complex.digamma_apply_add_one`).
+* the zero sum is `riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)`: each non-trivial zero
+  `ρ` contributes `(1/ρ + 1/(s - ρ)) * riemannZeta.order ρ`, whereas the sorried original
+  counts each zero once. The window is the full non-trivial zero set; see the module
+  docstring.
+* the summand is the convergence-paired kernel `1/ρ + 1/(s - ρ)` of the source equation; the
+  halves are not separately summable.
+
+The hypothesis `1 < re s` replaces the original's `s ≠ 1` and `s ∉ zeroes`: the half-plane is
+where Kadiri's downstream zero-free-region argument applies the identity, and it supplies
+`ζ s ≠ 0` and the gamma-factor nonvanishing directly. -/
 theorem hadamard_identity_weighted {s : ℂ} (hs : 1 < s.re) :
     -deriv riemannZeta s / riemannZeta s =
       -xiHadamardB - (1 / 2 : ℂ) * Real.log Real.pi + 1 / (s - 1) +
@@ -140,7 +241,17 @@ theorem hadamard_identity_weighted {s : ℂ} (hs : 1 < s.re) :
   rw [hmain, hconst, hswap, hreidx]
   ring
 
-/-- Reflecting the argument through `w ↦ 1 - w` transports the analytic vanishing order. -/
+/-! ## Zero reflection through `ρ ↦ 1 - ρ`
+
+The weighted real-part identity needs the sum `∑ ρ, re (1/(1 - ρ))` to collapse onto
+`∑ ρ, re (1/ρ)`. The reflection used is `ρ ↦ 1 - ρ`, an involution of the non-trivial zero
+set induced by the exact functional equation `riemannXi_one_sub`; it preserves
+`riemannZeta.order`, so it leaves `riemannZeta.zeroes_sum` invariant. Conjugation symmetry is
+never needed: real parts are conjugation-invariant, so the classical `ρ ↔ 1 - conj ρ`
+symmetrization produces the same real-part sums as `ρ ↦ 1 - ρ`. -/
+
+/-- Precomposition with the affine reflection `w ↦ 1 - w` transports the analytic vanishing
+order: the order of `f (1 - ·)` at `z₀` equals the order of `f` at `1 - z₀`. -/
 private lemma analyticOrderAt_comp_one_sub {f : ℂ → ℂ} {z₀ : ℂ}
     (hf : AnalyticAt ℂ f (1 - z₀)) :
     analyticOrderAt (fun w ↦ f (1 - w)) z₀ = analyticOrderAt f (1 - z₀) := by
@@ -166,7 +277,8 @@ private lemma analyticOrderAt_comp_one_sub {f : ℂ → ℂ} {z₀ : ℂ}
           show (1 - w) - (1 - z₀) = -(w - z₀) by ring, neg_pow]
         ring
 
-/-- The analytic vanishing order of Riemann's xi is symmetric under `s ↦ 1 - s`. -/
+/-- The analytic vanishing order of Riemann's xi is symmetric under `s ↦ 1 - s`, by the
+functional equation `riemannXi_one_sub`. -/
 private lemma riemannXi_analyticOrderAt_one_sub (z : ℂ) :
     analyticOrderAt riemannXi (1 - z) = analyticOrderAt riemannXi z := by
   have h := analyticOrderAt_comp_one_sub (f := riemannXi) (z₀ := z)
@@ -174,8 +286,11 @@ private lemma riemannXi_analyticOrderAt_one_sub (z : ℂ) :
   rw [show (fun w : ℂ ↦ riemannXi (1 - w)) = riemannXi from funext riemannXi_one_sub] at h
   exact h.symm
 
-/-- Inside the critical strip the zeta zero order is symmetric under `s ↦ 1 - s`.
-This is the order-preservation half of the `ρ ↦ 1 - ρ` reindex used for `Re B`. -/
+/-- Inside the open strip `0 < re ρ < 1`, the zeta zero order is symmetric under `ρ ↦ 1 - ρ`.
+This is the order-preservation half of the reflection reindex used for `re B`: the order
+transports through the xi functional equation, using
+`u6aRiemannXi_divisor_eq_riemannZeta_order_of_criticalStrip` to identify `riemannZeta.order`
+with the xi divisor on the strip, both at `ρ` and at `1 - ρ` (which lies in the strip again). -/
 theorem riemannZeta_order_one_sub_of_strip {ρ : ℂ} (h0 : 0 < ρ.re) (h1 : ρ.re < 1) :
     riemannZeta.order (1 - ρ) = riemannZeta.order ρ := by
   have hre : ((1 : ℂ) - ρ).re = 1 - ρ.re := by
@@ -192,7 +307,9 @@ theorem riemannZeta_order_one_sub_of_strip {ρ : ℂ} (h0 : 0 < ρ.re) (h1 : ρ.
     (Differentiable.analyticAt differentiable_riemannXi ρ).meromorphicOrderAt_eq,
     riemannXi_analyticOrderAt_one_sub ρ]
 
-/-- The non-trivial zero set is closed under the reflection `ρ ↦ 1 - ρ`. -/
+/-- The non-trivial zero set is closed under the reflection `ρ ↦ 1 - ρ`: the window
+`re ∈ Ioo 0 1` is symmetric about `re = 1/2`, and the reflected point is again a zero of `ζ`
+because its order is positive by `riemannZeta_order_one_sub_of_strip`. -/
 theorem one_sub_mem_nontrivialZeros (ρ : NontrivialZeros) :
     (1 : ℂ) - (ρ : ℂ) ∈ NontrivialZeros := by
   have h0 : 0 < (ρ : ℂ).re := ρ.property.1.1
@@ -222,15 +339,21 @@ theorem one_sub_mem_nontrivialZeros (ρ : NontrivialZeros) :
     rw [horder] at hzero_order
     omega
 
-/-- Reflection `ρ ↦ 1 - ρ` as an involution of the non-trivial zero set. -/
+/-- The reflection `ρ ↦ 1 - ρ` as an involution of the non-trivial zero set. This is the
+functional-equation symmetry of `riemannXi`, not conjugation; it is the one that preserves
+`riemannZeta.order` exactly (`riemannZeta_order_one_sub_of_strip`), which is what the
+weighted sums require. -/
 noncomputable def nontrivialZerosReflection : NontrivialZeros ≃ NontrivialZeros where
   toFun ρ := ⟨(1 : ℂ) - (ρ : ℂ), one_sub_mem_nontrivialZeros ρ⟩
   invFun ρ := ⟨(1 : ℂ) - (ρ : ℂ), one_sub_mem_nontrivialZeros ρ⟩
   left_inv ρ := Subtype.ext (by ring)
   right_inv ρ := Subtype.ext (by ring)
 
-/-- The order-weighted zero sum over the critical strip is invariant under
-precomposition with the reflection `ρ ↦ 1 - ρ`. -/
+/-- The order-weighted zero sum over the critical strip is invariant under precomposition
+with the reflection `ρ ↦ 1 - ρ`, for an arbitrary summand `f`: the index set reindexes along
+`nontrivialZerosReflection` and the weight is preserved by
+`riemannZeta_order_one_sub_of_strip`. No summability hypothesis is needed; reindexing along
+an equivalence identifies the two `tsum`s including their junk values. -/
 theorem zeroes_sum_comp_one_sub {α : Type*} [RCLike α] (f : ℂ → α) :
     riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ f (1 - ρ)) =
       riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) f := by
@@ -248,7 +371,28 @@ theorem zeroes_sum_comp_one_sub {α : Type*} [RCLike α] (f : ℂ → α) :
           (fun σ : NontrivialZeros ↦ f (σ : ℂ) * (riemannZeta.order (σ : ℂ) : α))
     _ = riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) f := rfl
 
-/-- Multiplicity-weighted real-part identity for the xi-derived Hadamard constant. -/
+/-! ## The weighted real-part identity -/
+
+/-- Real part of the xi Hadamard constant as a multiplicity-weighted zero sum:
+`re xiHadamardB = -∑ ρ, re (1/ρ)`, summed over the non-trivial zeros with order weights.
+
+This is the multiplicity-weighted form of the sorried `re_hadamardB_eq` in `Kadiri.lean`,
+which it is intended to replace; the name mirrors the original. The statement is phrased with
+`xiHadamardB` rather than a `hadamardB`: `xiHadamardB` is the candidate replacement for that
+sorried placeholder, pinned to the role of the paper's `B` by `hadamard_identity_weighted`.
+
+Unlike the paired complex kernel, the real parts `re (1/ρ)` are separately summable: both
+`re (1/ρ)` and `re (1/(1 - ρ))` are nonnegative on the strip and their paired sum converges,
+so each half is dominated by the pair. The zero sum is `riemannZeta.zeroes_sum` with the
+usual window; see the module docstring.
+
+Proof shape: `logDeriv ξ 0 = B` (the genus-one kernel vanishes termwise at the origin,
+`xiHadamardB_logDeriv`), `logDeriv ξ 1 = B + S` with `S` the kernel sum at `1`, and the
+functional equation makes `logDeriv ξ` antisymmetric between `0` and `1`, giving `2B = -S`.
+Taking real parts, splitting `re S` into its two halves, and collapsing
+`∑ ρ, re (1/(1 - ρ))` onto `∑ ρ, re (1/ρ)` with `zeroes_sum_comp_one_sub` yields the
+identity. The symmetrization is through `ρ ↦ 1 - ρ`; conjugation never enters (see the
+section comment above). -/
 theorem re_hadamardB_weighted_eq :
     xiHadamardB.re =
       -riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
