@@ -1,4 +1,5 @@
 import PrimeNumberTheoremAnd.IEANTN.Kadiri
+import PrimeNumberTheoremAnd.IEANTN.KadiriTransversalKernel
 import PrimeNumberTheoremAnd.ZetaBounds
 
 /-!
@@ -30,7 +31,7 @@ noncomputable section
 namespace Kadiri
 
 open Complex Filter
-open scoped Topology
+open scoped Topology Interval
 
 /--
 Functional-equation transport for the nonpositive real part of the horizontal segment.
@@ -190,5 +191,65 @@ theorem kadiri_logDeriv_zeta_hadamard_pv_remainder_bound (rho : NontrivialZeros)
       convert hmain using 2
       · ext s
         simp [horder_nat]
+
+/--
+Uniform horizontal-integral bound for one moving simple pole away from the endpoints.
+
+This rewrites the Kadiri line `sigma + T * I - rho` into the transversal kernel with
+`beta = rho.re` and `delta = T - rho.im`. The hypothesis `rho.im != T` is the
+off-segment condition.
+-/
+theorem kadiri_moving_pole_principal_part_horizontal_integral_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (A : ℂ) (T : ℝ) (rho : ℂ),
+        rho.re ∈ Set.Icc (-a + e) (1 + a - e) →
+        rho.im ≠ T →
+          ‖∫ σ in (-a)..(1 + a),
+              A / (((σ : ℂ) + (T : ℂ) * I) - rho)‖
+            ≤ ‖A‖ * C := by
+  obtain ⟨C, hC, hbound⟩ := transversal_pole_crossing_norm_le a e he
+  refine ⟨C, hC, ?_⟩
+  intro A T rho hrho hT
+  let β : ℝ := rho.re
+  let δ : ℝ := T - rho.im
+  have hδ : δ ≠ 0 := by
+    intro hδ0
+    exact hT (sub_eq_zero.mp hδ0).symm
+  have hline (σ : ℝ) :
+      (((σ : ℂ) + (T : ℂ) * I) - rho) =
+        (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I) := by
+    rw [Complex.ext_iff]
+    constructor <;> simp [β, δ]
+  have hfun :
+      (fun σ : ℝ => A / (((σ : ℂ) + (T : ℂ) * I) - rho)) =
+        fun σ : ℝ => A * ((((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹) := by
+    funext σ
+    rw [hline σ]
+    simp [div_eq_mul_inv]
+  rw [hfun, intervalIntegral.integral_const_mul, norm_mul]
+  exact mul_le_mul_of_nonneg_left
+    (hbound δ hδ β (by simpa [β] using hrho))
+    (norm_nonneg A)
+
+/--
+Kadiri-facing specialization of the moving-pole integral bound to a zeta zero principal
+part, with the coefficient equal to the zeta multiplicity at `rho`.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_horizontal_integral_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (T : ℝ) (rho : NontrivialZeros),
+        (rho : ℂ).re ∈ Set.Icc (-a + e) (1 + a - e) →
+        (rho : ℂ).im ≠ T →
+          ‖∫ σ in (-a)..(1 + a),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+            ≤ ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * C := by
+  obtain ⟨C, hC, hbound⟩ :=
+    kadiri_moving_pole_principal_part_horizontal_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro T rho hrho hT
+  exact hbound ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) hrho hT
 
 end Kadiri
