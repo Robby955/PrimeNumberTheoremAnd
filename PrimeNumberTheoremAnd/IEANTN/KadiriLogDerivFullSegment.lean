@@ -29,7 +29,8 @@ noncomputable section
 
 namespace Kadiri
 
-open Complex
+open Complex Filter
+open scoped Topology
 
 /--
 Functional-equation transport for the nonpositive real part of the horizontal segment.
@@ -109,5 +110,85 @@ theorem kadiri_reflected_logDeriv_bound_from_right_halfplane :
     simpa [abs_neg] using hT
   have h := hbound (1 - sigma) (-T) hTneg hmem
   simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, abs_neg] using h
+
+/--
+Local principal-part control for the logarithmic derivative at an analytic zero.
+
+If `f` has order `n > 0` at `p`, then `f'/f - n/(s-p)` is bounded in a punctured
+neighborhood of `p`. This is the local Hadamard/PV brick used below for zeta zeros.
+-/
+theorem kadiri_logDeriv_analytic_zero_principal_part_remainder_bound
+    {f : ℂ → ℂ} {p : ℂ} {n : ℕ}
+    (hf : AnalyticAt ℂ f p) (horder : analyticOrderAt f p = n) :
+    (logDeriv f - fun s : ℂ ↦ (n : ℂ) / (s - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
+  obtain ⟨g, hg_analytic, hg_ne, hfg⟩ := (hf.analyticOrderAt_eq_natCast).1 horder
+  let F : ℂ → ℂ := fun s ↦ (s - p) ^ n * g s
+  have hfg_ne : f =ᶠ[𝓝[≠] p] F := by
+    exact hfg.filter_mono nhdsWithin_le_nhds
+  have hderiv_ne : deriv f =ᶠ[𝓝[≠] p] deriv F := hfg_ne.nhdsNE_deriv
+  have hg_nonzero_ne : ∀ᶠ s in 𝓝[≠] p, g s ≠ 0 := by
+    exact (hg_analytic.continuousAt.ne_iff_eventually_ne continuousAt_const).mp hg_ne
+      |>.filter_mono nhdsWithin_le_nhds
+  have hg_analytic_ne : ∀ᶠ s in 𝓝[≠] p, AnalyticAt ℂ g s := by
+    exact hg_analytic.eventually_analyticAt.filter_mono nhdsWithin_le_nhds
+  have hlog_eq :
+      (logDeriv f - fun s : ℂ ↦ (n : ℂ) / (s - p)) =ᶠ[𝓝[≠] p] logDeriv g := by
+    filter_upwards [hfg_ne, hderiv_ne, self_mem_nhdsWithin, hg_nonzero_ne, hg_analytic_ne]
+      with s hfs hderiv hs_ne hgs_ne hgs_analytic
+    have hpow_ne : (s - p) ^ n ≠ 0 := pow_ne_zero n (sub_ne_zero.mpr hs_ne)
+    have hdiff_pow : DifferentiableAt ℂ (fun z : ℂ ↦ (z - p) ^ n) s := by fun_prop
+    have hlogF :
+        logDeriv F s =
+          logDeriv (fun z : ℂ ↦ (z - p) ^ n) s + logDeriv g s := by
+      exact logDeriv_mul (f := fun z : ℂ ↦ (z - p) ^ n) (g := g) s
+        hpow_ne hgs_ne hdiff_pow hgs_analytic.differentiableAt
+    have hlogpow : logDeriv (fun z : ℂ ↦ (z - p) ^ n) s = (n : ℂ) / (s - p) := by
+      rw [logDeriv_fun_pow (f := fun z : ℂ ↦ z - p) (x := s) (by fun_prop) n]
+      simp [logDeriv_apply, div_eq_mul_inv]
+    simp only [Pi.sub_apply]
+    calc
+      logDeriv f s - (n : ℂ) / (s - p)
+          = logDeriv F s - (n : ℂ) / (s - p) := by
+            simp [logDeriv_apply, hfs, hderiv]
+      _ = logDeriv g s := by
+            rw [hlogF, hlogpow]
+            ring
+  have hderiv_bounded : deriv g =O[𝓝 p] (1 : ℂ → ℂ) :=
+    hg_analytic.deriv.continuousAt.norm.isBoundedUnder_le.isBigO_one ℂ
+  have hinv_bounded : g⁻¹ =O[𝓝 p] (1 : ℂ → ℂ) :=
+    (hg_analytic.continuousAt.inv₀ hg_ne).norm.isBoundedUnder_le.isBigO_one ℂ
+  have hlog_bounded : logDeriv g =O[𝓝 p] (1 : ℂ → ℂ) := by
+    have hmul_bounded :
+        (deriv g * g⁻¹) =O[𝓝 p] ((1 : ℂ → ℂ) * (1 : ℂ → ℂ)) :=
+      Asymptotics.IsBigO.mul hderiv_bounded hinv_bounded
+    simpa [logDeriv_apply, Pi.div_apply, Pi.mul_apply, div_eq_mul_inv] using hmul_bounded
+  exact hlog_eq.trans_isBigO (hlog_bounded.mono nhdsWithin_le_nhds)
+
+/--
+Hadamard/PV local remainder at a non-trivial zeta zero.
+
+After subtracting the multiplicity-weighted principal part at `rho`, the zeta logarithmic
+derivative is bounded in a punctured neighborhood of `rho`.
+-/
+theorem kadiri_logDeriv_zeta_hadamard_pv_remainder_bound (rho : NontrivialZeros) :
+    ((deriv riemannZeta / riemannZeta) -
+        fun s : ℂ ↦ ((riemannZeta.order (rho : ℂ) : ℂ) / (s - (rho : ℂ))))
+      =O[𝓝[≠] (rho : ℂ)] (1 : ℂ → ℂ) := by
+  have han := riemannZeta_analyticAt_nontrivialZero rho
+  have horder_ne_top := riemannZeta_meromorphicOrderAt_ne_top_nontrivialZero rho
+  cases hO : analyticOrderAt riemannZeta (rho : ℂ) with
+  | top =>
+      exfalso
+      exact horder_ne_top (by simp [han.meromorphicOrderAt_eq, hO])
+  | coe n =>
+      have horder_nat : riemannZeta.order (rho : ℂ) = n := by
+        unfold riemannZeta.order
+        rw [han.meromorphicOrderAt_eq, hO, ENat.map_coe, WithTop.untopD_coe]
+      have hmain :=
+        kadiri_logDeriv_analytic_zero_principal_part_remainder_bound
+          (f := riemannZeta) (p := (rho : ℂ)) (n := n) han hO
+      convert hmain using 2
+      · ext s
+        simp [horder_nat]
 
 end Kadiri
