@@ -2,6 +2,7 @@ import Architect
 import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
+import PrimeNumberTheoremAnd.IEANTN.KadiriResidueOrder
 import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
 import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
@@ -237,6 +238,21 @@ noncomputable def kadiri_thm_3_1_q1_I (φ : ℝ → ℂ) (a T : ℝ) : ℂ :=
           riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) *
         Φ (-(((1 + a : ℝ) : ℂ) + (t : ℂ) * I))
 
+/-- Non-trivial zero residue contribution used in Kadiri equation (12). -/
+theorem kadiri_thm_3_1_q1_eq_12_nontrivial_zero_residue
+    {Phi : ℂ → ℂ} (rho : NontrivialZeros) {z w : ℂ}
+    (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
+    (pInRectInterior : Rectangle z w ∈ 𝓝 (rho : ℂ))
+    (hPhi : AnalyticAt ℂ Phi (-(rho : ℂ)))
+    (hHolo :
+      HolomorphicOn
+        (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s))
+        (Rectangle z w \ {(rho : ℂ)})) :
+    RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s)) z w =
+      -((riemannZeta.order (rho : ℂ) : ℂ) * Phi (-(rho : ℂ))) := by
+  exact kadiri_riemannZeta_negLogDeriv_residue_order_rectangleIntegral
+    (Phi := Phi) rho zRe_le_wRe zIm_le_wIm pInRectInterior hPhi hHolo
+
 @[blueprint
   "kadiri-thm-3-1-q1-eq-12"
   (title := "Equation (12) of \\cite{Kadiri2005}: rectangle decomposition of $I(T)$")
@@ -302,7 +318,53 @@ theorem kadiri_thm_3_1_q1_eq_12 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
             Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
       + Φ (-1)
       - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
-  sorry
+  let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+  have hzero_residue :
+      ∀ (rho : NontrivialZeros) {z w : ℂ},
+        z.re ≤ w.re →
+        z.im ≤ w.im →
+        Rectangle z w ∈ 𝓝 (rho : ℂ) →
+        AnalyticAt ℂ Φ (-(rho : ℂ)) →
+        HolomorphicOn
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+          (Rectangle z w \ {(rho : ℂ)}) →
+        RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z w =
+          -((riemannZeta.order (rho : ℂ) : ℂ) * Φ (-(rho : ℂ))) := by
+    intro rho z w zRe_le_wRe zIm_le_wIm pInRectInterior hPhi hHolo
+    exact kadiri_thm_3_1_q1_eq_12_nontrivial_zero_residue
+      (Phi := Φ) rho zRe_le_wRe zIm_le_wIm pInRectInterior hPhi hHolo
+  have hremaining :
+      (∀ (rho : NontrivialZeros) {z w : ℂ},
+        z.re ≤ w.re →
+        z.im ≤ w.im →
+        Rectangle z w ∈ 𝓝 (rho : ℂ) →
+        AnalyticAt ℂ Φ (-(rho : ℂ)) →
+        HolomorphicOn
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+          (Rectangle z w \ {(rho : ℂ)}) →
+        RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z w =
+          -((riemannZeta.order (rho : ℂ) : ℂ) * Φ (-(rho : ℂ)))) →
+      kadiri_thm_3_1_q1_I φ a T =
+        (1 / (2 * (Real.pi : ℂ))) *
+          (∫ t in Set.Ioo (-T) T,
+            (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+                riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+              Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+        + (1 / (2 * (Real.pi : ℂ) * I)) *
+          (∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+        - (1 / (2 * (Real.pi : ℂ) * I)) *
+          (∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+        + Φ (-1)
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+    intro _hzero_residue
+    sorry
+  exact hremaining hzero_residue
 
 @[blueprint
   "kadiri-thm-3-1-q1-top-horizontal-vanishes"
