@@ -1,5 +1,6 @@
 import Architect
 import PrimeNumberTheoremAnd.Defs
+import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
 import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
@@ -25,6 +26,7 @@ complex parameter.
 namespace Kadiri
 
 open MeasureTheory Complex
+open Asymptotics
 open ArithmeticFunction hiding log
 open Filter
 open scoped Topology
@@ -730,6 +732,238 @@ theorem kadiri_thm_3_1_q1_shifted_eq_I123
       + kadiri_thm_3_1_q1_I_3 φ a T := by
   sorry
 
+private lemma kadiri_laplace_positive_line_weight_integrable_of_continuous {ψ : ℝ → ℂ}
+    (hψ : Continuous ψ) {b : ℝ}
+    (hψ_decay : (fun x : ℝ ↦ ψ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) :
+    Integrable (fun y : ℝ => exp (-((a : ℂ) * (y : ℂ))) * ψ y) := by
+  let F : ℝ → ℂ := fun y => exp (-((a : ℂ) * (y : ℂ))) * ψ y
+  have hF_cont : Continuous F := by
+    dsimp [F]
+    fun_prop
+  have hF_loc : LocallyIntegrable F volume := hF_cont.locallyIntegrable
+  have hshape : ∀ x : ℝ,
+      ‖F x‖ = Real.exp (-(a + 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖ := by
+    intro x
+    dsimp [F]
+    rw [norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp]
+    have h1 : (-(↑a * ↑x) : ℂ).re = -a * x := by
+      norm_num [Complex.mul_re]
+    have h2 : ((x : ℂ) / 2).re = x / 2 := by
+      norm_num
+    rw [h1, h2]
+    calc
+      Real.exp (-a * x) * ‖ψ x‖
+          = (Real.exp (-(a + 1 / 2) * x) * Real.exp (x / 2)) * ‖ψ x‖ := by
+            rw [← Real.exp_add]
+            congr 1
+            ring_nf
+      _ = Real.exp (-(a + 1 / 2) * x) * (‖ψ x‖ * Real.exp (x / 2)) := by
+            ring_nf
+  have htop_decay := hψ_decay.mono (show Filter.atTop ≤ Filter.cocompact ℝ from
+    atTop_le_cocompact)
+  have hbot_decay := hψ_decay.mono (show Filter.atBot ≤ Filter.cocompact ℝ from
+    atBot_le_cocompact)
+  have htop : F =O[Filter.atTop] fun x : ℝ => Real.exp (-(a + b + 1) * x) := by
+    rw [Asymptotics.isBigO_iff] at htop_decay ⊢
+    obtain ⟨C, hC⟩ := htop_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_gt_atTop (0 : ℝ)] with x hxC hxpos
+    rw [hshape]
+    calc
+      Real.exp (-(a + 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp (-(a + 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp (-(a + b + 1) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_pos hxpos]
+            calc
+              Real.exp (-(a + 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * x))
+                  = C * (Real.exp (-(a + 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * x)) := by ring_nf
+              _ = C * Real.exp (-(a + 1 / 2) * x + (-(1 / 2 + b) * x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp (-(a + b + 1) * x) := by ring_nf
+  have hbot : F =O[Filter.atBot] fun x : ℝ => Real.exp ((b - a) * x) := by
+    rw [Asymptotics.isBigO_iff] at hbot_decay ⊢
+    obtain ⟨C, hC⟩ := hbot_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_lt_atBot (0 : ℝ)] with x hxC hxneg
+    rw [hshape]
+    calc
+      Real.exp (-(a + 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp (-(a + 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp ((b - a) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_neg hxneg]
+            calc
+              Real.exp (-(a + 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * -x))
+                  = C * (Real.exp (-(a + 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * -x)) := by ring_nf
+              _ = C * Real.exp (-(a + 1 / 2) * x + (-(1 / 2 + b) * -x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp ((b - a) * x) := by ring_nf
+  have htop_int : IntegrableAtFilter (fun x : ℝ => Real.exp (-(a + b + 1) * x))
+      Filter.atTop volume := by
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    exact exp_neg_integrableOn_Ioi 0 (show 0 < a + b + 1 by linarith)
+  have hbot_int : IntegrableAtFilter (fun x : ℝ => Real.exp ((b - a) * x))
+      Filter.atBot volume := by
+    rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+    have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      simp
+    rw [hvol, Function.comp_def]
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 (sub_pos.mpr hab) using 1
+    ext x
+    ring_nf
+  exact hF_loc.integrable_of_isBigO_atBot_atTop hbot hbot_int htop htop_int
+
+private lemma kadiri_laplace_positive_line_weight_integrable {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) :
+    Integrable (fun y : ℝ => exp (-((a : ℂ) * (y : ℂ))) * φ y) :=
+  kadiri_laplace_positive_line_weight_integrable_of_continuous hφ.continuous hφ_decay ha hab
+
+private lemma kadiri_laplace_line_weight_differentiable {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) (sigma : ℝ) :
+    Differentiable ℝ (fun z : ℝ => exp (-((sigma : ℂ) * (z : ℂ))) * φ z) := by
+  intro y
+  have hofReal : DifferentiableAt ℝ (fun z : ℝ => (z : ℂ)) y :=
+    Complex.ofRealCLM.differentiable.differentiableAt
+  have hlin : DifferentiableAt ℝ (fun z : ℝ => -((sigma : ℂ) * (z : ℂ))) y := by
+    simpa only [neg_mul] using hofReal.const_mul (-(sigma : ℂ))
+  exact hlin.cexp.mul ((hφ.differentiable (by norm_num)).differentiableAt)
+
+private lemma kadiri_laplace_line_local_quotient_integrable {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) (sigma x : ℝ) {R : ℝ} (hR : 0 < R) :
+    IntervalIntegrable
+      (fun u : ℝ =>
+        if u = 0 then 0 else
+          (1 / (Real.pi * u) : ℂ) •
+            (exp (-((sigma : ℂ) * ((x - u : ℝ) : ℂ))) * φ (x - u) -
+              exp (-((sigma : ℂ) * (x : ℂ))) * φ x))
+      volume (-R) R := by
+  let g : ℝ → ℂ := fun y => exp (-((sigma : ℂ) * (y : ℂ))) * φ y
+  have hg_cont : ContinuousOn g (Set.Icc (x - R) (x + R)) := by
+    dsimp [g]
+    exact (Complex.continuous_exp.comp (by continuity)).continuousOn.mul
+      hφ.continuous.continuousOn
+  have hg_diff : DifferentiableAt ℝ g x :=
+    (kadiri_laplace_line_weight_differentiable hφ sigma) x
+  simpa [g] using
+    intervalIntegrable_local_quotient_of_differentiableAt (E := ℂ)
+      (f := g) (x := x) hR hg_cont hg_diff
+
+/-- Principal-value Laplace inversion on the positive line `re s = a` under
+Kadiri's decay hypotheses. The target point is written as a positive real `x`. -/
+lemma kadiri_laplace_positive_line_pv {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ} (_hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a x : ℝ} (ha : 0 < a) (hab : a < b) (hx : 0 < x) :
+    Filter.Tendsto (fun T : ℝ => laplaceIntegralCpowTrunc φ a x T)
+      Filter.atTop (nhds (φ (Real.log x))) := by
+  have h_weighted :
+      Integrable (fun y : ℝ => exp (-((a : ℂ) * (y : ℂ))) * φ y) :=
+    kadiri_laplace_positive_line_weight_integrable hφ hφ_decay ha hab
+  have hq :
+      IntervalIntegrable
+        (fun u : ℝ =>
+          if u = 0 then 0 else
+            (1 / (Real.pi * u) : ℂ) •
+              (exp (-((a : ℂ) * ((Real.log x - u : ℝ) : ℂ))) *
+                  φ (Real.log x - u) -
+                exp (-((a : ℂ) * (Real.log x : ℂ))) *
+                  φ (Real.log x)))
+        volume (-1) 1 := by
+    simpa using kadiri_laplace_line_local_quotient_integrable
+      (φ := φ) hφ a (Real.log x) (by norm_num : (0 : ℝ) < 1)
+  exact laplaceIntegralCpowTrunc_tendsto_of_integrable_local_quotient
+    (sigma := a) (f := φ) (x := x) (R := 1) hx
+    (by norm_num : (0 : ℝ) < 1) h_weighted hq
+
+private lemma kadiri_laplace_positive_line_pv_one {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ} (_hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (_ha1 : a < 1) :
+    Filter.Tendsto (fun T : ℝ => laplaceIntegralCpowTrunc φ a 1 T)
+      Filter.atTop (nhds (φ 0)) := by
+  simpa using kadiri_laplace_positive_line_pv
+    (φ := φ) hφ _hb hφ_decay ha hab (by norm_num : (0 : ℝ) < 1)
+
+/-- Rewrites `I_1(T)` eventually as the constant `-log pi` times the truncated
+positive-line Laplace inversion integral at `x = 1`. -/
+lemma kadiri_thm_3_1_q1_I_1_eventually_eq_const_mul_trunc
+    (φ : ℝ → ℂ) (a : ℝ) :
+    (fun T : ℝ => kadiri_thm_3_1_q1_I_1 φ a T)
+      =ᶠ[Filter.atTop]
+    (fun T : ℝ => (((-Real.log Real.pi : ℝ) : ℂ) *
+      laplaceIntegralCpowTrunc φ a 1 T)) := by
+  let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+  filter_upwards [Filter.eventually_ge_atTop (0 : ℝ)] with T hT
+  have hle : -T ≤ T := by linarith
+  have hset_to_interval :
+      ∫ t in Set.Ioo (-T) T, Φ (((a : ℝ) : ℂ) - (t : ℂ) * I) =
+        ∫ t in (-T)..T, Φ (((a : ℝ) : ℂ) - (t : ℂ) * I) := by
+    rw [intervalIntegral.integral_of_le hle,
+      MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  have hflip :
+      ∫ t in (-T)..T, Φ (((a : ℝ) : ℂ) - (t : ℂ) * I) =
+        ∫ t in (-T)..T, Φ (((a : ℝ) : ℂ) + (t : ℂ) * I) := by
+    simpa [sub_eq_add_neg, neg_mul, add_comm, add_left_comm, add_assoc] using
+      (intervalIntegral.integral_comp_neg
+        (fun t : ℝ => Φ (((a : ℝ) : ℂ) + (t : ℂ) * I))
+        (a := -T) (b := T))
+  rw [kadiri_thm_3_1_q1_I_1, laplaceIntegralCpowTrunc]
+  dsimp only
+  have h_integrand :
+      (fun t : ℝ =>
+        (((-Real.log Real.pi : ℝ) : ℂ) *
+          ∫ y, φ y * exp (- -(((-a : ℝ) : ℂ) + (t : ℂ) * I) * (y : ℂ)) ∂volume))
+        =
+      (fun t : ℝ =>
+        (((-Real.log Real.pi : ℝ) : ℂ) *
+          Φ (((a : ℝ) : ℂ) - (t : ℂ) * I))) := by
+    funext t
+    congr 1
+    simp [Φ]
+    congr 1
+    ring_nf
+  rw [show
+      (∫ t in Set.Ioo (-T) T,
+        (((-Real.log Real.pi : ℝ) : ℂ) *
+          ∫ y, φ y * exp (- -(((-a : ℝ) : ℂ) + (t : ℂ) * I) * (y : ℂ)) ∂volume))
+        =
+      ∫ t in Set.Ioo (-T) T,
+        (((-Real.log Real.pi : ℝ) : ℂ) *
+          Φ (((a : ℝ) : ℂ) - (t : ℂ) * I)) by
+        rw [h_integrand]]
+  rw [MeasureTheory.integral_const_mul]
+  have h_laplace :
+      ∫ t in (-T)..T, Φ (((a : ℝ) : ℂ) + (t : ℂ) * I) =
+        ∫ t in (-T)..T,
+          laplaceIntegral φ (((a : ℝ) : ℂ) + I * (t : ℂ)) *
+            (((1 : ℝ) : ℂ) ^ (((a : ℝ) : ℂ) + I * (t : ℂ))) := by
+    apply intervalIntegral.integral_congr
+    intro t _ht
+    simp only [Complex.ofReal_one, one_cpow, mul_one]
+    dsimp [laplaceIntegral, Φ]
+    apply integral_congr_ae
+    filter_upwards with y
+    apply congrArg (fun z : ℂ => φ y * exp (-z * (y : ℂ)))
+    ring_nf
+  rw [hset_to_interval, hflip, h_laplace]
+  ring_nf
+
 @[blueprint
   "kadiri-thm-3-1-q1-eq-13"
   (title := "Equation (13) of \\cite{Kadiri2005}: limit of $I_1(T)$")
@@ -747,16 +981,25 @@ theorem kadiri_thm_3_1_q1_shifted_eq_I123
   (latexEnv := "sublemma")
   (discussion := 1542)]
 theorem kadiri_thm_3_1_q1_eq_13
-    {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
-    {b : ℝ} (_hb : 0 < b)
-    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
     (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1) :
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
     Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I_1 φ a T)
       Filter.atTop (nhds (φ 0 * ((-Real.log Real.pi : ℝ) : ℂ))) := by
-  sorry
+  let c : ℂ := ((-Real.log Real.pi : ℝ) : ℂ)
+  have hraw := kadiri_laplace_positive_line_pv_one
+    (φ := φ) hφ hb hφ_decay ha hab ha1
+  have hmul : Filter.Tendsto
+      (fun T : ℝ => c * laplaceIntegralCpowTrunc φ a 1 T)
+      Filter.atTop (nhds (c * φ 0)) := hraw.const_mul c
+  have heq := kadiri_thm_3_1_q1_I_1_eventually_eq_const_mul_trunc φ a
+  refine hmul.congr' ?_ |>.trans_eq ?_
+  · exact heq.symm
+  · simp [c, mul_comm]
 
 @[blueprint
   "kadiri-thm-3-1-q1-eq-14"
