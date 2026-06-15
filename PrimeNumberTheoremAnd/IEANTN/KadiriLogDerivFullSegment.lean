@@ -428,6 +428,70 @@ theorem kadiri_moving_pole_zeta_principal_part_truncated_horizontal_integral_ord
           ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) * C := by
           rw [kadiriTruncatedNontrivialZeros_orderNorm_sum_eq R]
 
+/-- The dyadic truncated order sum is bounded by the weighted zero-counting profile. -/
+theorem kadiriTruncatedNontrivialZeros_dyadic_order_sum_le_weighted_count (k : ℕ) :
+    (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+        ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) ≤
+      2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| + weightedZeroHeightBucket := by
+  classical
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  let e :
+      {rho : NontrivialZeros // rho ∈ kadiriTruncatedNontrivialZeros R} ≃
+        {rho : NontrivialZeros // |(rho : ℂ).im| < R} :=
+    Equiv.subtypeEquivRight fun rho ↦
+      mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)
+  haveI : Fintype {rho : NontrivialZeros // |(rho : ℂ).im| < R} :=
+    (nontrivialZeros_abs_im_lt_finite R).fintype
+  have hsum_eq :
+      (∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+          ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) =
+        ∑ rho : {rho : NontrivialZeros // |(rho : ℂ).im| < R},
+          ((riemannZeta.order ((rho : NontrivialZeros) : ℂ) : ℤ) : ℝ) := by
+    rw [← Finset.sum_attach]
+    exact Fintype.sum_equiv e _ _ fun rho ↦ rfl
+  have hweighted :
+      (∑' rho : {rho : NontrivialZeros // |(rho : ℂ).im| < R},
+          ((riemannZeta.order ((rho : NontrivialZeros) : ℂ) : ℤ) : ℝ)) ≤
+        2 * |riemannZeta.N R| + weightedZeroHeightBucket := by
+    simpa [R] using weighted_cumulative_count_le k
+  simpa [R, hsum_eq, tsum_fintype] using hweighted
+
+/--
+Dyadic truncated-zero version of the moving-pole bound after discharging the order sum by
+the weighted zero-counting profile.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weighted_count_bound
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (T : ℝ),
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) → (rho : ℂ).im ≠ T) →
+          ‖∫ σ in (-a)..(1 + a), (
+              ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+                weightedZeroHeightBucket) * C := by
+  classical
+  obtain ⟨C, hC, htrunc⟩ :=
+    kadiri_moving_pole_zeta_principal_part_truncated_horizontal_integral_order_sum_bound
+      a e ((2 : ℝ) ^ (k + 1)) he hea
+  refine ⟨C, hC, ?_⟩
+  intro T hoff
+  calc
+    ‖∫ σ in (-a)..(1 + a), (
+        ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        ≤ (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) * C :=
+          htrunc T hoff
+    _ ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * C := by
+          exact mul_le_mul_of_nonneg_right
+            (kadiriTruncatedNontrivialZeros_dyadic_order_sum_le_weighted_count k)
+            hC
+
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
 
