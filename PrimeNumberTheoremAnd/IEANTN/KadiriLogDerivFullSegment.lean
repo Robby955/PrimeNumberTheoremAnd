@@ -36,7 +36,7 @@ open scoped Topology Interval
 /--
 Functional-equation transport for the nonpositive real part of the horizontal segment.
 
-This is the first L2 brick: when `s = sigma + T * I`, `sigma <= 0`, and `T != 0`, the
+This is the initial L2 brick: when `s = sigma + T * I`, `sigma <= 0`, and `T != 0`, the
 denominators in Kadiri's functional-equation identity are nonzero without an assumed
 zero-free hypothesis.  The point `s` is zero-free by the left-half-plane zeta lemma, and
 the reflected point `1 - s` has real part at least `1`.
@@ -491,6 +491,56 @@ theorem kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weight
           exact mul_le_mul_of_nonneg_right
             (kadiriTruncatedNontrivialZeros_dyadic_order_sum_le_weighted_count k)
             hC
+
+/--
+The finite set of truncated zero heights can be avoided for cofinally many horizontal
+segment heights.
+-/
+theorem kadiri_truncated_zero_family_eventually_off_height (R : ℝ) :
+    ∀ᶠ T : ℝ in Filter.cofinite,
+      ∀ rho : NontrivialZeros, |(rho : ℂ).im| < R → (rho : ℂ).im ≠ T := by
+  classical
+  rw [Filter.eventually_cofinite]
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros R
+  let bad : Set ℝ := (fun rho : NontrivialZeros => (rho : ℂ).im) '' (S : Set NontrivialZeros)
+  have hbad_finite : bad.Finite := by
+    simpa [bad] using
+      (S.finite_toSet.image (fun rho : NontrivialZeros => (rho : ℂ).im))
+  refine Set.Finite.subset hbad_finite ?_
+  intro T hT
+  rw [Set.mem_setOf_eq] at hT
+  by_contra hT_not_bad
+  apply hT
+  intro rho hrho hEq
+  apply hT_not_bad
+  exact ⟨rho, by simpa [S] using
+    (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mpr hrho, hEq⟩
+
+/--
+Cofinite-height form of the dyadic moving-pole bound.  This discharges the explicit
+off-pole hypothesis in the weighted-count estimate by deleting the finitely many bad
+zero heights.
+-/
+theorem
+    kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weighted_count_eventually
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in Filter.cofinite,
+        ‖∫ σ in (-a)..(1 + a), (
+            ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C := by
+  classical
+  obtain ⟨C, hC, hbound⟩ :=
+    kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weighted_count_bound
+      a e he hea k
+  refine ⟨C, hC, ?_⟩
+  filter_upwards
+    [kadiri_truncated_zero_family_eventually_off_height ((2 : ℝ) ^ (k + 1))]
+    with T hoff
+  exact hbound T hoff
 
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
