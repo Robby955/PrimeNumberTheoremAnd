@@ -543,6 +543,80 @@ theorem
   exact hbound T hoff
 
 /--
+Assembly step for the dyadic principal part and a verified Hadamard/PV remainder budget.
+
+The pole selector is discharged by the cofinite-height lemma; the remaining inputs are the
+remainder's interval-integrability and its integral bound.
+-/
+theorem
+    kadiri_moving_pole_zeta_principal_part_dyadic_with_remainder_eventually_bound
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ)
+    (rem : ℝ → ℝ → ℂ) (B : ℝ)
+    (hrem_int : ∀ᶠ T : ℝ in Filter.cofinite,
+      IntervalIntegrable (fun σ : ℝ => rem T σ) volume (-a) (1 + a))
+    (hrem_bound : ∀ᶠ T : ℝ in Filter.cofinite,
+      ‖∫ σ in (-a)..(1 + a), rem T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in Filter.cofinite,
+        ‖∫ σ in (-a)..(1 + a), (
+            (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) + rem T σ)‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  classical
+  obtain ⟨C, hC, hprincipal_bound⟩ :=
+    kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weighted_count_eventually
+      a e he hea k
+  refine ⟨C, hC, ?_⟩
+  filter_upwards
+    [hprincipal_bound, hrem_int, hrem_bound,
+      kadiri_truncated_zero_family_eventually_off_height ((2 : ℝ) ^ (k + 1))]
+    with T hprincipal hrem_integrable hrem_norm hoff
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros R
+  let p : NontrivialZeros → ℝ → ℂ := fun rho σ =>
+    ((riemannZeta.order (rho : ℂ) : ℂ) /
+      (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  let principal : ℝ → ℂ := ∑ rho ∈ S, p rho
+  have hprincipal_integrable :
+      IntervalIntegrable principal volume (-a) (1 + a) := by
+    have hp : ∀ rho ∈ S, IntervalIntegrable (p rho) volume (-a) (1 + a) := by
+      intro rho hrho
+      have hheight : |(rho : ℂ).im| < R := by
+        simpa [S] using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+      exact kadiri_moving_pole_principal_part_intervalIntegrable
+        a ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) (hoff rho hheight)
+    have hsum : IntervalIntegrable (∑ rho ∈ S, p rho) volume (-a) (1 + a) :=
+      IntervalIntegrable.sum S hp
+    simpa [principal] using hsum
+  have hsplit :
+      (∫ σ in (-a)..(1 + a), principal σ + rem T σ) =
+        (∫ σ in (-a)..(1 + a), principal σ) +
+          ∫ σ in (-a)..(1 + a), rem T σ := by
+    exact intervalIntegral.integral_add hprincipal_integrable hrem_integrable
+  have hprincipal' :
+      ‖∫ σ in (-a)..(1 + a), principal σ‖
+        ≤ (2 * |riemannZeta.N R| + weightedZeroHeightBucket) * C := by
+    simpa [principal, p, S, R, Finset.sum_apply] using hprincipal
+  calc
+    ‖∫ σ in (-a)..(1 + a), (
+        (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) + rem T σ)‖
+        = ‖∫ σ in (-a)..(1 + a), principal σ + rem T σ‖ := by
+          simp [principal, p, S, R, Finset.sum_apply]
+    _ = ‖(∫ σ in (-a)..(1 + a), principal σ) +
+          ∫ σ in (-a)..(1 + a), rem T σ‖ := by
+          rw [hsplit]
+    _ ≤ ‖∫ σ in (-a)..(1 + a), principal σ‖ +
+          ‖∫ σ in (-a)..(1 + a), rem T σ‖ :=
+          norm_add_le _ _
+    _ ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * C + B := by
+          simpa [R] using add_le_add hprincipal' hrem_norm
+
+/--
 Concrete truncated-zero version of the finite-family moving-pole bound.
 
 The hypotheses left open are exactly the later off-pole and multiplicity-budget obligations:
