@@ -360,6 +360,74 @@ theorem kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_ca
 def kadiriTruncatedNontrivialZeros (R : ℝ) : Finset NontrivialZeros :=
   (nontrivialZeros_abs_im_lt_finite R).toFinset
 
+/-- Membership in the finite absolute-height truncation. -/
+@[simp] theorem mem_kadiriTruncatedNontrivialZeros {R : ℝ} {rho : NontrivialZeros} :
+    rho ∈ kadiriTruncatedNontrivialZeros R ↔ |(rho : ℂ).im| < R := by
+  unfold kadiriTruncatedNontrivialZeros
+  exact (nontrivialZeros_abs_im_lt_finite R).mem_toFinset
+
+/-- For a non-trivial zero, the complex norm of the zeta order is its real order. -/
+theorem kadiri_nontrivial_zero_zeta_order_norm_eq (rho : NontrivialZeros) :
+    ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ =
+      ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ) := by
+  have hordZ : (0 : ℤ) ≤ riemannZeta.order (rho : ℂ) :=
+    riemannZeta_order_nonneg (nontrivialZero_ne_one rho)
+  rw [Complex.norm_intCast]
+  exact_mod_cast abs_of_nonneg hordZ
+
+/-- The truncated family's norm budget is its order-weighted multiplicity sum. -/
+theorem kadiriTruncatedNontrivialZeros_orderNorm_sum_eq (R : ℝ) :
+    (∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) =
+      ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+        ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ) := by
+  refine Finset.sum_congr rfl fun rho _hrho ↦ ?_
+  exact kadiri_nontrivial_zero_zeta_order_norm_eq rho
+
+/--
+Concrete truncated-zero version of the moving-pole bound with the actual order sum on the
+right-hand side.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_truncated_horizontal_integral_order_sum_bound
+    (a e R : ℝ) (he : 0 < e) (hea : e ≤ a) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (T : ℝ),
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R → (rho : ℂ).im ≠ T) →
+          ‖∫ σ in (-a)..(1 + a), (
+              ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+                ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) * C := by
+  classical
+  obtain ⟨C, hC, hsum⟩ :=
+    kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro T hoff
+  have hS :
+      ∀ rho ∈ kadiriTruncatedNontrivialZeros R,
+        (rho : ℂ).re ∈ Set.Icc (-a + e) (1 + a - e) ∧ (rho : ℂ).im ≠ T := by
+    intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      simpa using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+    constructor
+    · constructor
+      · linarith [rho.property.1.1, hea]
+      · linarith [rho.property.1.2, hea]
+    · exact hoff rho him
+  calc
+    ‖∫ σ in (-a)..(1 + a), (
+        ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        ≤ (∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+            ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C :=
+          hsum (kadiriTruncatedNontrivialZeros R) T hS
+    _ = (∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+          ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) * C := by
+          rw [kadiriTruncatedNontrivialZeros_orderNorm_sum_eq R]
+
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
 
