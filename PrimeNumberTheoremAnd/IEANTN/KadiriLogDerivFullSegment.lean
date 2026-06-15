@@ -30,7 +30,7 @@ noncomputable section
 
 namespace Kadiri
 
-open Complex Filter
+open Complex Filter MeasureTheory
 open scoped Topology Interval
 
 /--
@@ -251,5 +251,109 @@ theorem kadiri_moving_pole_zeta_principal_part_horizontal_integral_bound
   refine ⟨C, hC, ?_⟩
   intro T rho hrho hT
   exact hbound ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) hrho hT
+
+/-- The off-segment moving-pole integrand is interval-integrable on the horizontal segment. -/
+theorem kadiri_moving_pole_principal_part_intervalIntegrable
+    (a : ℝ) (A : ℂ) (T : ℝ) (rho : ℂ) (hT : rho.im ≠ T) :
+    IntervalIntegrable
+      (fun σ : ℝ => A / (((σ : ℂ) + (T : ℂ) * I) - rho))
+      volume (-a) (1 + a) := by
+  have hden_ne (σ : ℝ) : (((σ : ℂ) + (T : ℂ) * I) - rho) ≠ 0 := by
+    intro hzero
+    apply hT
+    have hzero_im : (((σ : ℂ) + (T : ℂ) * I) - rho).im = 0 := by
+      rw [hzero]
+      simp
+    have hdiff : T - rho.im = 0 := by
+      simpa using hzero_im
+    exact (sub_eq_zero.mp hdiff).symm
+  exact (continuous_const.div (by fun_prop) hden_ne).intervalIntegrable _ _
+
+/--
+Finite-family version of the moving-pole zeta principal-part integral bound.
+
+The right side keeps the sum of multiplicity norms explicit; this is the budget that later
+zero-counting estimates must discharge for a concrete truncated zero family.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (S : Finset NontrivialZeros) (T : ℝ),
+        (∀ rho ∈ S,
+          (rho : ℂ).re ∈ Set.Icc (-a + e) (1 + a - e) ∧ (rho : ℂ).im ≠ T) →
+          ‖∫ σ in (-a)..(1 + a), (
+              ∑ rho ∈ S,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C := by
+  classical
+  obtain ⟨C, hC, hsingle⟩ :=
+    kadiri_moving_pole_zeta_principal_part_horizontal_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro S T hS
+  let f : NontrivialZeros → ℝ → ℂ := fun rho σ =>
+    ((riemannZeta.order (rho : ℂ) : ℂ) /
+      (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  have hint : ∀ rho ∈ S, IntervalIntegrable (f rho) volume (-a) (1 + a) := by
+    intro rho hrho
+    exact kadiri_moving_pole_principal_part_intervalIntegrable
+      a ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) (hS rho hrho).2
+  have hintegral_sum :
+      (∫ σ in (-a)..(1 + a), ∑ rho ∈ S, f rho σ) =
+        ∑ rho ∈ S, ∫ σ in (-a)..(1 + a), f rho σ := by
+    exact intervalIntegral.integral_finsetSum hint
+  calc
+    ‖∫ σ in (-a)..(1 + a), (
+        ∑ rho ∈ S,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        = ‖∫ σ in (-a)..(1 + a), ∑ rho ∈ S, f rho σ‖ := by
+          simp [f]
+    _ = ‖∑ rho ∈ S, ∫ σ in (-a)..(1 + a), f rho σ‖ := by
+          rw [hintegral_sum]
+    _ ≤ ∑ rho ∈ S, ‖∫ σ in (-a)..(1 + a), f rho σ‖ :=
+          norm_sum_le _ _
+    _ ≤ ∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * C := by
+          refine Finset.sum_le_sum fun rho hrho => ?_
+          simpa [f] using hsingle T rho (hS rho hrho).1 (hS rho hrho).2
+    _ = (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C := by
+          rw [Finset.sum_mul]
+
+/--
+Coarse cardinality-budget form of the finite-family moving-pole bound.
+
+It is ready for a later zero-counting lemma that supplies a family size and a uniform
+multiplicity cap.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_card_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (S : Finset NontrivialZeros) (T M : ℝ),
+        (∀ rho ∈ S,
+          (rho : ℂ).re ∈ Set.Icc (-a + e) (1 + a - e) ∧ (rho : ℂ).im ≠ T) →
+        (∀ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) →
+          ‖∫ σ in (-a)..(1 + a), (
+              ∑ rho ∈ S,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ ((S.card : ℝ) * M) * C := by
+  classical
+  obtain ⟨C, hC, hsum⟩ :=
+    kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro S T M hS hM
+  calc
+    ‖∫ σ in (-a)..(1 + a), (
+        ∑ rho ∈ S,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        ≤ (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C :=
+          hsum S T hS
+    _ ≤ (∑ rho ∈ S, M) * C := by
+          exact mul_le_mul_of_nonneg_right
+            (Finset.sum_le_sum fun rho hrho => hM rho hrho)
+            hC
+    _ = ((S.card : ℝ) * M) * C := by
+          simp [Finset.sum_const, nsmul_eq_mul]
 
 end Kadiri
