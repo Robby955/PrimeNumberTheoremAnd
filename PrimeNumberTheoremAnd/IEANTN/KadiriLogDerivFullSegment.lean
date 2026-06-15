@@ -113,6 +113,40 @@ theorem kadiri_reflected_logDeriv_bound_from_right_halfplane :
   simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, abs_neg] using h
 
 /--
+Integral wrapper for the reflected zeta term on the nonpositive part of the horizontal
+segment.
+-/
+theorem kadiri_reflected_logDeriv_nonpositive_horizontal_integral_bound
+    (a : ℝ) (ha : 0 ≤ a) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ {T : ℝ}, 3 < |T| →
+        ‖∫ σ in (-a)..0,
+            deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
+              riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))‖
+          ≤ (C * Real.log |T| ^ 9) * a := by
+  obtain ⟨C, hC, hpointwise⟩ := kadiri_reflected_logDeriv_bound_from_right_halfplane
+  refine ⟨C, hC.le, ?_⟩
+  intro T hT
+  have hle : -a ≤ 0 := by linarith
+  have hpoint :
+      ∀ σ ∈ Ι (-a) 0,
+        ‖deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
+            riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))‖
+          ≤ C * Real.log |T| ^ 9 := by
+    intro σ hσ
+    have hσ_nonpos : σ ≤ 0 := by
+      rw [Set.uIoc_of_le hle] at hσ
+      exact hσ.2
+    exact hpointwise (sigma := σ) (T := T) hσ_nonpos hT
+  have hnorm :=
+    intervalIntegral.norm_integral_le_of_norm_le_const
+      (a := -a) (b := 0) (C := C * Real.log |T| ^ 9)
+      (f := fun σ : ℝ =>
+        deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
+          riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))) hpoint
+  simpa [sub_eq_add_neg, abs_of_nonneg ha] using hnorm
+
+/--
 Local principal-part control for the logarithmic derivative at an analytic zero.
 
 If `f` has order `n > 0` at `p`, then `f'/f - n/(s-p)` is bounded in a punctured
