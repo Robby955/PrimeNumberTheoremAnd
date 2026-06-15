@@ -356,4 +356,58 @@ theorem kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_ca
     _ = ((S.card : ℝ) * M) * C := by
           simp [Finset.sum_const, nsmul_eq_mul]
 
+/-- The concrete finite family of non-trivial zeros with bounded absolute height. -/
+def kadiriTruncatedNontrivialZeros (R : ℝ) : Finset NontrivialZeros :=
+  (nontrivialZeros_abs_im_lt_finite R).toFinset
+
+/--
+Concrete truncated-zero version of the finite-family moving-pole bound.
+
+The hypotheses left open are exactly the later off-pole and multiplicity-budget obligations:
+no member of the truncated family lies on the horizontal line at height `T`, and every member
+has multiplicity norm at most `M`.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_truncated_horizontal_integral_card_bound
+    (a e R : ℝ) (he : 0 < e) (hea : e ≤ a) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (T M : ℝ),
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R → (rho : ℂ).im ≠ T) →
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R →
+            ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) →
+          ‖∫ σ in (-a)..(1 + a), (
+              ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * C := by
+  classical
+  obtain ⟨C, hC, hcard⟩ :=
+    kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_card_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro T M hoff hM
+  refine hcard (kadiriTruncatedNontrivialZeros R) T M ?_ ?_
+  · intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      have hmem :
+          rho ∈ ({rho : NontrivialZeros | |(rho : ℂ).im| < R} :
+            Set NontrivialZeros) := by
+        exact (nontrivialZeros_abs_im_lt_finite R).mem_toFinset.mp
+          (by simpa [kadiriTruncatedNontrivialZeros] using hrho)
+      simpa using hmem
+    constructor
+    · constructor
+      · linarith [rho.property.1.1, hea]
+      · linarith [rho.property.1.2, hea]
+    · exact hoff rho him
+  · intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      have hmem :
+          rho ∈ ({rho : NontrivialZeros | |(rho : ℂ).im| < R} :
+            Set NontrivialZeros) := by
+        exact (nontrivialZeros_abs_im_lt_finite R).mem_toFinset.mp
+          (by simpa [kadiriTruncatedNontrivialZeros] using hrho)
+      simpa using hmem
+    exact hM rho him
+
 end Kadiri
