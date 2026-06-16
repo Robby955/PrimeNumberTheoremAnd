@@ -810,6 +810,80 @@ theorem
           simpa [R] using add_le_add hprincipal' hrem_norm
 
 /--
+Filter-parametric version of the dyadic principal-part plus remainder assembly.
+
+This lets the later actual off-pole argument work on a filter that is finer than
+`cofinite`, for example a cofinite filter restricted to heights avoiding all zeta zeros.
+-/
+theorem
+    kadiri_moving_pole_zeta_principal_part_dyadic_with_remainder_eventually_bound_on_filter
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ)
+    (rem : ℝ → ℝ → ℂ) (B : ℝ) (L : Filter ℝ) (hL : L ≤ Filter.cofinite)
+    (hrem_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable (fun σ : ℝ => rem T σ) volume (-a) (1 + a))
+    (hrem_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..(1 + a), rem T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a), (
+            (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) + rem T σ)‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  classical
+  obtain ⟨C, hC, hprincipal_bound⟩ :=
+    kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weighted_count_eventually
+      a e he hea k
+  refine ⟨C, hC, ?_⟩
+  filter_upwards
+    [hprincipal_bound.filter_mono hL, hrem_int, hrem_bound,
+      (kadiri_truncated_zero_family_eventually_off_height ((2 : ℝ) ^ (k + 1))).filter_mono hL]
+    with T hprincipal hrem_integrable hrem_norm hoff
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros R
+  let p : NontrivialZeros → ℝ → ℂ := fun rho σ =>
+    ((riemannZeta.order (rho : ℂ) : ℂ) /
+      (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  let principal : ℝ → ℂ := ∑ rho ∈ S, p rho
+  have hprincipal_integrable :
+      IntervalIntegrable principal volume (-a) (1 + a) := by
+    have hp : ∀ rho ∈ S, IntervalIntegrable (p rho) volume (-a) (1 + a) := by
+      intro rho hrho
+      have hheight : |(rho : ℂ).im| < R := by
+        simpa [S] using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+      exact kadiri_moving_pole_principal_part_intervalIntegrable
+        a ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) (hoff rho hheight)
+    have hsum : IntervalIntegrable (∑ rho ∈ S, p rho) volume (-a) (1 + a) :=
+      IntervalIntegrable.sum S hp
+    simpa [principal] using hsum
+  have hsplit :
+      (∫ σ in (-a)..(1 + a), principal σ + rem T σ) =
+        (∫ σ in (-a)..(1 + a), principal σ) +
+          ∫ σ in (-a)..(1 + a), rem T σ := by
+    exact intervalIntegral.integral_add hprincipal_integrable hrem_integrable
+  have hprincipal' :
+      ‖∫ σ in (-a)..(1 + a), principal σ‖
+        ≤ (2 * |riemannZeta.N R| + weightedZeroHeightBucket) * C := by
+    simpa [principal, p, S, R, Finset.sum_apply] using hprincipal
+  calc
+    ‖∫ σ in (-a)..(1 + a), (
+        (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) + rem T σ)‖
+        = ‖∫ σ in (-a)..(1 + a), principal σ + rem T σ‖ := by
+          simp [principal, p, S, R, Finset.sum_apply]
+    _ = ‖(∫ σ in (-a)..(1 + a), principal σ) +
+          ∫ σ in (-a)..(1 + a), rem T σ‖ := by
+          rw [hsplit]
+    _ ≤ ‖∫ σ in (-a)..(1 + a), principal σ‖ +
+          ‖∫ σ in (-a)..(1 + a), rem T σ‖ :=
+          norm_add_le _ _
+    _ ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * C + B := by
+          simpa [R] using add_le_add hprincipal' hrem_norm
+
+/--
 If a Hadamard/PV decomposition identifies the actual zeta logarithmic derivative with the
 dyadic principal part plus a controlled remainder on the full horizontal segment, the
 previous pole-sum and remainder estimate gives the actual off-pole segment bound.
@@ -902,6 +976,60 @@ theorem
   exact Filter.Eventually.of_forall fun T => by
     intro σ _hσ
     simp [kadiriDyadicHadamardPVRemainder]
+
+/--
+Filter-parametric actual off-pole bound for the concrete dyadic Hadamard/PV remainder.
+
+Use this form when the final contour argument works on a finer off-pole height filter
+rather than on all but finitely many real heights.
+-/
+theorem
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_budget_on_filter
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ) (B : ℝ)
+    (L : Filter ℝ) (hL : L ≤ Filter.cofinite)
+    (hrem_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable (fun σ : ℝ => kadiriDyadicHadamardPVRemainder k T σ)
+        volume (-a) (1 + a))
+    (hrem_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  obtain ⟨C, hC, hbound⟩ :=
+    kadiri_moving_pole_zeta_principal_part_dyadic_with_remainder_eventually_bound_on_filter
+      a e he hea k (kadiriDyadicHadamardPVRemainder k) B L hL hrem_int hrem_bound
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [hbound] with T hT_bound
+  have hEq :
+      Set.EqOn
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        (fun σ : ℝ =>
+          (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) +
+            kadiriDyadicHadamardPVRemainder k T σ)
+        [[-a, 1 + a]] := by
+    intro σ _hσ
+    simp [kadiriDyadicHadamardPVRemainder]
+  calc
+    ‖∫ σ in (-a)..(1 + a),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖∫ σ in (-a)..(1 + a), (
+            (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) +
+              kadiriDyadicHadamardPVRemainder k T σ)‖ := by
+          rw [intervalIntegral.integral_congr hEq]
+    _ ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * C + B :=
+          hT_bound
 
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
