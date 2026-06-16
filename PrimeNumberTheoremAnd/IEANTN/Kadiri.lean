@@ -3511,6 +3511,42 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
   simp_rw [show ∀ (t : ℝ), (t : ℂ) * I = I * (t : ℂ) from fun _ => mul_comm _ _]
   ring
 
+noncomputable def kadiri_thm_3_1_q1_limit_hypotheses (φ : ℝ → ℂ) (a : ℝ) : Prop :=
+  let Φ : ℂ → ℂ := fun z ↦ ∫ y, φ y * exp (-z * (y : ℂ)) ∂volume
+  Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) Filter.atTop
+    (nhds (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) ∧
+  Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) Filter.atTop
+    (nhds
+      (φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
+      + (-∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n))
+      + (Φ 0
+        + (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                Φ (-(1 / 2 + (t : ℂ) * I)))
+      + Φ (-1)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ Φ (-ρ))))
+
+theorem kadiri_thm_3_1_q1_of_limit_hypotheses {φ : ℝ → ℂ} {a : ℝ}
+    (hlim : kadiri_thm_3_1_q1_limit_hypotheses φ a) :
+    let Φ : ℂ → ℂ := fun z ↦ ∫ y, φ y * exp (-z * (y : ℂ)) ∂volume
+    (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n)) =
+      Φ (-1) + Φ 0
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ Φ (-ρ))
+        - φ 0 * ((Real.log Real.pi : ℝ) : ℂ)
+        - ∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n)
+        + (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                Φ (-(1 / 2 + (t : ℂ) * I)) := by
+  intro Φ
+  rcases hlim with ⟨lim_I_from_eq11, lim_I_from_pieces⟩
+  have heq := tendsto_nhds_unique lim_I_from_eq11 lim_I_from_pieces
+  rw [heq]
+  push_cast
+  simp_rw [show ∀ (t : ℝ), (t : ℂ) * I = I * (t : ℂ) from fun _ => mul_comm _ _]
+  ring
+
 /-! ## Machinery for deriving (16) from Theorem 3.1
 
 Three sublemmas (\ref{kadiri-laplace-ibp}, \ref{kadiri-test-fn-contDiff} +
@@ -4803,7 +4839,7 @@ theorem kadiriTestFn_log (f : ℝ → ℝ) (s : ℂ) {n : ℕ} (hn : 1 ≤ n) :
 
 
 /-- Weighted complex form of equation (16), derived from the explicit formula
-`kadiri_thm_3_1_q1` at the Kadiri test function. The zero sum carries the
+the explicit `kadiri_thm_3_1_q1` limit package at the Kadiri test function. The zero sum carries the
 multiplicities that the residue calculus produces; the set-sum form of
 `identity_16_complex` follows when every zero in the strip is simple. The two
 hypotheses are the explicit formula's convergence inputs, instantiated at the
@@ -4815,10 +4851,11 @@ theorem identity_16_complex_weighted {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
     (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
     {s : ℂ} (hs : 1 < s.re)
-    (hΦ_sum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+    {a : ℝ} (hq1_limits : kadiri_thm_3_1_q1_limit_hypotheses (kadiriTestFn f s) a)
+    (_hΦ_sum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
       (∫ y, kadiriTestFn f s y * exp (ρ.val * (y : ℂ)) ∂volume) *
         (riemannZeta.order ρ.val : ℂ)))
-    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+    (_hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
       ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
         ∫ y, kadiriTestFn f s y *
           exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
@@ -4837,11 +4874,8 @@ theorem identity_16_complex_weighted {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     intro h
     rw [h] at hs
     norm_num at hs
-  -- the explicit formula at the test function
-  obtain ⟨b, hb, hdecay, hdecay'⟩ := kadiriTestFn_decay hf_supp hs
-  have hform := kadiri_thm_3_1_q1
-    (kadiriTestFn_contDiff hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d s)
-    hb hdecay hdecay' hΦ_sum hΓ_int
+  -- the explicit formula at the test function, with the analytic limits carried explicitly
+  have hform := kadiri_thm_3_1_q1_of_limit_hypotheses hq1_limits
   dsimp only at hform
   -- the pole value
   have hΦ1 : (∫ y, kadiriTestFn f s y *
@@ -5935,6 +5969,7 @@ theorem identity_16_complex_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : �
     (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
     (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
     {s : ℂ} (hs : 1 < s.re)
+    {a : ℝ} (hq1_limits : kadiri_thm_3_1_q1_limit_hypotheses (kadiriTestFn f s) a)
     (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
       ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
         ∫ y, kadiriTestFn f s y *
@@ -5951,7 +5986,7 @@ theorem identity_16_complex_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : �
               / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
           + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2) :=
   identity_16_complex_weighted hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d hs
-    (summable_kadiriTestFn_weighted_at_zeros hd hf_C2 hf_supp hf_d hf_deriv_0
+    hq1_limits (summable_kadiriTestFn_weighted_at_zeros hd hf_C2 hf_supp hf_d hf_deriv_0
       hf_deriv_d hs) hΓ_int
 
 @[blueprint
@@ -6067,6 +6102,7 @@ theorem identity_16_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → �
     (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
     (hf_deriv2_d : derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
     {s : ℂ} (hs : 1 < s.re)
+    {a : ℝ} (hq1_limits : kadiri_thm_3_1_q1_limit_hypotheses (kadiriTestFn f s) a)
     (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
       ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
         ∫ y, kadiriTestFn f s y *
@@ -6088,7 +6124,7 @@ theorem identity_16_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → �
                 / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
             + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re := by
   have hcomplex := identity_16_complex_weighted_of_integrable hd hf_C2 hf_supp hf_d
-    hf_deriv_0 hf_deriv_d hs hΓ_int
+    hf_deriv_0 hf_deriv_d hs hq1_limits hΓ_int
   have hsub := summable_lap_sub_pole_weighted_at_zeros hd hf_C2 hf_supp hf_d
     hf_deriv_0 hf_deriv_d hs
   have hzero_re :
@@ -6423,6 +6459,7 @@ theorem prop_2_1_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
     (hf_deriv2_d : derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
     {s : ℂ} (hs : 1 < s.re)
+    {a : ℝ} (hq1_limits : kadiri_thm_3_1_q1_limit_hypotheses (kadiriTestFn f s) a)
     (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
       ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
         ∫ y, kadiriTestFn f s y *
@@ -6445,7 +6482,7 @@ theorem prop_2_1_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
   refine ⟨summable_weighted_lap_re_at_zeros hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0
       hf_deriv_d hf_deriv2_d s, ?_⟩
   rw [identity_16_weighted_of_integrable hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0
-      hf_deriv_d hf_deriv2_d hs hΓ_int, re_inner_weighted_eq hs]
+      hf_deriv_d hf_deriv2_d hs hq1_limits hΓ_int, re_inner_weighted_eq hs]
 
 /-! ## Definitions for equation (5) of `Kadiri2005`
 
