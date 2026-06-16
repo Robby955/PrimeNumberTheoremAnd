@@ -960,6 +960,81 @@ noncomputable def kadiriDyadicZetaLogDerivPVRemainder (k : ℕ) (T σ : ℝ) : �
       ((riemannZeta.order (rho : ℂ) : ℂ) /
         (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
 
+/-- Complex-plane version of the sign-correct dyadic zeta Hadamard/PV remainder. -/
+noncomputable def kadiriDyadicZetaLogDerivPVRemainderComplex (k : ℕ) (s : ℂ) : ℂ :=
+  deriv riemannZeta s / riemannZeta s -
+    ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+      ((riemannZeta.order (rho : ℂ) : ℂ) / (s - (rho : ℂ)))
+
+/-- The real horizontal sign-correct remainder is the complex remainder on the line. -/
+theorem kadiriDyadicZetaLogDerivPVRemainder_eq_complex (k : ℕ) (T σ : ℝ) :
+    kadiriDyadicZetaLogDerivPVRemainder k T σ =
+      kadiriDyadicZetaLogDerivPVRemainderComplex k (((σ : ℂ) + (T : ℂ) * I)) := by
+  rfl
+
+/--
+At every zero retained by the dyadic truncation, the sign-correct finite Hadamard/PV
+remainder is locally bounded after the pole at that zero is subtracted.
+
+The single-zero analytic input is
+`kadiri_logDeriv_zeta_hadamard_pv_remainder_bound`; all other retained zero terms are
+ordinary continuous functions near this zero.
+-/
+theorem kadiriDyadicZetaLogDerivPVRemainderComplex_isBigO_at_truncated_zero
+    (k : ℕ) {rho : NontrivialZeros}
+    (hrho : rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))) :
+    kadiriDyadicZetaLogDerivPVRemainderComplex k =O[𝓝[≠] (rho : ℂ)]
+      (1 : ℂ → ℂ) := by
+  classical
+  let S : Finset NontrivialZeros :=
+    kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))
+  let poleTerm : NontrivialZeros → ℂ → ℂ := fun eta s =>
+    ((riemannZeta.order (eta : ℂ) : ℂ) / (s - (eta : ℂ)))
+  have hlocal :
+      ((deriv riemannZeta / riemannZeta) - fun s : ℂ => poleTerm rho s)
+        =O[𝓝[≠] (rho : ℂ)] (1 : ℂ → ℂ) := by
+    simpa [poleTerm] using kadiri_logDeriv_zeta_hadamard_pv_remainder_bound rho
+  have htail :
+      (fun s : ℂ => ∑ eta ∈ S.erase rho, poleTerm eta s)
+        =O[𝓝[≠] (rho : ℂ)] (1 : ℂ → ℂ) := by
+    refine Asymptotics.IsBigO.sum fun eta heta => ?_
+    have heta_ne : eta ≠ rho := (Finset.mem_erase.mp heta).1
+    have hval_ne : (rho : ℂ) ≠ (eta : ℂ) := by
+      intro hval
+      apply heta_ne
+      ext
+      exact hval.symm
+    have hcont :
+        ContinuousAt (fun s : ℂ => poleTerm eta s) (rho : ℂ) := by
+      exact continuousAt_const.div
+        (continuousAt_id.sub continuousAt_const)
+        (by simpa [poleTerm, sub_ne_zero] using hval_ne)
+    exact Asymptotics.IsBigO.mono
+      (hcont.norm.isBoundedUnder_le.isBigO_one ℂ) nhdsWithin_le_nhds
+  have hdecomp :
+      kadiriDyadicZetaLogDerivPVRemainderComplex k =ᶠ[𝓝[≠] (rho : ℂ)]
+        fun s : ℂ =>
+          ((deriv riemannZeta / riemannZeta) s - poleTerm rho s) -
+            ∑ eta ∈ S.erase rho, poleTerm eta s := by
+    exact Filter.Eventually.of_forall fun s => by
+      have hsum :
+          poleTerm rho s + (∑ eta ∈ S.erase rho, poleTerm eta s) =
+            ∑ eta ∈ S, poleTerm eta s := by
+        exact Finset.add_sum_erase S (fun eta => poleTerm eta s) (by simpa [S] using hrho)
+      change deriv riemannZeta s / riemannZeta s - (∑ eta ∈ S, poleTerm eta s) =
+        (deriv riemannZeta / riemannZeta) s - poleTerm rho s -
+          ∑ eta ∈ S.erase rho, poleTerm eta s
+      calc
+        deriv riemannZeta s / riemannZeta s - (∑ eta ∈ S, poleTerm eta s)
+            = deriv riemannZeta s / riemannZeta s -
+                (poleTerm rho s + ∑ eta ∈ S.erase rho, poleTerm eta s) := by
+              exact congrArg (fun z => deriv riemannZeta s / riemannZeta s - z) hsum.symm
+        _ = (deriv riemannZeta / riemannZeta) s - poleTerm rho s -
+              ∑ eta ∈ S.erase rho, poleTerm eta s := by
+              simp only [Pi.div_apply]
+              abel_nf
+  exact hdecomp.trans_isBigO (hlocal.sub htail)
+
 /-- Heights whose horizontal line avoids the pole at `1` and every non-trivial zeta zero. -/
 def kadiriHorizontalZetaOffPoleHeight (T : ℝ) : Prop :=
   T ≠ 0 ∧ ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T
