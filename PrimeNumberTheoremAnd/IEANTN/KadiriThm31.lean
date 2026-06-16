@@ -821,6 +821,88 @@ theorem riemannZeta_ne_zero_on_horizontal_border_of_offPole
     exact (riemannZeta_ne_zero_on_horizontal_of_offPole (T := T) (σ := σ) hT)
       htop_zero
 
+/-- There are no real zeta zeros in `(-1, 0)`. -/
+theorem kadiri_riemannZeta_neg_real_Ioo_ne_zero {a : ℝ} (ha : 0 < a) (ha1 : a < 1) :
+    riemannZeta (((-a : ℝ) : ℂ)) ≠ 0 := by
+  let w : ℂ := ((1 + a : ℝ) : ℂ)
+  have hw_zeta : riemannZeta w ≠ 0 := by
+    apply riemannZeta_ne_zero_of_one_lt_re
+    simp [w]
+    linarith
+  have hw_neg_nat : ∀ n : ℕ, w ≠ -↑n := by
+    intro n hn
+    have hre : w.re = (-(n : ℂ)).re := congrArg Complex.re hn
+    simp [w] at hre
+    have hnnonneg : (0 : ℝ) ≤ n := by exact_mod_cast Nat.zero_le n
+    linarith
+  have hw_ne_one : w ≠ 1 := by
+    intro h
+    have hre : w.re = (1 : ℂ).re := congrArg Complex.re h
+    simp [w] at hre
+    linarith
+  have hpow : (2 * ↑Real.pi : ℂ) ^ (-w) ≠ 0 := by
+    rw [Complex.cpow_ne_zero_iff]
+    left
+    norm_num [Complex.ofReal_ne_zero, Real.pi_ne_zero]
+  have hGamma : Complex.Gamma w ≠ 0 := by
+    apply Complex.Gamma_ne_zero_of_re_pos
+    simp [w]
+    linarith
+  have hcos : Complex.cos (↑Real.pi * w / 2) ≠ 0 := by
+    rw [Complex.cos_ne_zero_iff]
+    intro k hk
+    have hre : (↑Real.pi * w / 2).re =
+        (((2 * (k : ℂ) + 1) * ↑Real.pi / 2).re) :=
+      congrArg Complex.re hk
+    have hmain : 1 + a = (2 * k + 1 : ℝ) := by
+      have hscaled : Real.pi * (1 + a) / 2 =
+          (2 * (k : ℝ) + 1) * Real.pi / 2 := by
+        simpa [w, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using hre
+      nlinarith [Real.pi_pos]
+    have haeq : a = (2 * k : ℝ) := by linarith
+    cases le_or_gt k 0 with
+    | inl hk_nonpos =>
+        have hkreal : (2 * k : ℝ) ≤ 0 := by
+          exact_mod_cast
+            (mul_nonpos_of_nonneg_of_nonpos (by norm_num : (0 : ℤ) ≤ 2) hk_nonpos)
+        linarith
+    | inr hk_pos =>
+        have hk_one : (1 : ℤ) ≤ k := by omega
+        have hkreal : (2 : ℝ) ≤ 2 * k := by
+          exact_mod_cast (mul_le_mul_of_nonneg_left hk_one (by norm_num : (0 : ℤ) ≤ 2))
+        linarith
+  have hfactor : 2 * (2 * ↑Real.pi : ℂ) ^ (-w) * Complex.Gamma w *
+      Complex.cos (↑Real.pi * w / 2) * riemannZeta w ≠ 0 := by
+    exact mul_ne_zero
+      (mul_ne_zero (mul_ne_zero (mul_ne_zero (by norm_num) hpow) hGamma) hcos)
+      hw_zeta
+  have hfe := riemannZeta_one_sub (s := w) hw_neg_nat hw_ne_one
+  have hone : 1 - w = (((-a : ℝ) : ℂ)) := by
+    dsimp [w]
+    apply Complex.ext <;> simp
+  rw [hone] at hfe
+  rw [hfe]
+  exact hfactor
+
+theorem riemannZeta_ne_zero_of_neg_one_lt_re_nonpos
+    {z : ℂ} (hgt : -1 < z.re) (hle : z.re ≤ 0) :
+    riemannZeta z ≠ 0 := by
+  by_cases him : z.im = 0
+  · by_cases hre0 : z.re = 0
+    · have hz0 : z = 0 := by
+        apply Complex.ext <;> simp [hre0, him]
+      rw [hz0, riemannZeta_zero]
+      norm_num
+    · have hlt : z.re < 0 := lt_of_le_of_ne hle hre0
+      let a : ℝ := -z.re
+      have ha : 0 < a := by dsimp [a]; linarith
+      have ha1 : a < 1 := by dsimp [a]; linarith
+      have hz : z = (((-a : ℝ) : ℂ)) := by
+        apply Complex.ext <;> simp [a, him]
+      rw [hz]
+      exact kadiri_riemannZeta_neg_real_Ioo_ne_zero ha ha1
+  · exact riemannZeta_ne_zero_of_re_nonpos_im_ne_zero hle him
+
 /--
 At the zeta pole `s = 1`, the negative logarithmic derivative has principal
 part `1/(s-1)` and bounded remainder on the punctured neighborhood.
