@@ -55,6 +55,7 @@ import PrimeNumberTheoremAnd.IEANTN.ZetaAppendix
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.IEANTN.ZetaSummary
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
+import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.Mathlib.Algebra.Notation.Support
 import PrimeNumberTheoremAnd.Mathlib.Algebra.Order.Floor.Ring
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
@@ -97,8 +98,10 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Meromorphic.DivisorSupport
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.GammaStirlingAux
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.GammaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
