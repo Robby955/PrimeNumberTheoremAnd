@@ -946,6 +946,20 @@ noncomputable def kadiriDyadicHadamardPVRemainder (k : ℕ) (T σ : ℝ) : ℂ :
       ((riemannZeta.order (rho : ℂ) : ℂ) /
         (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
 
+/--
+Sign-correct dyadic zeta logarithmic-derivative remainder after subtracting the truncated
+zero principal part from `ζ'/ζ`.
+
+The concrete Kadiri integrand is `-ζ'/ζ`; this auxiliary keeps the analytic zero-local
+sign, so the local Hadamard/PV remainder estimates apply directly.
+-/
+noncomputable def kadiriDyadicZetaLogDerivPVRemainder (k : ℕ) (T σ : ℝ) : ℂ :=
+  deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I)) -
+    ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+
 /-- Heights whose horizontal line avoids the pole at `1` and every non-trivial zeta zero. -/
 def kadiriHorizontalZetaOffPoleHeight (T : ℝ) : Prop :=
   T ≠ 0 ∧ ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T
@@ -1069,6 +1083,27 @@ theorem kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole
   rw [hfun]
   simpa [S, p] using hsum
 
+/-- The sign-correct dyadic zeta Hadamard/PV remainder is integrable off the zero heights. -/
+theorem kadiriDyadicZetaLogDerivPVRemainder_intervalIntegrable_of_offPole
+    (a T : ℝ) (ha : 0 ≤ a) (k : ℕ) (hT : kadiriHorizontalZetaOffPoleHeight T) :
+    IntervalIntegrable (fun σ : ℝ => kadiriDyadicZetaLogDerivPVRemainder k T σ)
+      volume (-a) (1 + a) := by
+  have hactual :=
+    kadiri_neg_zeta_logDeriv_horizontal_intervalIntegrable_of_offPole a T ha hT
+  have hderiv :
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        volume (-a) (1 + a) := by
+    convert hactual.neg using 1
+    ext σ
+    simp
+    ring
+  have hprincipal :=
+    kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole a T k hT
+  simpa [kadiriDyadicZetaLogDerivPVRemainder] using hderiv.sub hprincipal
+
 /-- The concrete dyadic Hadamard/PV remainder is integrable on off-pole heights. -/
 theorem kadiriDyadicHadamardPVRemainder_intervalIntegrable_of_offPole
     (a T : ℝ) (ha : 0 ≤ a) (k : ℕ) (hT : kadiriHorizontalZetaOffPoleHeight T) :
@@ -1125,6 +1160,104 @@ theorem eventually_kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_b
   filter_upwards [hpoint] with T hT_point
   exact kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_bound
     a T ha k B hT_point
+
+/--
+The concrete Kadiri remainder budget follows from the sign-correct zeta remainder budget
+and the already-proved moving-pole weighted-count estimate.
+
+This is the analytic handoff: it is enough to control the integral of the genuinely
+Hadamard-local remainder for `ζ'/ζ`; the extra principal part caused by the `-ζ'/ζ`
+sign is absorbed by the same finite moving-pole estimate used in the full-segment assembly.
+-/
+theorem
+    eventually_kadiriDyadicHadamardPVRemainder_integral_bound_of_zeta_remainder_bound
+    (a e : ℝ) (ha : 0 ≤ a) (he : 0 < e) (hea : e ≤ a) (k : ℕ) (B : ℝ)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  classical
+  obtain ⟨C, hC, hprincipal_bound⟩ :=
+    kadiri_moving_pole_zeta_principal_part_dyadic_horizontal_integral_weighted_count_eventually
+      a e he hea k
+  refine ⟨2 * C, by positivity, ?_⟩
+  filter_upwards
+    [hprincipal_bound.filter_mono kadiriHorizontalZetaOffPoleFilter_le_cofinite,
+      hzeta_rem_bound, eventually_kadiriHorizontalZetaOffPoleHeight]
+    with T hprincipal hzeta_rem hT
+  let principal : ℝ → ℂ := fun σ =>
+    ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  let zetaRem : ℝ → ℂ := fun σ => kadiriDyadicZetaLogDerivPVRemainder k T σ
+  have hprincipal_int :
+      IntervalIntegrable principal volume (-a) (1 + a) := by
+    simpa [principal] using
+      kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole a T k hT
+  have hzetaRem_int :
+      IntervalIntegrable zetaRem volume (-a) (1 + a) := by
+    simpa [zetaRem] using
+      kadiriDyadicZetaLogDerivPVRemainder_intervalIntegrable_of_offPole a T ha k hT
+  have hscaled_int :
+      IntervalIntegrable (fun σ : ℝ => (2 : ℂ) * principal σ) volume (-a) (1 + a) :=
+    hprincipal_int.const_mul (2 : ℂ)
+  have hEq :
+      Set.EqOn
+        (fun σ : ℝ => kadiriDyadicHadamardPVRemainder k T σ)
+        (fun σ : ℝ => -zetaRem σ - (2 : ℂ) * principal σ)
+        [[-a, 1 + a]] := by
+    intro σ _hσ
+    simp [kadiriDyadicHadamardPVRemainder, kadiriDyadicZetaLogDerivPVRemainder,
+      zetaRem, principal]
+    ring
+  have hsplit :
+      (∫ σ in (-a)..(1 + a), -zetaRem σ - (2 : ℂ) * principal σ) =
+        -(∫ σ in (-a)..(1 + a), zetaRem σ) -
+          (2 : ℂ) * ∫ σ in (-a)..(1 + a), principal σ := by
+    calc
+      (∫ σ in (-a)..(1 + a), -zetaRem σ - (2 : ℂ) * principal σ)
+          = ∫ σ in (-a)..(1 + a),
+              ((-zetaRem) - fun τ : ℝ => (2 : ℂ) * principal τ) σ := by
+            rfl
+      _ = (∫ σ in (-a)..(1 + a), (-zetaRem) σ) -
+            ∫ σ in (-a)..(1 + a), (fun τ : ℝ => (2 : ℂ) * principal τ) σ := by
+            exact intervalIntegral.integral_sub hzetaRem_int.neg hscaled_int
+      _ = -(∫ σ in (-a)..(1 + a), zetaRem σ) -
+            (2 : ℂ) * ∫ σ in (-a)..(1 + a), principal σ := by
+            simp
+  have hprincipal' :
+      ‖∫ σ in (-a)..(1 + a), principal σ‖
+        ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+            weightedZeroHeightBucket) * C := by
+    simpa [principal] using hprincipal
+  calc
+    ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖
+        = ‖∫ σ in (-a)..(1 + a), -zetaRem σ - (2 : ℂ) * principal σ‖ := by
+          rw [intervalIntegral.integral_congr hEq]
+    _ = ‖-(∫ σ in (-a)..(1 + a), zetaRem σ) -
+          (2 : ℂ) * ∫ σ in (-a)..(1 + a), principal σ‖ := by
+          rw [hsplit]
+    _ ≤ ‖∫ σ in (-a)..(1 + a), zetaRem σ‖ +
+          ‖(2 : ℂ) * ∫ σ in (-a)..(1 + a), principal σ‖ := by
+          simpa [sub_eq_add_neg, norm_neg, add_comm, add_left_comm, add_assoc] using
+            norm_add_le (-(∫ σ in (-a)..(1 + a), zetaRem σ))
+              (-((2 : ℂ) * ∫ σ in (-a)..(1 + a), principal σ))
+    _ ≤ B + 2 * ((2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * C) := by
+          refine add_le_add hzeta_rem ?_
+          calc
+            ‖(2 : ℂ) * ∫ σ in (-a)..(1 + a), principal σ‖
+                = 2 * ‖∫ σ in (-a)..(1 + a), principal σ‖ := by
+                  simp
+            _ ≤ 2 * ((2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+                  weightedZeroHeightBucket) * C) := by
+                  exact mul_le_mul_of_nonneg_left hprincipal' (by norm_num)
+    _ = (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * (2 * C) + B := by
+          ring
 
 /--
 Actual full-segment dyadic off-pole bound from a concrete Hadamard/PV remainder budget.
@@ -1260,6 +1393,48 @@ theorem
       a e ha he hea k (B * (1 + 2 * a))
       (eventually_kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_bound
         a ha k B hpoint)
+
+/--
+Full-segment dyadic off-pole bound from an integral budget for the sign-correct zeta
+Hadamard/PV remainder.
+
+This is the non-pointwise route needed for the moving-pole PV lane: the singular principal
+part is integrated and paid for by the finite zero-counting budget, while the analytic
+Hadamard remainder only has to be controlled after integration on the segment.
+-/
+theorem
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_zeta_remainder_bound
+    (a e : ℝ) (ha : 0 ≤ a) (he : 0 < e) (hea : e ≤ a) (k : ℕ) (B : ℝ)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  obtain ⟨Crem, hCrem, hrem_bound⟩ :=
+    eventually_kadiriDyadicHadamardPVRemainder_integral_bound_of_zeta_remainder_bound
+      a e ha he hea k B hzeta_rem_bound
+  obtain ⟨Cmain, hCmain, hmain⟩ :=
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_bound
+      a e ha he hea k
+      ((2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| + weightedZeroHeightBucket) * Crem + B)
+      hrem_bound
+  refine ⟨Cmain + Crem, add_nonneg hCmain hCrem, ?_⟩
+  filter_upwards [hmain] with T hT
+  calc
+    ‖∫ σ in (-a)..(1 + a),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+            weightedZeroHeightBucket) * Cmain +
+          ((2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * Crem + B) := hT
+    _ = (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * (Cmain + Crem) + B := by
+          ring
 
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
