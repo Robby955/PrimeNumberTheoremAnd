@@ -118,4 +118,94 @@ theorem
       (eventually_kadiriDyadicGoodHeightFilter_offPole hsrc)
       hzeta_rem_bound
 
+/--
+A local Hadamard/PV remainder bound proved directly for the selected good-height sequence
+is the same bound on the selected good-height filter.
+-/
+theorem eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_sequence
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)) :
+    ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨R, hR, hrem_event⟩ := hrem
+  refine ⟨R, hR, ?_⟩
+  rw [kadiriDyadicGoodHeightFilter]
+  change ∀ᶠ k : ℕ in atTop,
+    ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+      ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+        R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)
+  exact hrem_event
+
+/--
+Selected local Hadamard/PV `log^2` control combines with the selector's distance gap and
+local zero-count bound to give the two-sided horizontal segment `log^2` bound.
+-/
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_localPVRemainder
+    hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_sequence
+      hsrc hrem)
+
+/--
+Absolute-height form of
+`eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder`,
+matching the endpoint consumer.
+-/
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_abs_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C :=
+  eventually_kadiriDyadicGoodHeightFilter_abs_horizontalSegmentLogDerivBound_of_horizontalSegmentLogDerivBound
+    hsrc
+    (eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder
+      hsrc hrem)
+
+/--
+Endpoint handoff from a selected-sequence local Hadamard/PV remainder bound.
+
+This is the narrow selected-height route: the selector provides the off-pole/gap data and
+local principal `log^2` control, while the only remaining input is the analytic local
+Hadamard/PV remainder estimate along the selected sequence.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_sequence_localPVRemainder_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ n : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc n) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc n| ^ (2 : ℕ)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp :=
+  eventually_kadiri_logDeriv_zeta_full_segment_bound_of_localPVRemainder_on_dyadicGoodHeightFilter
+    hsrc a ha k
+    (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_sequence
+      hsrc hrem)
+
 end Kadiri
