@@ -3,6 +3,7 @@ import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
 import PrimeNumberTheoremAnd.IEANTN.KadiriResidueOrder
+import PrimeNumberTheoremAnd.IEANTN.CH2.CH2
 import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
 import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
@@ -732,6 +733,77 @@ lemma kadiri_eq12_candidate_residue_set_finite (T : ℝ) :
     ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)).Finite :=
   (Set.finite_singleton (1 : ℂ)).union (zeroes_rect_Ioo_critical_bounded_height_finite T)
 
+/-- The candidate residue support for Kadiri equation (12) lies inside the contour rectangle. -/
+lemma kadiri_eq12_candidate_residue_set_subset_rectangle {a T : ℝ} (ha : 0 < a) (hT : 0 < T) :
+    ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) ⊆
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) := by
+  intro x hx
+  rw [mem_Rect]
+  · rcases hx with hxone | hxzero
+    · rw [Set.mem_singleton_iff] at hxone
+      subst x
+      simp only [Complex.one_re, Complex.one_im, Complex.ofReal_re, Complex.ofReal_im,
+        Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im, Complex.mul_re,
+        Complex.mul_im, Complex.I_re, Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub,
+        add_zero, zero_add]
+      exact ⟨by linarith, by linarith, by linarith, by linarith⟩
+    · rcases hxzero with ⟨hre, him, _hzeta⟩
+      rcases hre with ⟨hre0, hre1⟩
+      rcases him with ⟨him0, him1⟩
+      simp only [Complex.ofReal_re, Complex.ofReal_im, Complex.sub_re, Complex.sub_im,
+        Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im, Complex.I_re,
+        Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub, add_zero, zero_add]
+      exact ⟨by linarith, by linarith, by linarith, by linarith⟩
+  · simp only [Complex.ofReal_re, Complex.sub_re, Complex.mul_re, Complex.I_re,
+      Complex.ofReal_im, mul_zero, Complex.add_re]
+    linarith
+  · simp only [Complex.ofReal_im, Complex.sub_im, Complex.mul_im, Complex.I_im,
+      Complex.ofReal_re, mul_one, zero_sub, Complex.add_im]
+    linarith
+
+/--
+The intended residue support for Kadiri equation (12) does not meet the contour
+border. The open height strip excludes zeros with imaginary part `±T`.
+-/
+lemma kadiri_eq12_candidate_residue_set_disjoint_rectangleBorder {a T : ℝ}
+    (ha : 0 < a) (hT : 0 < T) :
+    Disjoint
+      (RectangleBorder (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))
+      ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) := by
+  apply Disjoint.union_right
+  · apply rectangleBorder_disjoint_singleton
+    simp only [Complex.one_re, Complex.one_im, Complex.ofReal_re, Complex.ofReal_im,
+      Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im, Complex.mul_re,
+      Complex.mul_im, Complex.I_re, Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub,
+      add_zero, zero_add]
+    constructor
+    · linarith
+    constructor
+    · linarith
+    constructor <;> linarith
+  · rw [Set.disjoint_right]
+    intro x hxzero hxbd
+    rcases hxzero with ⟨hre, him, _hzeta⟩
+    rcases hre with ⟨hre0, hre1⟩
+    rcases him with ⟨him0, him1⟩
+    have hxbd_singleton : Disjoint
+        (RectangleBorder (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)) {x} := by
+      apply rectangleBorder_disjoint_singleton
+      simp only [Complex.ofReal_re, Complex.ofReal_im, Complex.sub_re, Complex.sub_im,
+        Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im, Complex.I_re,
+        Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub, add_zero, zero_add]
+      constructor
+      · linarith [hre0]
+      constructor
+      · linarith [hre1]
+      constructor
+      · linarith [him0]
+      · linarith [him1]
+    exact (Set.disjoint_left.mp hxbd_singleton hxbd) (by simp)
+
 /--
 Sign-correct finite-sum form of the non-trivial-zero residue packet in
 Kadiri equation (12).
@@ -749,6 +821,140 @@ theorem kadiri_eq12_residue_packet_eq_fintype_sum
   refine Finset.sum_congr rfl ?_
   intro ρ _hρ
   ring
+
+/--
+Conditional CH2 residue-sum bridge for Kadiri equation (12). Once the residue
+values at `1` and at the bounded non-trivial zeros are known, the CH2 residue
+sum over the candidate pole set is exactly the Kadiri `zeroes_sum` packet.
+-/
+theorem kadiri_eq12_sumResiduesIn_candidate_eq
+    (F Φ : ℂ → ℂ) (T : ℝ)
+    (h_one : CH2.residue F (1 : ℂ) = Φ (-1))
+    (h_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      CH2.residue F (ρ : ℂ) =
+        -((riemannZeta.order (ρ : ℂ) : ℂ) * Φ (-(ρ : ℂ)))) :
+    CH2.sumResiduesIn F ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) =
+      Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  classical
+  let Z : Set ℂ := riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)
+  let C : Set ℂ := {(1 : ℂ)} ∪ Z
+  have hZfin : Z.Finite := by
+    simpa [Z] using zeroes_rect_Ioo_critical_bounded_height_finite T
+  have hCfin : C.Finite := by
+    simpa [C, Z] using kadiri_eq12_candidate_residue_set_finite T
+  have hdisj : Disjoint ({(1 : ℂ)} : Finset ℂ) hZfin.toFinset := by
+    rw [Finset.disjoint_left]
+    intro z hz1 hzZ
+    simp only [Finset.mem_singleton] at hz1
+    subst z
+    have hzZset : (1 : ℂ) ∈ Z := by
+      exact (Set.Finite.mem_toFinset hZfin).mp hzZ
+    simp [Z, riemannZeta.zeroes_rect] at hzZset
+  have hCeq : hCfin.toFinset = ({(1 : ℂ)} : Finset ℂ) ∪ hZfin.toFinset := by
+    ext z
+    simp [C, Z]
+  letI : Fintype C := hCfin.fintype
+  letI : Fintype Z := hZfin.fintype
+  rw [CH2.sumResiduesIn, tsum_fintype]
+  rw [← Finset.sum_subtype (s := hCfin.toFinset)
+    (h := fun z => Set.Finite.mem_toFinset hCfin) (f := fun z => CH2.residue F z)]
+  rw [hCeq, Finset.sum_union hdisj]
+  have hZsum : (∑ z ∈ hZfin.toFinset, CH2.residue F z) =
+      ∑ ρ : Z, -((riemannZeta.order (ρ : ℂ) : ℂ) * Φ (-(ρ : ℂ))) := by
+    rw [Finset.sum_subtype (s := hZfin.toFinset)
+      (h := fun z => Set.Finite.mem_toFinset hZfin) (f := fun z => CH2.residue F z)]
+    refine Finset.sum_congr rfl ?_
+    intro ρ _hρ
+    simpa [Z] using h_zero (ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T))
+  rw [hZsum]
+  have hpacket := kadiri_eq12_residue_packet_eq_fintype_sum (Φ := Φ) (T := T)
+  rw [hpacket]
+  simp [h_one, Z]
+
+/-- A bounded simple-pole principal part identifies the CH2 residue. -/
+theorem residue_eq_of_isBigO_sub_simple_pole {f : ℂ → ℂ} {p A : ℂ}
+    (near_p : (f - fun z ↦ A / (z - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
+    CH2.residue f p = A := by
+  apply CH2.residue_eq_of_tendsto
+  have hsub_tendsto : Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 0) := by
+    simpa using
+      ((continuous_id.sub continuous_const).continuousAt.continuousWithinAt.tendsto :
+        Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 (p - p)))
+  have hsub_little : (fun z : ℂ ↦ z - p) =o[𝓝[≠] p] (1 : ℂ → ℂ) :=
+    (Asymptotics.isLittleO_one_iff ℂ).2 hsub_tendsto
+  have hrem_zero : Tendsto (fun z : ℂ ↦ (z - p) * ((f - fun z ↦ A / (z - p)) z))
+      (𝓝[≠] p) (𝓝 0) := by
+    simpa using hsub_little.mul_isBigO near_p
+  have htarget : Tendsto (fun z : ℂ ↦ A + (z - p) * ((f - fun z ↦ A / (z - p)) z))
+      (𝓝[≠] p) (𝓝 A) := by
+    simpa using tendsto_const_nhds.add hrem_zero
+  refine htarget.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with z hz
+  have hzp : z - p ≠ 0 := sub_ne_zero.mpr hz
+  simp [Pi.sub_apply, div_eq_mul_inv]
+  field_simp [hzp]
+  ring
+
+/-- CH2 residue value at the simple pole `s = 1` for the Kadiri integrand. -/
+theorem kadiri_eq12_one_residue_value {Φ : ℂ → ℂ} (hΦ : AnalyticAt ℂ Φ (-1)) :
+    CH2.residue (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ) = Φ (-1) := by
+  let f : ℂ → ℂ := fun s ↦ -logDeriv riemannZeta s
+  let g : ℂ → ℂ := fun s ↦ Φ (-s)
+  have hΦ_comp : AnalyticAt ℂ g (1 : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (1 : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (1 : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (1 : ℂ)).neg
+    simpa [g, Function.comp_def] using hΦ.comp hneg
+  let U : Set ℂ := {s | AnalyticAt ℂ g s}
+  have hU : U ∈ 𝓝 (1 : ℂ) :=
+    hΦ_comp.eventually_analyticAt
+  have g_holc : HolomorphicOn g U := by
+    intro s hs
+    exact hs.differentiableAt.differentiableWithinAt
+  have f_near_p :
+      (f - fun z : ℂ ↦ 1 * (z - 1)⁻¹) =O[𝓝[≠] (1 : ℂ)]
+        (1 : ℂ → ℂ) := by
+    simp only [one_mul, f]
+    simpa [logDeriv_apply, Pi.neg_apply, Pi.div_apply, neg_div] using
+      riemannZetaLogDerivResidueBigO
+  have hnear :
+      (f * g - fun z : ℂ ↦ 1 * g (1 : ℂ) * (z - 1)⁻¹) =O[𝓝[≠] (1 : ℂ)]
+        (1 : ℂ → ℂ) :=
+    ResidueMult g_holc hU f_near_p
+  apply residue_eq_of_isBigO_sub_simple_pole
+  convert hnear using 1
+  ext z
+  simp [f, g, div_eq_mul_inv]
+
+/-- CH2 residue value at a nontrivial zero for the Kadiri integrand. -/
+theorem kadiri_eq12_nontrivial_zero_residue_value
+    {Φ : ℂ → ℂ} (rho : NontrivialZeros)
+    (hΦ : AnalyticAt ℂ Φ (-(rho : ℂ))) :
+    CH2.residue (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (rho : ℂ) =
+      -((riemannZeta.order (rho : ℂ) : ℂ) * Φ (-(rho : ℂ))) := by
+  exact residue_eq_of_isBigO_sub_simple_pole
+    (kadiri_riemannZeta_negLogDeriv_residue_order_principal_part (Phi := Φ) rho hΦ)
+
+/--
+CH2 residue sum over the candidate pole set, assuming analyticity of `Φ` at
+the reflected candidate poles.
+-/
+theorem kadiri_eq12_sumResiduesIn_candidate_eq_of_analytic
+    (Φ : ℂ → ℂ) (T : ℝ)
+    (hΦ_one : AnalyticAt ℂ Φ (-1))
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ))) :
+    CH2.sumResiduesIn (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) =
+      Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  apply kadiri_eq12_sumResiduesIn_candidate_eq
+  · exact kadiri_eq12_one_residue_value hΦ_one
+  · intro ρ
+    let rhoNT : NontrivialZeros :=
+      ⟨(ρ : ℂ), ρ.property.1, Set.mem_univ _, ρ.property.2.2⟩
+    exact kadiri_eq12_nontrivial_zero_residue_value (Φ := Φ) rhoNT
+      (by simpa [rhoNT] using hΦ_zero ρ)
 
 /-- Mechanical border decomposition for the rectangle used in Kadiri equation (12). -/
 theorem kadiri_thm_3_1_q1_eq_12_rectangle_side_decomposition

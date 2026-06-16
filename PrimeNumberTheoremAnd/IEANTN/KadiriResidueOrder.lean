@@ -159,6 +159,37 @@ theorem kadiri_negLogDeriv_residue_order_principal_part_rectangleIntegral
     zRe_le_wRe zIm_le_wIm pInRectInterior hHolo hprincipal
 
 /--
+Sign-correct principal part for `-logDeriv` from finite meromorphic order.
+-/
+theorem kadiri_negLogDeriv_residue_order_principal_part
+    {g Phi : ℂ → ℂ} {p : ℂ} {m : ℤ}
+    (hMer : MeromorphicAt g p)
+    (horder : meromorphicOrderAt g p = ((m : ℤ) : WithTop ℤ))
+    (hPhi : AnalyticAt ℂ Phi p) :
+    ((fun s ↦ (-logDeriv g s) * Phi s) -
+        (fun s ↦ (-((m : ℂ) * Phi p)) / (s - p))) =O[𝓝[≠] p]
+      (1 : ℂ → ℂ) := by
+  obtain ⟨u, hu, hu_ne, hfactor_smul⟩ := (meromorphicOrderAt_eq_int_iff hMer).1 horder
+  have hfactor : g =ᶠ[𝓝[≠] p] fun s ↦ (s - p) ^ m * u s := by
+    simpa using hfactor_smul
+  have hprincipal_pos :
+      ((fun s ↦ logDeriv g s * Phi s) -
+          (fun s ↦ ((m : ℂ) * Phi p) / (s - p))) =O[𝓝[≠] p]
+        (1 : ℂ → ℂ) :=
+    logDeriv_principal_part_of_factorization hu hu_ne hfactor hPhi
+  have hprincipal_neg :
+      ((fun s ↦ (-logDeriv g s) * Phi s) -
+          (fun s ↦ (-((m : ℂ) * Phi p)) / (s - p))) =ᶠ[𝓝[≠] p]
+        fun s ↦ (-1 : ℂ) *
+          (((fun s ↦ logDeriv g s * Phi s) -
+              (fun s ↦ ((m : ℂ) * Phi p) / (s - p))) s) := by
+    filter_upwards with s
+    change -logDeriv g s * Phi s - (-(↑m * Phi p) / (s - p)) =
+      (-1 : ℂ) * (logDeriv g s * Phi s - (↑m * Phi p) / (s - p))
+    ring
+  exact hprincipal_neg.trans_isBigO (hprincipal_pos.const_mul_left (-1 : ℂ))
+
+/--
 Sign-correct rectangle residue evaluation for `-logDeriv` from finite
 meromorphic order.
 -/
@@ -242,6 +273,31 @@ theorem kadiri_riemannZeta_negLogDeriv_residue_order_rectangleIntegral
     (riemannZeta_analyticAt_nontrivialZero rho).meromorphicAt
     (riemannZeta_meromorphicOrderAt_eq_order_of_nontrivialZero rho)
     hPhi_comp hHolo
+
+/--
+Principal part of the Kadiri integrand at a nontrivial zero.
+-/
+theorem kadiri_riemannZeta_negLogDeriv_residue_order_principal_part
+    {Phi : ℂ → ℂ} (rho : NontrivialZeros)
+    (hPhi : AnalyticAt ℂ Phi (-(rho : ℂ))) :
+    ((fun s ↦ (-logDeriv riemannZeta s) * Phi (-s)) -
+        (fun s ↦
+          (-((riemannZeta.order (rho : ℂ) : ℂ) * Phi (-(rho : ℂ)))) / (s - (rho : ℂ)))) =O[
+        𝓝[≠] (rho : ℂ)] (1 : ℂ → ℂ) := by
+  have hPhi_comp : AnalyticAt ℂ (fun s : ℂ ↦ Phi (-s)) (rho : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (rho : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (rho : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (rho : ℂ)).neg
+    simpa [Function.comp_def] using hPhi.comp hneg
+  exact kadiri_negLogDeriv_residue_order_principal_part
+    (g := riemannZeta)
+    (Phi := fun s ↦ Phi (-s))
+    (p := (rho : ℂ))
+    (m := riemannZeta.order (rho : ℂ))
+    (riemannZeta_analyticAt_nontrivialZero rho).meromorphicAt
+    (riemannZeta_meromorphicOrderAt_eq_order_of_nontrivialZero rho)
+    hPhi_comp
 
 /--
 The residue contribution from the simple pole of `ζ` at `1` for the Kadiri
