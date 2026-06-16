@@ -1680,6 +1680,52 @@ theorem
   filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleHeight] with T hT
   exact kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable a T ha hT.1
 
+/--
+A pointwise bound for the digamma pair controls its nonpositive horizontal-segment
+integral.
+-/
+theorem kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_bound
+    (a T G : ℝ) (ha : 0 ≤ a)
+    (hpoint : ∀ σ ∈ Ι (-a) 0,
+      ‖(1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+            digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ G) :
+    ‖∫ σ in (-a)..0,
+        (1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+            digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ G * a := by
+  have hnorm :=
+    intervalIntegral.norm_integral_le_of_norm_le_const
+      (a := -a) (b := 0) (C := G)
+      (f := fun σ : ℝ =>
+        (1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+            digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))) hpoint
+  simpa [sub_eq_add_neg, abs_of_nonneg ha] using hnorm
+
+/--
+Eventual pointwise logarithmic control of the digamma pair supplies the nonpositive
+horizontal-segment digamma budget with the same logarithmic growth.
+-/
+theorem
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
+    (a G : ℝ) (ha : 0 ≤ a) (L : Filter ℝ)
+    (hpoint : ∀ᶠ T : ℝ in L,
+      ∀ σ ∈ Ι (-a) 0,
+        ‖(1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+          ≤ G * Real.log |T| ^ 9) :
+    ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+        ≤ (G * Real.log |T| ^ 9) * a := by
+  filter_upwards [hpoint] with T hT_point
+  exact kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_bound
+    a T (G * Real.log |T| ^ 9) ha hT_point
+
 /-- Off-pole nonvanishing of `ζ` on the moving horizontal segment. -/
 theorem riemannZeta_ne_zero_on_horizontal_of_offPole
     {T σ : ℝ} (hT : kadiriHorizontalZetaOffPoleHeight T) :
@@ -2688,6 +2734,90 @@ theorem
       hdigamma_bound hzeta_rem_bound
 
 /--
+Large off-pole full-segment assembly with logarithmic digamma growth absorbed into the
+same `log |T| ^ 9` envelope as the reflected zeta term.
+
+This is the nonconstant digamma-budget route: the digamma integral may grow like
+`G * log |T| ^ 9` times the segment length.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_on_large_offPole_filter
+    (a G B : ℝ) (ha : 0 ≤ a) (hG : 0 ≤ G) (k : ℕ)
+    (hdigamma_log_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+        ≤ (G * Real.log |T| ^ 9) * a)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a) +
+              (B + (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp) := by
+  obtain ⟨e, M, he, hM_nonneg, hmargin_off, hM⟩ :=
+    kadiri_dyadic_truncated_zero_family_margin_and_multiplicity_selector_on_filter
+      a ha k kadiriLargeHorizontalZetaOffPoleFilter
+      kadiriLargeHorizontalZetaOffPoleFilter_le_cofinite
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨Cp, hCp, hprincipal_bound⟩ :=
+    eventually_kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound_on_filter
+      a e R M he kadiriLargeHorizontalZetaOffPoleFilter
+      (by simpa [R] using hmargin_off) (by simpa [R] using hM)
+  let P : ℝ := (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * Cp
+  have hright_int : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        volume 0 (1 + a) := by
+    filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleHeight] with T hT
+    exact kadiri_neg_zeta_logDeriv_right_intervalIntegrable_of_offPole a T ha hT
+  have hright_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ B + P :=
+    eventually_kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal_on_filter
+      a ha k P B kadiriLargeHorizontalZetaOffPoleFilter
+      eventually_kadiriLargeHorizontalZetaOffPoleHeight
+      (by simpa [P, R] using hprincipal_bound) hzeta_rem_bound
+  obtain ⟨C0, hC0, hfull_point⟩ :=
+    kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget a ha
+  refine ⟨e, M, C0 + G, Cp, he, hM_nonneg, add_nonneg hC0 hG, hCp, ?_⟩
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large,
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
+      a ha,
+    hdigamma_log_bound, hright_int, hright_bound]
+    with T hlarge hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  have hbase :
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ ((C0 * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a +
+              (G * Real.log |T| ^ 9) * a) + (B + P) :=
+    hfull_point (T := T) (D := (G * Real.log |T| ^ 9) * a) (R := B + P)
+      hlarge hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  have hfinal :
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ (((C0 + G) * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a) +
+            (B + P) := by
+    calc
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C0 * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a +
+                (G * Real.log |T| ^ 9) * a) + (B + P) := hbase
+      _ = (((C0 + G) * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a) +
+            (B + P) := by ring
+  simpa [P, R] using hfinal
+
+/--
 Large off-pole full-segment assembly from pointwise control of the sign-correct
 right-segment zeta PV remainder.
 
@@ -2717,6 +2847,42 @@ theorem
   exact
     eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_bound_and_zeta_remainder_on_large_offPole_filter
       a D (B * (1 + a)) ha k hdigamma_bound
+      (eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound_on_filter
+        a ha k B kadiriLargeHorizontalZetaOffPoleFilter hzeta_rem_point)
+
+/--
+Large off-pole full-segment assembly from pointwise logarithmic control of the digamma
+pair and pointwise control of the sign-correct right-segment zeta PV remainder.
+
+The two remaining analytic tasks are now both pointwise estimates on their natural
+segments.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_pointwise_and_zeta_remainder_pointwise_on_large_offPole_filter
+    (a G B : ℝ) (ha : 0 ≤ a) (hG : 0 ≤ G) (k : ℕ)
+    (hdigamma_point : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ∀ σ ∈ Ι (-a) 0,
+        ‖(1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+          ≤ G * Real.log |T| ^ 9)
+    (hzeta_rem_point : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ∀ σ ∈ Ι 0 (1 + a),
+        ‖kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a) +
+              (B * (1 + a) +
+                (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                  M) * Cp) := by
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_on_large_offPole_filter
+      a G (B * (1 + a)) ha hG k
+      (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
+        a G ha kadiriLargeHorizontalZetaOffPoleFilter hdigamma_point)
       (eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound_on_filter
         a ha k B kadiriLargeHorizontalZetaOffPoleFilter hzeta_rem_point)
 
