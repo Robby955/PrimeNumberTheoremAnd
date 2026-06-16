@@ -946,6 +946,149 @@ noncomputable def kadiriDyadicHadamardPVRemainder (k : ℕ) (T σ : ℝ) : ℂ :
       ((riemannZeta.order (rho : ℂ) : ℂ) /
         (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
 
+/-- Heights whose horizontal line avoids the pole at `1` and every non-trivial zeta zero. -/
+def kadiriHorizontalZetaOffPoleHeight (T : ℝ) : Prop :=
+  T ≠ 0 ∧ ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T
+
+/--
+The off-pole height filter for the horizontal segment: a cofinite height filter restricted
+to heights avoiding all non-trivial zeta zero ordinates and the real axis.
+-/
+noncomputable def kadiriHorizontalZetaOffPoleFilter : Filter ℝ :=
+  Filter.cofinite ⊓ 𝓟 {T : ℝ | kadiriHorizontalZetaOffPoleHeight T}
+
+/-- The off-pole filter is finer than the cofinite filter. -/
+theorem kadiriHorizontalZetaOffPoleFilter_le_cofinite :
+    kadiriHorizontalZetaOffPoleFilter ≤ Filter.cofinite := by
+  exact inf_le_left
+
+/-- Along the off-pole filter, the height condition holds eventually by definition. -/
+theorem eventually_kadiriHorizontalZetaOffPoleHeight :
+    ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      kadiriHorizontalZetaOffPoleHeight T := by
+  have hprincipal :
+      ∀ᶠ T : ℝ in 𝓟 {T : ℝ | kadiriHorizontalZetaOffPoleHeight T},
+        kadiriHorizontalZetaOffPoleHeight T :=
+    Filter.mem_principal_self _
+  exact hprincipal.filter_mono inf_le_right
+
+/-- Off-pole nonvanishing of `ζ` on the moving horizontal segment. -/
+theorem riemannZeta_ne_zero_on_horizontal_of_offPole
+    {T σ : ℝ} (hT : kadiriHorizontalZetaOffPoleHeight T) :
+    riemannZeta (((σ : ℂ) + (T : ℂ) * I)) ≠ 0 := by
+  let s : ℂ := (σ : ℂ) + (T : ℂ) * I
+  have hs_re : s.re = σ := by
+    simp [s]
+  have hs_im : s.im = T := by
+    simp [s]
+  by_cases hσ_nonpos : σ ≤ 0
+  · exact riemannZeta_ne_zero_of_re_nonpos_im_ne_zero
+      (by simpa [hs_re] using hσ_nonpos)
+      (by simpa [hs_im] using hT.1)
+  · by_cases hσ_one : 1 ≤ σ
+    · exact riemannZeta_ne_zero_of_one_le_re (by simpa [hs_re] using hσ_one)
+    · have hσ_pos : 0 < σ := lt_of_not_ge hσ_nonpos
+      have hσ_lt_one : σ < 1 := lt_of_not_ge hσ_one
+      intro hz
+      let rho : NontrivialZeros :=
+        ⟨s, ⟨by simpa [hs_re] using hσ_pos, by simpa [hs_re] using hσ_lt_one⟩,
+          Set.mem_univ _, hz⟩
+      exact hT.2 rho (by simp [rho, hs_im])
+
+/-- The actual zeta logarithmic-derivative integrand is integrable on off-pole heights. -/
+theorem kadiri_neg_zeta_logDeriv_horizontal_intervalIntegrable_of_offPole
+    (a T : ℝ) (ha : 0 ≤ a) (hT : kadiriHorizontalZetaOffPoleHeight T) :
+    IntervalIntegrable
+      (fun σ : ℝ =>
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+      volume (-a) (1 + a) := by
+  have hle : -a ≤ 1 + a := by linarith
+  refine ContinuousOn.intervalIntegrable_of_Icc hle ?_
+  refine continuousOn_of_forall_continuousAt ?_
+  intro σ _hσ
+  let s : ℂ := (σ : ℂ) + (T : ℂ) * I
+  have hs_ne_one : s ≠ 1 := by
+    intro hs
+    apply hT.1
+    have him : s.im = (1 : ℂ).im := congrArg Complex.im hs
+    simpa [s] using him
+  have hzeta_ne : riemannZeta s ≠ 0 :=
+    riemannZeta_ne_zero_on_horizontal_of_offPole (T := T) (σ := σ) hT
+  have hs_cont : ContinuousAt (fun σ : ℝ => ((σ : ℂ) + (T : ℂ) * I)) σ := by
+    exact (Complex.continuous_ofReal.add continuous_const).continuousAt
+  have hderiv_cont :
+      ContinuousAt (fun σ : ℝ => -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I))) σ := by
+    exact (ContinuousAt.comp
+      (f := fun σ : ℝ => ((σ : ℂ) + (T : ℂ) * I))
+      (g := fun z : ℂ => deriv riemannZeta z)
+      (x := σ)
+      (differentiableAt_deriv_riemannZeta (by simpa [s] using hs_ne_one)).continuousAt
+      hs_cont).neg
+  have hzeta_cont :
+      ContinuousAt (fun σ : ℝ => riemannZeta (((σ : ℂ) + (T : ℂ) * I))) σ := by
+    exact ContinuousAt.comp
+      (f := fun σ : ℝ => ((σ : ℂ) + (T : ℂ) * I))
+      (g := fun z : ℂ => riemannZeta z)
+      (x := σ)
+      (differentiableAt_riemannZeta (by simpa [s] using hs_ne_one)).continuousAt
+      hs_cont
+  exact hderiv_cont.div hzeta_cont (by simpa [s] using hzeta_ne)
+
+/-- The dyadic zero-principal finite sum is integrable on off-pole heights. -/
+theorem kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole
+    (a T : ℝ) (k : ℕ) (hT : kadiriHorizontalZetaOffPoleHeight T) :
+    IntervalIntegrable
+      (fun σ : ℝ =>
+        ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))
+      volume (-a) (1 + a) := by
+  classical
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))
+  let p : NontrivialZeros → ℝ → ℂ := fun rho σ =>
+    ((riemannZeta.order (rho : ℂ) : ℂ) /
+      (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  have hp : ∀ rho ∈ S, IntervalIntegrable (p rho) volume (-a) (1 + a) := by
+    intro rho _hrho
+    exact kadiri_moving_pole_principal_part_intervalIntegrable
+      a ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) (hT.2 rho)
+  have hsum : IntervalIntegrable (∑ rho ∈ S, p rho) volume (-a) (1 + a) :=
+    IntervalIntegrable.sum S hp
+  have hfun :
+      (fun σ : ℝ =>
+        ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) =
+        (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+          fun σ : ℝ =>
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) := by
+    funext σ
+    simp
+  rw [hfun]
+  simpa [S, p] using hsum
+
+/-- The concrete dyadic Hadamard/PV remainder is integrable on off-pole heights. -/
+theorem kadiriDyadicHadamardPVRemainder_intervalIntegrable_of_offPole
+    (a T : ℝ) (ha : 0 ≤ a) (k : ℕ) (hT : kadiriHorizontalZetaOffPoleHeight T) :
+    IntervalIntegrable (fun σ : ℝ => kadiriDyadicHadamardPVRemainder k T σ)
+      volume (-a) (1 + a) := by
+  have hactual :=
+    kadiri_neg_zeta_logDeriv_horizontal_intervalIntegrable_of_offPole a T ha hT
+  have hprincipal :=
+    kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole a T k hT
+  simpa [kadiriDyadicHadamardPVRemainder] using hactual.sub hprincipal
+
+/-- On the off-pole filter, the concrete dyadic Hadamard/PV remainder is integrable. -/
+theorem eventually_kadiriDyadicHadamardPVRemainder_intervalIntegrable
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) :
+    ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      IntervalIntegrable (fun σ : ℝ => kadiriDyadicHadamardPVRemainder k T σ)
+        volume (-a) (1 + a) := by
+  filter_upwards [eventually_kadiriHorizontalZetaOffPoleHeight] with T hT
+  exact kadiriDyadicHadamardPVRemainder_intervalIntegrable_of_offPole a T ha k hT
+
 /--
 Actual full-segment dyadic off-pole bound from a concrete Hadamard/PV remainder budget.
 
@@ -1030,6 +1173,29 @@ theorem
     _ ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
           weightedZeroHeightBucket) * C + B :=
           hT_bound
+
+/--
+Actual full-segment dyadic off-pole bound on the canonical off-pole height filter, after
+the concrete Hadamard/PV remainder norm bound has been supplied.
+-/
+theorem
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_bound
+    (a e : ℝ) (ha : 0 ≤ a) (he : 0 < e) (hea : e ≤ a) (k : ℕ) (B : ℝ)
+    (hrem_bound : ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  exact
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_budget_on_filter
+      a e he hea k B kadiriHorizontalZetaOffPoleFilter
+      kadiriHorizontalZetaOffPoleFilter_le_cofinite
+      (eventually_kadiriDyadicHadamardPVRemainder_intervalIntegrable a ha k)
+      hrem_bound
 
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
