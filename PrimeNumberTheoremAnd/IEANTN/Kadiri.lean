@@ -713,6 +713,49 @@ theorem kadiri_thm_3_1_q1_eq_12_nontrivial_zero_residue
   exact kadiri_riemannZeta_negLogDeriv_residue_order_rectangleIntegral
     (Phi := Phi) rho zRe_le_wRe zIm_le_wIm pInRectInterior hPhi hHolo
 
+/-- The non-trivial zeta zeros of bounded height form a finite set. -/
+lemma zeroes_rect_Ioo_critical_bounded_height_finite (T : ℝ) :
+    (riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)).Finite := by
+  rw [riemannZeta.zeroes_rect_eq]
+  let S : Set ℂ := (Complex.re ⁻¹' Set.Icc (0 : ℝ) 1) ∩
+    (Complex.im ⁻¹' Set.Icc (-T) T)
+  have hS : IsCompact S := by
+    exact Complex.equivRealProdCLM.toHomeomorph.isClosedEmbedding.isCompact_preimage
+      (isCompact_Icc.prod isCompact_Icc)
+  refine (riemannZeta.zeroes_on_Compact_finite' (S := S) hS).subset ?_
+  intro z hz
+  rcases hz with ⟨⟨hre, him⟩, hzeta⟩
+  exact ⟨⟨Set.Ioo_subset_Icc_self hre, Set.Ioo_subset_Icc_self him⟩, hzeta⟩
+
+/-- Mechanical border decomposition for the rectangle used in Kadiri equation (12). -/
+theorem kadiri_thm_3_1_q1_eq_12_rectangle_side_decomposition
+    (F : ℂ → ℂ) {a T : ℝ} (ha : 0 < a) (hT : 0 < T) :
+    (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T, F (((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T, F (((-a : ℝ) : ℂ) + (t : ℂ) * I))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a), F ((σ : ℂ) + (T : ℂ) * I))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a), F ((σ : ℂ) + ((-T : ℝ) : ℂ) * I))
+      + RectangleIntegral' F (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) := by
+  dsimp [RectangleIntegral', RectangleIntegral, HIntegral, VIntegral]
+  simp only [Complex.ofReal_re, Complex.ofReal_im, Complex.mul_re, Complex.mul_im,
+    Complex.I_re, Complex.I_im, mul_zero, mul_one, sub_zero, add_zero, zero_sub, zero_add]
+  have hT_le : -T ≤ T := by linarith
+  have ha_le : -a ≤ 1 + a := by linarith
+  rw [intervalIntegral.integral_of_le hT_le, MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  rw [intervalIntegral.integral_of_le ha_le, MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  rw [intervalIntegral.integral_of_le ha_le, MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  rw [intervalIntegral.integral_of_le hT_le, MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  ring_nf
+  field_simp [Complex.I_ne_zero]
+  ring_nf
+  refine setIntegral_congr_fun measurableSet_Ioo ?_
+  intro t _ht
+  exact congrArg F (by ring_nf)
+
 /--
 Remaining rectangle and residue-sum decomposition for Kadiri equation (12).
 
