@@ -2313,6 +2313,42 @@ theorem
       a T ha k P B hT hprincipal_T hzeta_T
 
 /--
+A pointwise bound for the sign-correct zeta Hadamard/PV remainder controls its
+right-segment integral.
+-/
+theorem kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound
+    (a T : ℝ) (ha : 0 ≤ a) (k : ℕ) (B : ℝ)
+    (hpoint : ∀ σ ∈ Ι 0 (1 + a),
+      ‖kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤
+      B * (1 + a) := by
+  have hnorm :=
+    intervalIntegral.norm_integral_le_of_norm_le_const
+      (a := 0) (b := 1 + a) (C := B)
+      (f := fun σ : ℝ => kadiriDyadicZetaLogDerivPVRemainder k T σ) hpoint
+  have hlen_abs : |1 + a| = 1 + a := by
+    rw [abs_of_nonneg]
+    linarith
+  simpa [hlen_abs] using hnorm
+
+/--
+Eventual pointwise control of the sign-correct zeta Hadamard/PV remainder supplies the
+right-segment integral budget expected by the full-segment assembly.
+-/
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound_on_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) (B : ℝ) (L : Filter ℝ)
+    (hpoint : ∀ᶠ T : ℝ in L,
+      ∀ σ ∈ Ι 0 (1 + a),
+        ‖kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤
+        B * (1 + a) := by
+  filter_upwards [hpoint] with T hT_point
+  exact kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound
+    a T ha k B hT_point
+
+/--
 Full-segment assembly from reflected nonpositive control and right-segment zeta
 Hadamard/PV plus principal-part budgets.
 -/
@@ -2650,5 +2686,38 @@ theorem
       (eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
         a ha)
       hdigamma_bound hzeta_rem_bound
+
+/--
+Large off-pole full-segment assembly from pointwise control of the sign-correct
+right-segment zeta PV remainder.
+
+This trades the remaining zeta-remainder integral hypothesis for the pointwise bound that
+the analytic Hadamard/PV estimate is expected to supply.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_bound_and_zeta_remainder_pointwise_on_large_offPole_filter
+    (a D B : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hdigamma_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hzeta_rem_point : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ∀ σ ∈ Ι 0 (1 + a),
+        ‖kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) +
+              (B * (1 + a) +
+                (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                  M) * Cp) := by
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_bound_and_zeta_remainder_on_large_offPole_filter
+      a D (B * (1 + a)) ha k hdigamma_bound
+      (eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound_on_filter
+        a ha k B kadiriLargeHorizontalZetaOffPoleFilter hzeta_rem_point)
 
 end Kadiri
