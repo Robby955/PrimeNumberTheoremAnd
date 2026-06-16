@@ -714,7 +714,16 @@ theorem kadiri_thm_3_1_q1_eq_11 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
     (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1)
+    (hinv : ∀ n : ℕ, 1 ≤ n →
+      let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+      Tendsto
+        (fun T : ℝ =>
+          (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t in (-T)..T,
+              Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
+                (n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I))
+        atTop (𝓝 (φ (Real.log n)))) :
     let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
     Tendsto
       (fun T : ℝ =>
@@ -727,13 +736,7 @@ theorem kadiri_thm_3_1_q1_eq_11 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
       (𝓝 (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) := by
   exact kadiri_thm_3_1_q1_eq_11_pv_of_pointwise_inversion
     (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
-    (a := a) ha hab ha1
-    (fun n hn =>
-      by
-        simpa using
-          kadiri_thm_3_1_q1_laplace_inversion
-            (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
-            (a := a) ha hab ha1 (n := n) hn)
+    (a := a) ha hab ha1 hinv
 
 @[blueprint
   "kadiri-thm-3-1-q1-I"
@@ -5330,6 +5333,15 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
     (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hinv : ∀ {a : ℝ}, 0 < a → a < b → a < 1 → ∀ n : ℕ, 1 ≤ n →
+      let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+      Tendsto
+        (fun T : ℝ =>
+          (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t in (-T)..T,
+              Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
+                (n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I))
+        atTop (𝓝 (φ (Real.log n))))
     (hΦ_sum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
       (∫ y, φ y * exp (ρ.val * (y : ℂ)) ∂volume) *
         (riemannZeta.order ρ.val : ℂ)))
@@ -5363,6 +5375,7 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
   -- · `heq11`: LHS as Mellin contour integral on σ = 1 + a (kadiri-thm-3-1-q1-eq-11).
   have heq11 :=
     kadiri_thm_3_1_q1_eq_11 hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1
+      (hinv (a := a) ha_pos ha_lt_b ha_lt_1)
   -- · `htop`, `hbot`: horizontal integrals → 0 as T → ∞.
   have htop :=
     kadiri_thm_3_1_q1_top_horizontal_vanishes
@@ -6416,9 +6429,24 @@ theorem identity_16_complex_weighted {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     norm_num at hs
   -- the explicit formula at the test function
   obtain ⟨b, hb, hdecay, hdecay'⟩ := kadiriTestFn_decay hf_supp hs
+  have hinv : ∀ {a : ℝ}, 0 < a → a < b → a < 1 → ∀ n : ℕ, 1 ≤ n →
+      let Φ : ℂ → ℂ := fun z ↦
+        ∫ y, kadiriTestFn f s y * exp (-z * (y : ℂ)) ∂volume
+      Tendsto
+        (fun T : ℝ =>
+          (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t in (-T)..T,
+              Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
+                (n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I))
+        atTop (𝓝 (kadiriTestFn f s (Real.log n))) := by
+    intro a ha hab ha1 n hn
+    exact kadiri_thm_3_1_q1_laplace_inversion_hinv
+      (φ := kadiriTestFn f s)
+      (kadiriTestFn_contDiff hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d s)
+      (b := b) hb hdecay hdecay' (a := a) ha hab ha1 (n := n) hn
   have hform := kadiri_thm_3_1_q1
     (kadiriTestFn_contDiff hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d s)
-    hb hdecay hdecay' hΦ_sum hΓ_int
+    hb hdecay hdecay' hinv hΦ_sum hΓ_int
   dsimp only at hform
   -- the pole value
   have hΦ1 : (∫ y, kadiriTestFn f s y *
