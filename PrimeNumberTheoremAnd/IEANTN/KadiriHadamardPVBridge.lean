@@ -14,7 +14,7 @@ partial-fraction identity.
 
 namespace Kadiri
 
-open Complex
+open Complex MeasureTheory
 open Filter
 open Asymptotics
 open scoped BigOperators
@@ -543,6 +543,110 @@ theorem kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_unconditional :
         zeroImagDyadicCumulativeCountBoundSource_of_local_window) :=
   kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_of_dyadicGoodHeight
     zeroImagDyadicCumulativeCountBoundSource_of_local_window
+
+/--
+No-carry selected-height top horizontal vanishing. The Hadamard/PV bridge
+supplies the dyadic Titchmarsh partial-fraction input, so callers keep only the
+original transform hypotheses from Kadiri's theorem.
+-/
+theorem kadiri_top_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (_hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window) (nhds 0) := by
+  simpa using
+    (kadiri_top_horizontal_vanishes_on_dyadicGoodHeight
+      (φ := φ) (b := b) (a := a) hφ ha ha1 hab
+      zeroImagDyadicCumulativeCountBoundSource_of_local_window
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_unconditional
+      hφ_decay hφ'_decay)
+
+/--
+No-carry selected-height bottom horizontal vanishing. This is the reflected
+horizontal companion to the top wrapper above, with the same discharged
+Titchmarsh input.
+-/
+theorem kadiri_bot_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (_hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window) (nhds 0) := by
+  simpa using
+    (kadiri_bot_horizontal_vanishes_on_dyadicGoodHeight
+      (φ := φ) (b := b) (a := a) hφ ha ha1 hab
+      zeroImagDyadicCumulativeCountBoundSource_of_local_window
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_unconditional
+      hφ_decay hφ'_decay)
+
+/-- q = 1 top-horizontal alias for downstream theorem-3.1 assembly. -/
+theorem kadiri_thm_3_1_q1_top_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window) (nhds 0) :=
+  kadiri_top_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+    hφ hb hφ_decay hφ'_decay ha hab ha1
+
+/-- q = 1 bottom-horizontal alias for downstream theorem-3.1 assembly. -/
+theorem kadiri_thm_3_1_q1_bot_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window) (nhds 0) :=
+  kadiri_bot_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+    hφ hb hφ_decay hφ'_decay ha hab ha1
 
 end
 

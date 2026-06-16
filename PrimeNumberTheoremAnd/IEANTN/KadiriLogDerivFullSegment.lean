@@ -3329,6 +3329,737 @@ theorem
       (eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_titchmarshPartialFraction
         hsrc hpartial))
 
+/-- Restrict a horizontal segment bound to a smaller Kadiri strip. -/
+theorem kadiriHorizontalSegmentLogDerivBound_subsegment {a T C : ℝ}
+    (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
+    kadiriHorizontalSegmentLogDerivBound (-1) 2 T C →
+      kadiriHorizontalSegmentLogDerivBound (-a) (1 + a) T C := by
+  intro h σ hσ t ht
+  have hseg : -a ≤ 1 + a := by linarith
+  have hσ' : σ ∈ Set.uIcc (-1 : ℝ) 2 := by
+    rw [Set.uIcc_of_le hseg] at hσ
+    rw [Set.uIcc_of_le (by norm_num : (-1 : ℝ) ≤ 2)]
+    exact ⟨by linarith [hσ.1], by linarith [hσ.2]⟩
+  exact h σ hσ' t ht
+
+private theorem tendsto_log_sq_div_abs_atTop :
+    Tendsto (fun T : ℝ => Real.log |T| ^ (2 : ℕ) / |T|) atTop (nhds 0) := by
+  have hlog :
+      Tendsto (fun T : ℝ => Real.log T ^ (2 : ℕ) / (1 * T + 0)) atTop (nhds 0) :=
+    Real.tendsto_pow_log_div_mul_add_atTop 1 0 2 one_ne_zero
+  refine hlog.congr' ?_
+  filter_upwards [eventually_gt_atTop (0 : ℝ)] with T hT
+  simp [abs_of_pos hT]
+
+private lemma kadiri_laplace_strip_weight_integrable_of_continuous {ψ : ℝ → ℂ}
+    (hψ : Continuous ψ) {b r : ℝ}
+    (hψ_decay : (fun x : ℝ ↦ ψ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hr_low : -1 - b < r) (hr_high : r < b) :
+    Integrable (fun y : ℝ => exp (-((r : ℂ) * (y : ℂ))) * ψ y) := by
+  let F : ℝ → ℂ := fun y => exp (-((r : ℂ) * (y : ℂ))) * ψ y
+  have hF_cont : Continuous F := by
+    dsimp [F]
+    fun_prop
+  have hF_loc : LocallyIntegrable F volume := hF_cont.locallyIntegrable
+  have hshape : ∀ x : ℝ,
+      ‖F x‖ = Real.exp (-(r + 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖ := by
+    intro x
+    dsimp [F]
+    rw [norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp]
+    have h1 : (-(↑r * ↑x) : ℂ).re = -r * x := by
+      norm_num [Complex.mul_re]
+    have h2 : ((x : ℂ) / 2).re = x / 2 := by
+      norm_num
+    rw [h1, h2]
+    calc
+      Real.exp (-r * x) * ‖ψ x‖
+          = (Real.exp (-(r + 1 / 2) * x) * Real.exp (x / 2)) * ‖ψ x‖ := by
+            rw [← Real.exp_add]
+            congr 1
+            ring_nf
+      _ = Real.exp (-(r + 1 / 2) * x) * (‖ψ x‖ * Real.exp (x / 2)) := by ring_nf
+  have htop_decay := hψ_decay.mono (show Filter.atTop ≤ Filter.cocompact ℝ from
+    atTop_le_cocompact)
+  have hbot_decay := hψ_decay.mono (show Filter.atBot ≤ Filter.cocompact ℝ from
+    atBot_le_cocompact)
+  have htop : F =O[Filter.atTop] fun x : ℝ => Real.exp (-(r + b + 1) * x) := by
+    rw [Asymptotics.isBigO_iff] at htop_decay ⊢
+    obtain ⟨C, hC⟩ := htop_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_gt_atTop (0 : ℝ)] with x hxC hxpos
+    rw [hshape]
+    calc
+      Real.exp (-(r + 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp (-(r + 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp (-(r + b + 1) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_pos hxpos]
+            calc
+              Real.exp (-(r + 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * x))
+                  = C * (Real.exp (-(r + 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * x)) := by ring_nf
+              _ = C * Real.exp (-(r + 1 / 2) * x + (-(1 / 2 + b) * x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp (-(r + b + 1) * x) := by ring_nf
+  have hbot : F =O[Filter.atBot] fun x : ℝ => Real.exp ((b - r) * x) := by
+    rw [Asymptotics.isBigO_iff] at hbot_decay ⊢
+    obtain ⟨C, hC⟩ := hbot_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_lt_atBot (0 : ℝ)] with x hxC hxneg
+    rw [hshape]
+    calc
+      Real.exp (-(r + 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp (-(r + 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp ((b - r) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_neg hxneg]
+            calc
+              Real.exp (-(r + 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * -x))
+                  = C * (Real.exp (-(r + 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * -x)) := by ring_nf
+              _ = C * Real.exp (-(r + 1 / 2) * x + (-(1 / 2 + b) * -x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp ((b - r) * x) := by ring_nf
+  have htop_int : IntegrableAtFilter (fun x : ℝ => Real.exp (-(r + b + 1) * x))
+      Filter.atTop volume := by
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    exact exp_neg_integrableOn_Ioi 0 (show 0 < r + b + 1 by linarith)
+  have hbot_int : IntegrableAtFilter (fun x : ℝ => Real.exp ((b - r) * x))
+      Filter.atBot volume := by
+    rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+    have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      simp
+    rw [hvol, Function.comp_def]
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 (sub_pos.mpr hr_high) using 1
+    ext x
+    ring_nf
+  exact hF_loc.integrable_of_isBigO_atBot_atTop hbot hbot_int htop htop_int
+
+private lemma kadiri_weighted_laplace_differentiable {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) (r : ℝ) :
+    Differentiable ℝ (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) := by
+  have hofReal : Differentiable ℝ (fun y : ℝ => (y : ℂ)) := Complex.ofRealCLM.differentiable
+  have hlin_mul : Differentiable ℝ (fun y : ℝ => (-(r : ℂ)) * (y : ℂ)) :=
+    (differentiable_const (c := (-(r : ℂ)))).mul hofReal
+  have hlin : Differentiable ℝ (fun y : ℝ => -((r : ℂ) * (y : ℂ))) := by
+    simpa [neg_mul] using hlin_mul
+  exact hlin.cexp.mul (hφ.differentiable (by norm_num))
+
+private lemma kadiri_weighted_laplace_deriv_eq {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) (r y : ℝ) :
+    deriv (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y =
+      Complex.exp (-((r : ℂ) * (y : ℂ))) * deriv φ y -
+        (r : ℂ) * Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y := by
+  have hk : HasDerivAt (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))))
+      (-(r : ℂ) * Complex.exp (-((r : ℂ) * (y : ℂ)))) y := by
+    simpa [mul_assoc, mul_comm, mul_left_comm] using
+      ((hasDerivAt_id y).ofReal_comp.const_mul (-(r : ℂ))).cexp
+  have hp : DifferentiableAt ℝ φ y := hφ.differentiable (by norm_num) y
+  change deriv ((fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ)))) * φ) y =
+      Complex.exp (-((r : ℂ) * (y : ℂ))) * deriv φ y -
+        (r : ℂ) * Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y
+  rw [deriv_mul hk.differentiableAt hp]
+  rw [hk.deriv]
+  ring
+
+private lemma kadiri_weighted_laplace_deriv_integrable {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b r : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hr_low : -1 - b < r) (hr_high : r < b) :
+    Integrable (deriv (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y)) := by
+  have hφ_int := kadiri_laplace_strip_weight_integrable_of_continuous
+    hφ.continuous hφ_decay hr_low hr_high
+  have hderiv_cont : Continuous (deriv φ) := hφ.continuous_deriv (by norm_num)
+  have hφ'_int := kadiri_laplace_strip_weight_integrable_of_continuous
+    hderiv_cont hφ'_decay hr_low hr_high
+  have heq : (deriv (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y)) =
+      fun y : ℝ =>
+        Complex.exp (-((r : ℂ) * (y : ℂ))) * deriv φ y -
+          (r : ℂ) * (Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) := by
+    funext y
+    rw [kadiri_weighted_laplace_deriv_eq hφ r y]
+    ring
+  rw [heq]
+  exact hφ'_int.sub (hφ_int.const_mul (r : ℂ))
+
+private lemma kadiri_exists_global_weighted_exp_bound {ψ : ℝ → ℂ}
+    (hψ : Continuous ψ) {b : ℝ}
+    (hψ_decay : (fun x : ℝ ↦ ψ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ x : ℝ,
+      ‖ψ x * exp ((x : ℂ) / 2)‖ ≤ C * Real.exp (-(1/2 + b) * |x|) := by
+  rw [Asymptotics.isBigO_iff'] at hψ_decay
+  obtain ⟨c, hcpos, hc_event⟩ := hψ_decay
+  let S : Set ℝ := {x | ‖ψ x * exp ((x : ℂ) / 2)‖ ≤
+    c * ‖Real.exp (-(1 / 2 + b) * |x|)‖}
+  have hS_mem : S ∈ Filter.cocompact ℝ := by
+    simpa [S] using hc_event
+  rw [Filter.mem_cocompact] at hS_mem
+  obtain ⟨K, hK_compact, hK_sub⟩ := hS_mem
+  let Q : ℝ → ℝ := fun x => ‖ψ x * exp ((x : ℂ) / 2)‖ /
+    Real.exp (-(1/2 + b) * |x|)
+  have hQ_cont : ContinuousOn Q K := by
+    have hhalf : Continuous (fun x : ℝ => ((x : ℂ) / 2)) :=
+      Complex.ofRealCLM.continuous.div_const 2
+    have hnum : Continuous (fun x : ℝ => ‖ψ x * exp ((x : ℂ) / 2)‖) :=
+      (hψ.mul (Complex.continuous_exp.comp hhalf)).norm
+    have hden : Continuous (fun x : ℝ => Real.exp (-(1/2 + b) * |x|)) := by
+      fun_prop
+    exact hnum.continuousOn.div hden.continuousOn
+      (fun x _ => ne_of_gt (Real.exp_pos _))
+  obtain ⟨M, hM⟩ := hK_compact.exists_bound_of_continuousOn hQ_cont
+  refine ⟨max c M, by positivity, ?_⟩
+  intro x
+  have hGpos : 0 < Real.exp (-(1/2 + b) * |x|) := Real.exp_pos _
+  by_cases hxK : x ∈ K
+  · have hQ_nonneg : 0 ≤ Q x := div_nonneg (norm_nonneg _) hGpos.le
+    have hQ_le_M : Q x ≤ M := by
+      have h := hM x hxK
+      rwa [Real.norm_eq_abs, abs_of_nonneg hQ_nonneg] at h
+    have hQ_le_C : Q x ≤ max c M := le_trans hQ_le_M (le_max_right c M)
+    exact (div_le_iff₀ hGpos).1 hQ_le_C
+  · have hx_tail := hK_sub hxK
+    have htail :
+        ‖ψ x * exp ((x : ℂ) / 2)‖ ≤ c * Real.exp (-(1/2 + b) * |x|) := by
+      simpa [S, Real.norm_eq_abs, abs_of_pos hGpos] using hx_tail
+    exact htail.trans (mul_le_mul_of_nonneg_right (le_max_left c M) hGpos.le)
+
+private lemma kadiri_weighted_norm_le_uniform_exp {ψ : ℝ → ℂ}
+    {a b C r y : ℝ} (hC_nonneg : 0 ≤ C)
+    (hψ_bound : ∀ x : ℝ,
+      ‖ψ x * exp ((x : ℂ) / 2)‖ ≤ C * Real.exp (-(1/2 + b) * |x|))
+    (hr : r ∈ Set.Icc (-(1 + a)) a) :
+    ‖exp (-((r : ℂ) * (y : ℂ))) * ψ y‖ ≤
+      C * Real.exp (-(b - a) * |y|) := by
+  have hshape :
+      ‖exp (-((r : ℂ) * (y : ℂ))) * ψ y‖ =
+        Real.exp (-(r + 1 / 2) * y) * ‖ψ y * exp ((y : ℂ) / 2)‖ := by
+    rw [norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp]
+    have h1 : (-(↑r * ↑y) : ℂ).re = -r * y := by
+      norm_num [Complex.mul_re]
+    have h2 : ((y : ℂ) / 2).re = y / 2 := by
+      norm_num
+    rw [h1, h2]
+    calc
+      Real.exp (-r * y) * ‖ψ y‖
+          = (Real.exp (-(r + 1 / 2) * y) * Real.exp (y / 2)) * ‖ψ y‖ := by
+            rw [← Real.exp_add]
+            congr 1
+            ring_nf
+      _ = Real.exp (-(r + 1 / 2) * y) * (‖ψ y‖ * Real.exp (y / 2)) := by
+            ring_nf
+  have hexp_le :
+      Real.exp (-(r + 1 / 2) * y) * Real.exp (-(1 / 2 + b) * |y|) ≤
+        Real.exp (-(b - a) * |y|) := by
+    rw [← Real.exp_add]
+    apply Real.exp_le_exp.2
+    by_cases hy : 0 ≤ y
+    · rw [abs_of_nonneg hy]
+      have hr_low : -(1 + a) ≤ r := hr.1
+      nlinarith [mul_nonneg (by linarith : 0 ≤ r + 1 + a) hy]
+    · have hylt : y < 0 := lt_of_not_ge hy
+      rw [abs_of_neg hylt]
+      have hr_high : r ≤ a := hr.2
+      nlinarith [mul_nonpos_of_nonneg_of_nonpos
+        (sub_nonneg.2 (by linarith : r ≤ a)) hylt.le]
+  rw [hshape]
+  calc
+    Real.exp (-(r + 1 / 2) * y) * ‖ψ y * exp ((y : ℂ) / 2)‖
+        ≤ Real.exp (-(r + 1 / 2) * y) *
+            (C * Real.exp (-(1 / 2 + b) * |y|)) := by
+          exact mul_le_mul_of_nonneg_left (hψ_bound y) (Real.exp_nonneg _)
+    _ = C * (Real.exp (-(r + 1 / 2) * y) *
+          Real.exp (-(1 / 2 + b) * |y|)) := by
+          ring
+    _ ≤ C * Real.exp (-(b - a) * |y|) :=
+          mul_le_mul_of_nonneg_left hexp_le hC_nonneg
+
+private lemma kadiri_weighted_deriv_norm_le_uniform_exp {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {a b Cφ Cφ' r y : ℝ}
+    (_ha : 0 ≤ a) (hCφ : 0 ≤ Cφ) (hCφ' : 0 ≤ Cφ')
+    (hφ_bound : ∀ x : ℝ,
+      ‖φ x * exp ((x : ℂ) / 2)‖ ≤ Cφ * Real.exp (-(1/2 + b) * |x|))
+    (hφ'_bound : ∀ x : ℝ,
+      ‖deriv φ x * exp ((x : ℂ) / 2)‖ ≤ Cφ' * Real.exp (-(1/2 + b) * |x|))
+    (hr : r ∈ Set.Icc (-(1 + a)) a) :
+    ‖deriv (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖ ≤
+      (Cφ' + (1 + a) * Cφ) * Real.exp (-(b - a) * |y|) := by
+  have hderiv_term := kadiri_weighted_norm_le_uniform_exp
+    (ψ := deriv φ) (a := a) (b := b) (C := Cφ') (r := r) (y := y)
+    hCφ' hφ'_bound hr
+  have hφ_term := kadiri_weighted_norm_le_uniform_exp
+    (ψ := φ) (a := a) (b := b) (C := Cφ) (r := r) (y := y)
+    hCφ hφ_bound hr
+  have hr_abs : ‖(r : ℂ)‖ ≤ 1 + a := by
+    rw [Complex.norm_real, Real.norm_eq_abs, abs_le]
+    exact ⟨hr.1, by linarith [hr.2]⟩
+  rw [kadiri_weighted_laplace_deriv_eq hφ r y]
+  calc
+    ‖Complex.exp (-((r : ℂ) * (y : ℂ))) * deriv φ y -
+        (r : ℂ) * Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y‖
+        ≤ ‖Complex.exp (-((r : ℂ) * (y : ℂ))) * deriv φ y‖ +
+            ‖(r : ℂ) * Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y‖ := by
+          exact norm_sub_le _ _
+    _ ≤ Cφ' * Real.exp (-(b - a) * |y|) +
+          ((1 + a) * Cφ) * Real.exp (-(b - a) * |y|) := by
+        apply add_le_add hderiv_term
+        rw [mul_assoc, norm_mul]
+        calc
+          ‖(r : ℂ)‖ * ‖Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y‖
+              ≤ (1 + a) * (Cφ * Real.exp (-(b - a) * |y|)) := by
+                exact mul_le_mul hr_abs hφ_term (norm_nonneg _) (by linarith)
+          _ = ((1 + a) * Cφ) * Real.exp (-(b - a) * |y|) := by
+                ring
+    _ = (Cφ' + (1 + a) * Cφ) * Real.exp (-(b - a) * |y|) := by
+          ring
+
+private lemma kadiri_integrable_exp_neg_mul_abs {c : ℝ} (hc : 0 < c) :
+    Integrable (fun y : ℝ => Real.exp (-c * |y|)) := by
+  have hcont : Continuous (fun y : ℝ => Real.exp (-c * |y|)) := by
+    fun_prop
+  have hloc : LocallyIntegrable (fun y : ℝ => Real.exp (-c * |y|)) volume :=
+    hcont.locallyIntegrable
+  have htop :
+      (fun y : ℝ => Real.exp (-c * |y|)) =O[Filter.atTop]
+        (fun y : ℝ => Real.exp (-c * y)) := by
+    rw [Asymptotics.isBigO_iff]
+    refine ⟨1, ?_⟩
+    filter_upwards [Filter.eventually_gt_atTop (0 : ℝ)] with y hy
+    rw [abs_of_pos hy]
+    simp
+  have hbot :
+      (fun y : ℝ => Real.exp (-c * |y|)) =O[Filter.atBot]
+        (fun y : ℝ => Real.exp (c * y)) := by
+    rw [Asymptotics.isBigO_iff]
+    refine ⟨1, ?_⟩
+    filter_upwards [Filter.eventually_lt_atBot (0 : ℝ)] with y hy
+    rw [abs_of_neg hy]
+    simp
+  have htop_int :
+      IntegrableAtFilter (fun y : ℝ => Real.exp (-c * y)) Filter.atTop volume := by
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    exact exp_neg_integrableOn_Ioi 0 hc
+  have hbot_int :
+      IntegrableAtFilter (fun y : ℝ => Real.exp (c * y)) Filter.atBot volume := by
+    rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+    have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      simp
+    rw [hvol, Function.comp_def]
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 hc using 1
+    ext x
+    ring_nf
+  exact hloc.integrable_of_isBigO_atBot_atTop hbot hbot_int htop htop_int
+
+theorem kadiri_uniform_weighted_deriv_budget_of_cocompact_decay
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b a : ℝ} (ha : 0 ≤ a) (hab : a < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    ∃ K : ℝ, 0 ≤ K ∧
+      ∀ r ∈ Set.Icc (-(1 + a)) a,
+        Integrable (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+        Differentiable ℝ (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+        Integrable (deriv (fun y : ℝ =>
+          Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y)) ∧
+        (∫ y : ℝ, ‖deriv
+          (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖) ≤ K := by
+  obtain ⟨Cφ, hCφ, hφ_bound⟩ :=
+    kadiri_exists_global_weighted_exp_bound hφ.continuous hφ_decay
+  have hderiv_cont : Continuous (deriv φ) := hφ.continuous_deriv (by norm_num)
+  obtain ⟨Cφ', hCφ', hφ'_bound⟩ :=
+    kadiri_exists_global_weighted_exp_bound hderiv_cont hφ'_decay
+  let A : ℝ := Cφ' + (1 + a) * Cφ
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    positivity
+  let c : ℝ := b - a
+  have hc : 0 < c := by
+    dsimp [c]
+    linarith
+  have henv_int : Integrable (fun y : ℝ => A * Real.exp (-c * |y|)) :=
+    (kadiri_integrable_exp_neg_mul_abs hc).const_mul A
+  let K : ℝ := ∫ y : ℝ, A * Real.exp (-c * |y|)
+  have hK_nonneg : 0 ≤ K := by
+    dsimp [K]
+    exact MeasureTheory.integral_nonneg fun y =>
+      mul_nonneg hA_nonneg (Real.exp_nonneg _)
+  refine ⟨K, hK_nonneg, ?_⟩
+  intro r hr
+  have hr_low : -1 - b < r := by
+    linarith [hr.1]
+  have hr_high : r < b := by
+    linarith [hr.2]
+  have hfun_int := kadiri_laplace_strip_weight_integrable_of_continuous
+    hφ.continuous hφ_decay hr_low hr_high
+  have hfun_diff := kadiri_weighted_laplace_differentiable hφ r
+  have hderiv_int := kadiri_weighted_laplace_deriv_integrable
+    hφ hφ_decay hφ'_decay hr_low hr_high
+  refine ⟨hfun_int, hfun_diff, hderiv_int, ?_⟩
+  have hpoint : ∀ y : ℝ,
+      ‖deriv (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖ ≤
+        A * Real.exp (-c * |y|) := by
+    intro y
+    simpa [A, c] using
+      kadiri_weighted_deriv_norm_le_uniform_exp
+        (φ := φ) hφ (a := a) (b := b) (Cφ := Cφ) (Cφ' := Cφ')
+        (r := r) (y := y) ha hCφ hCφ' hφ_bound hφ'_bound hr
+  exact MeasureTheory.integral_mono_ae
+    hderiv_int.norm henv_int (Filter.Eventually.of_forall hpoint)
+
+/--
+Derivative-form bilateral Laplace decay for the transform on Kadiri's horizontal
+arc, uniform once the weighted derivative has a uniform `L¹` budget on the
+corresponding real strip.
+-/
+theorem kadiriPhi_horizontal_arc_decay_of_weighted_deriv_budget
+    {φ : ℝ → ℂ} {a K : ℝ} (_ha : 0 ≤ a) (_hK : 0 ≤ K)
+    (hbudget : ∀ r ∈ Set.Icc (-(1 + a)) a,
+      Integrable (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+      Differentiable ℝ (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+      Integrable (deriv (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y)) ∧
+      (∫ y : ℝ, ‖deriv
+        (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖) ≤ K) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    ∀ σ ∈ Set.Icc (-a) (1 + a), ∀ T : ℝ, 1 ≤ |T| →
+      ‖Φ (-((σ : ℂ) + (T : ℂ) * I))‖ ≤ K / |T| := by
+  dsimp
+  intro σ hσ T hT
+  let r : ℝ := -σ
+  have hr : r ∈ Set.Icc (-(1 + a)) a := by
+    dsimp [r]
+    exact ⟨by linarith [hσ.2], by linarith [hσ.1]⟩
+  obtain ⟨hg, hdiff, hg', hint_le⟩ := hbudget r hr
+  have hT_ne : (-T) ≠ 0 := by
+    intro hzero
+    have hTzero : T = 0 := by linarith
+    rw [hTzero] at hT
+    norm_num at hT
+  have harg : -((σ : ℂ) + (T : ℂ) * I) = (r : ℂ) + ((-T : ℝ) : ℂ) * I := by
+    dsimp [r]
+    apply Complex.ext <;> simp [Complex.add_re, Complex.add_im, Complex.mul_re,
+      Complex.mul_im]
+  have hnorm := norm_laplaceIntegral_le_integral_norm_deriv_div
+    (sigma := r) (f := φ) hg hdiff hg' hT_ne
+  calc
+    ‖∫ y, φ y * exp (-(-((σ : ℂ) + (T : ℂ) * I)) * (y : ℂ)) ∂volume‖
+        = ‖laplaceIntegral φ ((r : ℂ) + ((-T : ℝ) : ℂ) * I)‖ := by
+          simp [laplaceIntegral, harg]
+    _ ≤ (∫ y : ℝ, ‖deriv
+        (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖) / |-T| :=
+          hnorm
+    _ ≤ K / |-T| := by
+          gcongr
+    _ = K / |T| := by simp
+
+/--
+Horizontal-arc `1 / |T|` decay for Kadiri's test transform, obtained directly
+from the carried cocompact decay hypotheses for `φ` and `φ'`.
+-/
+theorem kadiriPhi_horizontal_arc_decay
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b a : ℝ} (ha : 0 < a) (hab : a < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    ∃ K : ℝ, 0 ≤ K ∧
+      let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+      ∀ σ ∈ Set.Icc (-a) (1 + a), ∀ T : ℝ, 1 ≤ |T| →
+        ‖Φ (-((σ : ℂ) + (T : ℂ) * I))‖ ≤ K / |T| := by
+  obtain ⟨K, hK, hbudget⟩ :=
+    kadiri_uniform_weighted_deriv_budget_of_cocompact_decay
+      hφ ha.le hab hφ_decay hφ'_decay
+  exact ⟨K, hK,
+    kadiriPhi_horizontal_arc_decay_of_weighted_deriv_budget
+      (φ := φ) (a := a) (K := K) ha.le hK hbudget⟩
+
+/--
+Horizontal top-arc vanishing from a dyadic-filter wall bound and uniform
+`1 / |T|` decay of the transform on the same arc.
+-/
+theorem kadiri_top_horizontal_vanishes_of_wall_and_transform_decay
+    {L : Filter ℝ} (hL : L ≤ Filter.atTop)
+    {Φ : ℂ → ℂ} {a C D : ℝ} (ha : 0 < a) (hC : 0 ≤ C) (_hD : 0 ≤ D)
+    (hwall : ∀ᶠ T : ℝ in L, kadiriHorizontalSegmentLogDerivBound (-a) (1 + a) |T| C)
+    (hΦ : ∀ᶠ T : ℝ in L, ∀ σ ∈ Set.Ioo (-a) (1 + a),
+      ‖Φ (-((σ : ℂ) + (T : ℂ) * I))‖ ≤ D / |T|) :
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      L (nhds 0) := by
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  let K : ℝ :=
+    ‖(1 / (2 * (Real.pi : ℂ) * I))‖ *
+      ((C * D) * (volume.real (Set.Ioo (-a) (1 + a))))
+  have hlimK :
+      Tendsto (fun T : ℝ => K * (Real.log |T| ^ (2 : ℕ) / |T|)) L (nhds 0) := by
+    simpa using (tendsto_const_nhds.mul tendsto_log_sq_div_abs_atTop).mono_left hL
+  refine squeeze_zero' (Filter.Eventually.of_forall fun T => norm_nonneg _) ?_ hlimK
+  filter_upwards [hwall, hΦ] with T hwallT hΦT
+  have hseg : -a ≤ 1 + a := by linarith
+  have hfinite : volume (Set.Ioo (-a) (1 + a)) < ⊤ := by
+    rw [Real.volume_Ioo]
+    exact ENNReal.ofReal_lt_top
+  calc
+    ‖(1 / (2 * (Real.pi : ℂ) * I)) *
+        ∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ ‖(1 / (2 * (Real.pi : ℂ) * I))‖ *
+            (((C * Real.log |T| ^ (2 : ℕ)) * (D / |T|)) *
+              volume.real (Set.Ioo (-a) (1 + a))) := by
+          rw [norm_mul]
+          gcongr
+          refine MeasureTheory.norm_setIntegral_le_of_norm_le_const (μ := volume) hfinite ?_
+          intro σ hσ
+          rw [norm_mul, neg_div, norm_neg]
+          have hσu : σ ∈ Set.uIcc (-a) (1 + a) := by
+            rw [Set.uIcc_of_le hseg]
+            exact ⟨le_of_lt hσ.1, le_of_lt hσ.2⟩
+          have hzeta := hwallT σ hσu T (by rfl)
+          have hphi := hΦT σ hσ
+          exact mul_le_mul hzeta hphi (norm_nonneg _)
+            (mul_nonneg hC (sq_nonneg _))
+    _ = K * (Real.log |T| ^ (2 : ℕ) / |T|) := by
+          dsimp [K]
+          ring
+
+/--
+Horizontal bottom-arc vanishing from a dyadic-filter wall bound and uniform
+`1 / |T|` decay of the transform on the reflected arc.
+-/
+theorem kadiri_bot_horizontal_vanishes_of_wall_and_transform_decay
+    {L : Filter ℝ} (hL : L ≤ Filter.atTop)
+    {Φ : ℂ → ℂ} {a C D : ℝ} (ha : 0 < a) (hC : 0 ≤ C) (_hD : 0 ≤ D)
+    (hwall : ∀ᶠ T : ℝ in L, kadiriHorizontalSegmentLogDerivBound (-a) (1 + a) |T| C)
+    (hΦ : ∀ᶠ T : ℝ in L, ∀ σ ∈ Set.Ioo (-a) (1 + a),
+      ‖Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I))‖ ≤ D / |T|) :
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      L (nhds 0) := by
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  let K : ℝ :=
+    ‖(1 / (2 * (Real.pi : ℂ) * I))‖ *
+      ((C * D) * (volume.real (Set.Ioo (-a) (1 + a))))
+  have hlimK :
+      Tendsto (fun T : ℝ => K * (Real.log |T| ^ (2 : ℕ) / |T|)) L (nhds 0) := by
+    simpa using (tendsto_const_nhds.mul tendsto_log_sq_div_abs_atTop).mono_left hL
+  refine squeeze_zero' (Filter.Eventually.of_forall fun T => norm_nonneg _) ?_ hlimK
+  filter_upwards [hwall, hΦ] with T hwallT hΦT
+  have hseg : -a ≤ 1 + a := by linarith
+  have hfinite : volume (Set.Ioo (-a) (1 + a)) < ⊤ := by
+    rw [Real.volume_Ioo]
+    exact ENNReal.ofReal_lt_top
+  calc
+    ‖(1 / (2 * (Real.pi : ℂ) * I)) *
+        ∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I))‖
+        ≤ ‖(1 / (2 * (Real.pi : ℂ) * I))‖ *
+            (((C * Real.log |T| ^ (2 : ℕ)) * (D / |T|)) *
+              volume.real (Set.Ioo (-a) (1 + a))) := by
+          rw [norm_mul]
+          gcongr
+          refine MeasureTheory.norm_setIntegral_le_of_norm_le_const (μ := volume) hfinite ?_
+          intro σ hσ
+          rw [norm_mul, neg_div, norm_neg]
+          have hσu : σ ∈ Set.uIcc (-a) (1 + a) := by
+            rw [Set.uIcc_of_le hseg]
+            exact ⟨le_of_lt hσ.1, le_of_lt hσ.2⟩
+          have hzeta := hwallT σ hσu (-T) (by simp)
+          have hphi := hΦT σ hσ
+          exact mul_le_mul hzeta hphi (norm_nonneg _)
+            (mul_nonneg hC (sq_nonneg _))
+    _ = K * (Real.log |T| ^ (2 : ℕ) / |T|) := by
+          dsimp [K]
+          ring
+
+/--
+Dyadic-filter top horizontal vanishing from the Titchmarsh partial-fraction
+source plus a uniform weighted-derivative budget for the transform.
+-/
+theorem
+    kadiri_top_horizontal_vanishes_on_dyadicGoodHeight_of_titchmarshPartialFraction
+    {φ : ℝ → ℂ} {a K : ℝ} (ha : 0 < a) (ha1 : a < 1) (hK : 0 ≤ K)
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc))
+    (hbudget : ∀ r ∈ Set.Icc (-(1 + a)) a,
+      Integrable (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+      Differentiable ℝ (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+      Integrable (deriv (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y)) ∧
+      (∫ y : ℝ, ‖deriv
+        (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖) ≤ K) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter hsrc) (nhds 0) := by
+  dsimp
+  obtain ⟨C, hC, hwall⟩ :=
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_titchmarshPartialFraction
+      hsrc hpartial
+  have hwall' : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      kadiriHorizontalSegmentLogDerivBound (-a) (1 + a) |T| C := by
+    filter_upwards [hwall] with T hT
+    exact kadiriHorizontalSegmentLogDerivBound_subsegment ha.le (le_of_lt ha1) hT
+  have hΦ_point :=
+    kadiriPhi_horizontal_arc_decay_of_weighted_deriv_budget
+      (φ := φ) (a := a) (K := K) ha.le hK hbudget
+  have hΦ : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      ∀ σ ∈ Set.Ioo (-a) (1 + a),
+        ‖(∫ y, φ y * exp (-(-((σ : ℂ) + (T : ℂ) * I)) * (y : ℂ)) ∂volume)‖
+          ≤ K / |T| := by
+    filter_upwards [eventually_kadiriDyadicGoodHeightFilter_large hsrc] with T hlarge σ hσ
+    exact hΦ_point σ ⟨le_of_lt hσ.1, le_of_lt hσ.2⟩ T (by linarith)
+  exact kadiri_top_horizontal_vanishes_of_wall_and_transform_decay
+    (L := kadiriDyadicGoodHeightFilter hsrc)
+    (Φ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (kadiriDyadicGoodHeightFilter_le_atTop hsrc) ha hC hK hwall' hΦ
+
+/--
+Dyadic-filter bottom horizontal vanishing from the Titchmarsh partial-fraction
+source plus a uniform weighted-derivative budget for the transform.
+-/
+theorem
+    kadiri_bot_horizontal_vanishes_on_dyadicGoodHeight_of_titchmarshPartialFraction
+    {φ : ℝ → ℂ} {a K : ℝ} (ha : 0 < a) (ha1 : a < 1) (hK : 0 ≤ K)
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc))
+    (hbudget : ∀ r ∈ Set.Icc (-(1 + a)) a,
+      Integrable (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+      Differentiable ℝ (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y) ∧
+      Integrable (deriv (fun y : ℝ => Complex.exp (-((r : ℂ) * (y : ℂ))) * φ y)) ∧
+      (∫ y : ℝ, ‖deriv
+        (fun z : ℝ => Complex.exp (-((r : ℂ) * (z : ℂ))) * φ z) y‖) ≤ K) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter hsrc) (nhds 0) := by
+  dsimp
+  obtain ⟨C, hC, hwall⟩ :=
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_titchmarshPartialFraction
+      hsrc hpartial
+  have hwall' : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      kadiriHorizontalSegmentLogDerivBound (-a) (1 + a) |T| C := by
+    filter_upwards [hwall] with T hT
+    exact kadiriHorizontalSegmentLogDerivBound_subsegment ha.le (le_of_lt ha1) hT
+  have hΦ_point :=
+    kadiriPhi_horizontal_arc_decay_of_weighted_deriv_budget
+      (φ := φ) (a := a) (K := K) ha.le hK hbudget
+  have hΦ : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      ∀ σ ∈ Set.Ioo (-a) (1 + a),
+        ‖(∫ y, φ y *
+            exp (-(-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) * (y : ℂ)) ∂volume)‖
+          ≤ K / |T| := by
+    filter_upwards [eventually_kadiriDyadicGoodHeightFilter_large hsrc] with T hlarge σ hσ
+    have hbound :=
+      hΦ_point σ ⟨le_of_lt hσ.1, le_of_lt hσ.2⟩ (-T) (by simpa using (by linarith : 1 ≤ |T|))
+    simpa using hbound
+  exact kadiri_bot_horizontal_vanishes_of_wall_and_transform_decay
+    (L := kadiriDyadicGoodHeightFilter hsrc)
+    (Φ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (kadiriDyadicGoodHeightFilter_le_atTop hsrc) ha hC hK hwall' hΦ
+
+/--
+Dyadic-filter top horizontal vanishing from the carried transform decay
+hypotheses and the dyadic Titchmarsh partial-fraction source.
+-/
+theorem kadiri_top_horizontal_vanishes_on_dyadicGoodHeight
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b a : ℝ} (ha : 0 < a) (ha1 : a < 1) (hab : a < b)
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc))
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter hsrc) (nhds 0) := by
+  obtain ⟨K, hK, hbudget⟩ :=
+    kadiri_uniform_weighted_deriv_budget_of_cocompact_decay
+      hφ ha.le hab hφ_decay hφ'_decay
+  simpa using
+    (kadiri_top_horizontal_vanishes_on_dyadicGoodHeight_of_titchmarshPartialFraction
+      (φ := φ) (a := a) (K := K) ha ha1 hK hsrc hpartial hbudget)
+
+/--
+Dyadic-filter bottom horizontal vanishing from the carried transform decay
+hypotheses and the dyadic Titchmarsh partial-fraction source.
+-/
+theorem kadiri_bot_horizontal_vanishes_on_dyadicGoodHeight
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b a : ℝ} (ha : 0 < a) (ha1 : a < 1) (hab : a < b)
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc))
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ) * I)) *
+          ∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      (kadiriDyadicGoodHeightFilter hsrc) (nhds 0) := by
+  obtain ⟨K, hK, hbudget⟩ :=
+    kadiri_uniform_weighted_deriv_budget_of_cocompact_decay
+      hφ ha.le hab hφ_decay hφ'_decay
+  simpa using
+    (kadiri_bot_horizontal_vanishes_on_dyadicGoodHeight_of_titchmarshPartialFraction
+      (φ := φ) (a := a) (K := K) ha ha1 hK hsrc hpartial hbudget)
+
 /--
 A one-sided positive horizontal `log^2` bound supplies the moving nonterminal
 pointwise `log^9` input for the endpoint layer.
