@@ -6,6 +6,7 @@ import PrimeNumberTheoremAnd.IEANTN.KadiriResidueOrder
 import PrimeNumberTheoremAnd.IEANTN.CH2.CH2
 import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
+import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
 import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 
@@ -1461,6 +1462,74 @@ theorem kadiri_eq12_one_residue_value {Φ : ℂ → ℂ} (hΦ : AnalyticAt ℂ �
   ext z
   simp [f, g, div_eq_mul_inv]
 
+/-- The Riemann zeta function is meromorphic at its pole `s = 1`. -/
+theorem riemannZeta_meromorphicAt_one :
+    MeromorphicAt riemannZeta (1 : ℂ) := by
+  let G : ℂ → ℂ := Complex.zetaTimesSMinusOne_entire
+  have hG_an : AnalyticAt ℂ G (1 : ℂ) := by
+    exact Differentiable.analyticAt (f := G)
+      Complex.zetaTimesSMinusOne_entire_differentiable (1 : ℂ)
+  have hmodel : MeromorphicAt (fun z : ℂ ↦ G z / (z - 1)) (1 : ℂ) := by
+    exact hG_an.meromorphicAt.div ((analyticAt_id.sub analyticAt_const).meromorphicAt)
+  refine hmodel.congr ?_
+  filter_upwards [self_mem_nhdsWithin] with z hz
+  have hz1 : z ≠ (1 : ℂ) := by
+    simpa [Set.mem_compl_iff, Set.mem_singleton_iff] using hz
+  have hG := Complex.zetaTimesSMinusOne_entire_eq_mul_riemannZeta hz1
+  dsimp [G]
+  rw [hG]
+  field_simp [sub_ne_zero.mpr hz1]
+
+/-- At `s = 1`, zeta has meromorphic order `-1`. -/
+theorem riemannZeta_meromorphicOrderAt_one :
+    meromorphicOrderAt riemannZeta (1 : ℂ) = ((-1 : ℤ) : WithTop ℤ) := by
+  let G : ℂ → ℂ := Complex.zetaTimesSMinusOne_entire
+  have hG_an : AnalyticAt ℂ G (1 : ℂ) := by
+    exact Differentiable.analyticAt (f := G)
+      Complex.zetaTimesSMinusOne_entire_differentiable (1 : ℂ)
+  have hG_ne : G (1 : ℂ) ≠ 0 := by
+    simp [G]
+  have hcongr : (fun z : ℂ ↦ G z / (z - 1)) =ᶠ[𝓝[≠] (1 : ℂ)] riemannZeta := by
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    have hz1 : z ≠ (1 : ℂ) := by
+      simpa [Set.mem_compl_iff, Set.mem_singleton_iff] using hz
+    have hG := Complex.zetaTimesSMinusOne_entire_eq_mul_riemannZeta hz1
+    dsimp [G]
+    rw [hG]
+    field_simp [sub_ne_zero.mpr hz1]
+  rw [← meromorphicOrderAt_congr hcongr]
+  change meromorphicOrderAt (G / (id - fun _ : ℂ => (1 : ℂ))) (1 : ℂ) =
+    ((-1 : ℤ) : WithTop ℤ)
+  rw [meromorphicOrderAt_div hG_an.meromorphicAt
+    ((analyticAt_id.sub analyticAt_const).meromorphicAt)]
+  have hG_order : meromorphicOrderAt G (1 : ℂ) = (0 : WithTop ℤ) := by
+    rw [hG_an.meromorphicOrderAt_eq]
+    rw [hG_an.analyticOrderAt_eq_zero.mpr hG_ne]
+    simp
+  have hden_order :
+      meromorphicOrderAt (id - fun _ : ℂ => (1 : ℂ)) (1 : ℂ) =
+        (1 : WithTop ℤ) := by
+    change meromorphicOrderAt (fun x : ℂ => x - 1) (1 : ℂ) = (1 : WithTop ℤ)
+    rw [meromorphicOrderAt_id_sub_const]
+  rw [hG_order, hden_order]
+  norm_num
+
+/-- Local meromorphicity at the zeta pole for the eq-12 integrand. -/
+theorem kadiri_eq12_integrand_meromorphicAt_one {Φ : ℂ → ℂ}
+    (hΦ : AnalyticAt ℂ Φ (-1)) :
+    MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ) := by
+  let Ψ : ℂ → ℂ := fun s ↦ Φ (-s)
+  have hΨ : AnalyticAt ℂ Ψ (1 : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (1 : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (1 : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (1 : ℂ)).neg
+    simpa [Ψ, Function.comp_def] using hΦ.comp hneg
+  simpa [Ψ] using
+    (kadiri_negLogDeriv_mul_meromorphicAt_of_order
+      (g := riemannZeta) (Phi := Ψ) (p := (1 : ℂ)) (m := (-1 : ℤ))
+      riemannZeta_meromorphicAt_one riemannZeta_meromorphicOrderAt_one hΨ)
+
 /--
 The pole at `s = 1` is at most simple for the Kadiri integrand once
 meromorphicity at `1` is supplied.
@@ -2548,9 +2617,14 @@ theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
     (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1)
-    {T : ℝ} (_hT : 0 < T)
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1)
+    {T : ℝ} (hT : 0 < T)
+    (hoff : kadiriEq12HorizontalZetaOffPoleHeight T)
     (Φ : ℂ → ℂ) (hΦ : Φ = fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (hΦ_rect :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z))
     (hzero_residue :
       ∀ (rho : NontrivialZeros) {z w : ℂ},
         z.re ≤ w.re →
@@ -2580,14 +2654,21 @@ theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition
             Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
       + Φ (-1)
       - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
-  subst Φ
-  sorry
+  have hΦ_one : AnalyticAt ℂ Φ (-1) := by
+    exact hΦ_rect (1 : ℂ)
+      (kadiri_eq12_candidate_residue_set_subset_rectangle
+        (a := a) (T := T) ha hT (by left; simp))
+  exact kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition_of_phi_rect_and_one
+    (φ := φ) _hφ _hb _hφ_decay _hφ'_decay ha hab ha1 hT hoff
+    (Φ := Φ) hΦ hΦ_rect (kadiri_eq12_integrand_meromorphicAt_one hΦ_one)
+    hzero_residue
 
 @[blueprint
   "kadiri-thm-3-1-q1-eq-12"
   (title := "Equation (12) of \\cite{Kadiri2005}: rectangle decomposition of $I(T)$")
   (statement := /-- Under the hypotheses of \ref{kadiri-thm-3-1-q1-eq-11}: for every
-  $T > 0$,
+  $T > 0$ whose horizontal boundary avoids the zeta pole and zero ordinates, and with
+  $\Phi$ analytic on the reflected rectangle,
   $$ I(T) \;=\; \frac{1}{2\pi i} \int_{-a - iT}^{-a + iT}
                     \!\!\!\! \left(-\frac{\zeta'}{\zeta}\right)\!(s)\, \Phi(-s)\, ds
              \;+\; \frac{1}{2\pi i} \int_{-a + iT}^{1+a + iT}
@@ -2625,7 +2706,13 @@ theorem kadiri_thm_3_1_q1_eq_12 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
     (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
     {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1)
-    {T : ℝ} (_hT : 0 < T) :
+    {T : ℝ} (hT : 0 < T)
+    (hoff : kadiriEq12HorizontalZetaOffPoleHeight T)
+    (hΦ_rect :
+      let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z)) :
     let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
     kadiri_thm_3_1_q1_I φ a T =
       -- (1/(2πi)) ∫ on σ = -a from -iT to +iT
@@ -2649,6 +2736,11 @@ theorem kadiri_thm_3_1_q1_eq_12 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
       + Φ (-1)
       - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
   let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+  have hΦ_rect' :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z) := by
+    simpa [Φ] using hΦ_rect
   have hzero_residue :
       ∀ (rho : NontrivialZeros) {z w : ℂ},
         z.re ≤ w.re →
@@ -2664,8 +2756,8 @@ theorem kadiri_thm_3_1_q1_eq_12 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
     exact kadiri_thm_3_1_q1_eq_12_nontrivial_zero_residue
       (Phi := Φ) rho zRe_le_wRe zIm_le_wIm pInRectInterior hPhi hHolo
   exact kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition
-    (φ := φ) _hφ _hb _hφ_decay _hφ'_decay _ha _hab _ha1 _hT
-    (Φ := Φ) rfl hzero_residue
+    (φ := φ) _hφ _hb _hφ_decay _hφ'_decay _ha _hab _ha1 hT hoff
+    (Φ := Φ) rfl hΦ_rect' hzero_residue
 
 @[blueprint
   "kadiri-thm-3-1-q1-top-horizontal-vanishes"
