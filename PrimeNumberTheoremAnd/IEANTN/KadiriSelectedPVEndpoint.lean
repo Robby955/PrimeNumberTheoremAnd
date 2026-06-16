@@ -550,4 +550,24 @@ theorem
     hsrc a ha k
     (eventually_kadiriDyadicGoodHeightSequence_localPVRemainder_logSq_of_candidate hsrc hrem)
 
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_titchmarshPartialFraction_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp :=
+  eventually_kadiri_logDeriv_zeta_full_segment_bound_of_localPVRemainder_on_dyadicGoodHeightFilter
+    hsrc a ha k
+    (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_titchmarshPartialFraction
+      hsrc hpartial)
+
 end Kadiri

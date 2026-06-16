@@ -2647,6 +2647,19 @@ noncomputable def kadiriLocalZetaLogDerivPVRemainder (T σ : ℝ) : ℂ :=
         (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
 
 /--
+Named analytic source for the Titchmarsh partial-fraction estimate.
+
+This is the missing Theorem 9.6(A) / Lemma 3.9-alpha input: after subtracting the local
+zero principal block, the remaining zeta logarithmic derivative is `O(log |T|)` uniformly
+for `σ ∈ [-1, 2]` along the chosen height filter.
+-/
+def kadiriTitchmarshLocalPartialFractionLogBoundOnFilter (L : Filter ℝ) : Prop :=
+  ∃ R : ℝ, 0 ≤ R ∧
+    ∀ᶠ T : ℝ in L,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤ R * Real.log |T|
+
+/--
 Algebraic handoff from a bounded local zero-principal block and a bounded local
 Hadamard/PV remainder to the endpoint segment-bound shape.
 -/
@@ -2989,6 +3002,62 @@ theorem eventually_kadiriDyadicGoodHeightFilter_large
     filter_upwards [Filter.eventually_gt_atTop (3 : ℝ)] with T hT
     exact lt_of_lt_of_le hT (le_abs_self T)
   exact htop.filter_mono (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+
+/--
+The Titchmarsh local partial-fraction remainder estimate is stronger than the `log^2`
+local Hadamard/PV remainder budget consumed by the endpoint code.
+-/
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_titchmarshPartialFraction
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc)) :
+    ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨R, hR, hrem⟩ := hpartial
+  refine ⟨R, hR, ?_⟩
+  filter_upwards [hrem, eventually_kadiriDyadicGoodHeightFilter_large hsrc]
+    with T hrem_T hlarge_T
+  intro σ hσ
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge_T.le
+  have hlog_nonneg : 0 ≤ Real.log |T| := by linarith
+  have hlog_le_sq : Real.log |T| ≤ Real.log |T| ^ (2 : ℕ) := by
+    rw [pow_two]
+    nlinarith
+  exact (hrem_T σ hσ).trans (mul_le_mul_of_nonneg_left hlog_le_sq hR)
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_titchmarshPartialFraction
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localPVRemainder hsrc
+    (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_titchmarshPartialFraction
+      hsrc hpartial)
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_titchmarshPartialFraction
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hpartial :
+      kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+        (kadiriDyadicGoodHeightFilter hsrc)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C :=
+  eventually_kadiriDyadicGoodHeightFilter_abs_horizontalSegmentLogDerivBound_of_horizontalSegmentLogDerivBound
+    hsrc
+    (eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_positiveHorizontalSegmentLogDerivBound
+      hsrc
+      (eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_titchmarshPartialFraction
+        hsrc hpartial))
 
 /--
 A one-sided positive horizontal `log^2` bound supplies the moving nonterminal
