@@ -2596,6 +2596,33 @@ theorem eventually_kadiriDyadicGoodHeightFilter_localPrincipal_logSq
         C * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)
   exact hseq
 
+theorem eventually_kadiriDyadicGoodHeightFilter_budget_and_localPrincipal_logSq
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        (∃ k : ℕ,
+          T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+          0 ≤ η ∧
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+              (2 * η) < (2 : ℝ) ^ k ∧
+          T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+          kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|)) ∧
+        ∀ σ : ℝ,
+          ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
+            C * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨C, hC, hprincipal⟩ := eventually_kadiriDyadicGoodHeightFilter_localPrincipal_logSq hsrc
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [eventually_kadiriDyadicGoodHeightFilter_spec_with_budget hsrc, hprincipal]
+    with T hbudget hprincipal_T
+  exact ⟨hbudget, hprincipal_T⟩
+
 /--
 Pointwise logarithmic-derivative control on a selected horizontal line.
 
