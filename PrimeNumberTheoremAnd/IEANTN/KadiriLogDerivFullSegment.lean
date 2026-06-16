@@ -810,6 +810,100 @@ theorem
           simpa [R] using add_le_add hprincipal' hrem_norm
 
 /--
+If a Hadamard/PV decomposition identifies the actual zeta logarithmic derivative with the
+dyadic principal part plus a controlled remainder on the full horizontal segment, the
+previous pole-sum and remainder estimate gives the actual off-pole segment bound.
+
+The remaining hard input is the decomposition hypothesis `hpv_eq`, not the finite zero
+sum or weighted-count budget.
+-/
+theorem
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_pv_decomposition
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ)
+    (rem : ℝ → ℝ → ℂ) (B : ℝ)
+    (hrem_int : ∀ᶠ T : ℝ in Filter.cofinite,
+      IntervalIntegrable (fun σ : ℝ => rem T σ) volume (-a) (1 + a))
+    (hrem_bound : ∀ᶠ T : ℝ in Filter.cofinite,
+      ‖∫ σ in (-a)..(1 + a), rem T σ‖ ≤ B)
+    (hpv_eq : ∀ᶠ T : ℝ in Filter.cofinite,
+      Set.EqOn
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        (fun σ : ℝ =>
+          (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) + rem T σ)
+        [[-a, 1 + a]]) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in Filter.cofinite,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  classical
+  obtain ⟨C, hC, hdecomp_bound⟩ :=
+    kadiri_moving_pole_zeta_principal_part_dyadic_with_remainder_eventually_bound
+      a e he hea k rem B hrem_int hrem_bound
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [hdecomp_bound, hpv_eq] with T hbound hEq
+  calc
+    ‖∫ σ in (-a)..(1 + a),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖∫ σ in (-a)..(1 + a), (
+            (∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) + rem T σ)‖ := by
+          rw [intervalIntegral.integral_congr hEq]
+    _ ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+          weightedZeroHeightBucket) * C + B :=
+          hbound
+
+/--
+Concrete dyadic Hadamard/PV remainder after subtracting the truncated zero-principal
+block from the actual zeta logarithmic derivative on the moving horizontal segment.
+-/
+noncomputable def kadiriDyadicHadamardPVRemainder (k : ℕ) (T σ : ℝ) : ℂ :=
+  -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I)) -
+    ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+
+/--
+Actual full-segment dyadic off-pole bound from a concrete Hadamard/PV remainder budget.
+
+Compared with
+`kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_pv_decomposition`,
+the decomposition equality is no longer an input: it is definitional for
+`kadiriDyadicHadamardPVRemainder`.  The remaining analytic work is to prove the stated
+integrability and integral bound for this concrete remainder.
+-/
+theorem
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_budget
+    (a e : ℝ) (he : 0 < e) (hea : e ≤ a) (k : ℕ) (B : ℝ)
+    (hrem_int : ∀ᶠ T : ℝ in Filter.cofinite,
+      IntervalIntegrable (fun σ : ℝ => kadiriDyadicHadamardPVRemainder k T σ)
+        volume (-a) (1 + a))
+    (hrem_bound : ∀ᶠ T : ℝ in Filter.cofinite,
+      ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in Filter.cofinite,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B := by
+  refine
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_pv_decomposition
+      a e he hea k (kadiriDyadicHadamardPVRemainder k) B hrem_int hrem_bound ?_
+  exact Filter.Eventually.of_forall fun T => by
+    intro σ _hσ
+    simp [kadiriDyadicHadamardPVRemainder]
+
+/--
 Concrete truncated-zero version of the finite-family moving-pole bound.
 
 The hypotheses left open are exactly the later off-pole and multiplicity-budget obligations:
