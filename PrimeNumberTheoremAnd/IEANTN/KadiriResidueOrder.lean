@@ -243,4 +243,49 @@ theorem kadiri_riemannZeta_negLogDeriv_residue_order_rectangleIntegral
     (riemannZeta_meromorphicOrderAt_eq_order_of_nontrivialZero rho)
     hPhi_comp hHolo
 
+/--
+The residue contribution from the simple pole of `ζ` at `1` for the Kadiri
+integrand `(-ζ'/ζ)(s) * Phi(-s)`.
+-/
+theorem kadiri_riemannZeta_one_negLogDeriv_residue_rectangleIntegral
+    {Phi : ℂ → ℂ} {z w : ℂ}
+    (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
+    (pInRectInterior : Rectangle z w ∈ 𝓝 (1 : ℂ))
+    (hPhi : AnalyticAt ℂ Phi (-1))
+    (hHolo :
+      HolomorphicOn
+        (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s))
+        (Rectangle z w \ {(1 : ℂ)})) :
+    RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s)) z w =
+      Phi (-1) := by
+  refine ResidueTheoremOnRectangleWithSimplePole'
+    zRe_le_wRe zIm_le_wIm pInRectInterior hHolo ?_
+  let f : ℂ → ℂ := fun s ↦ -logDeriv riemannZeta s
+  let g : ℂ → ℂ := fun s ↦ Phi (-s)
+  have hPhi_comp : AnalyticAt ℂ g (1 : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (1 : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (1 : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (1 : ℂ)).neg
+    simpa [g, Function.comp_def] using hPhi.comp hneg
+  let U : Set ℂ := {s | AnalyticAt ℂ g s}
+  have hU : U ∈ 𝓝 (1 : ℂ) :=
+    hPhi_comp.eventually_analyticAt
+  have g_holc : HolomorphicOn g U := by
+    intro s hs
+    exact hs.differentiableAt.differentiableWithinAt
+  have f_near_p :
+      (f - fun z : ℂ ↦ 1 * (z - 1)⁻¹) =O[𝓝[≠] (1 : ℂ)]
+        (1 : ℂ → ℂ) := by
+    simp only [one_mul, f]
+    simpa [logDeriv_apply, Pi.neg_apply, Pi.div_apply, neg_div] using
+      riemannZetaLogDerivResidueBigO
+  have hnear :
+      (f * g - fun z : ℂ ↦ 1 * g (1 : ℂ) * (z - 1)⁻¹) =O[𝓝[≠] (1 : ℂ)]
+        (1 : ℂ → ℂ) :=
+    ResidueMult g_holc hU f_near_p
+  convert hnear using 1
+  ext s
+  simp [f, g, div_eq_mul_inv]
+
 end Kadiri
