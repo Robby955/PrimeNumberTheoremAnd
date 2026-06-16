@@ -15,6 +15,46 @@ namespace Kadiri
 open Complex Filter MeasureTheory
 open scoped Topology Interval
 
+/--
+Endpoint-facing form of the quantitative selected-height budget.
+
+The concrete dyadic zero-count source gives a constant `c > 0` such that the endpoint may
+choose the radius `η = c / log(2^k)` for all large dyadic levels.  This packages both the
+cardinality-radius smallness certificate and the selected height, so downstream endpoint
+code does not carry `hsmall` as a separate hypothesis.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_logRadius_with_budget
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      let η : ℝ := c / Real.log ((2 : ℝ) ^ k)
+      0 ≤ η ∧
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+          (2 * η) < (2 : ℝ) ^ k ∧
+      ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        ∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+          η < |T - (rho : ℂ).im| := by
+  obtain ⟨c, hc, hbudget⟩ :=
+    exists_kadiriDyadicGoodHeightSelector_logRadius_budget hsrc
+  refine ⟨c, hc, ?_⟩
+  filter_upwards [hbudget, Filter.eventually_ge_atTop (1 : ℕ)] with k hbudget_k hk
+  let η : ℝ := c / Real.log ((2 : ℝ) ^ k)
+  have hX_pos : 0 < (2 : ℝ) ^ k := pow_pos (by norm_num) k
+  have hk_ne : k ≠ 0 := Nat.ne_of_gt (lt_of_lt_of_le Nat.zero_lt_one hk)
+  have hX_gt_one : 1 < (2 : ℝ) ^ k :=
+    one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+  have hlog_pos : 0 < Real.log ((2 : ℝ) ^ k) := Real.log_pos hX_gt_one
+  have hη_nonneg : 0 ≤ η := by
+    dsimp [η]
+    positivity
+  have hsmall :
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) * (2 * η) <
+        (2 : ℝ) ^ k :=
+    hbudget_k η hη_nonneg le_rfl
+  obtain ⟨T, hT, hgap⟩ :=
+    exists_kadiriDyadicGoodHeight_of_card_mul_radius_lt
+      (X := (2 : ℝ) ^ k) (η := η) hX_pos hη_nonneg hsmall
+  exact ⟨hη_nonneg, hsmall, T, hT, hgap⟩
+
 /-- The concrete dyadic Hadamard/PV remainder is integrable on selected good heights. -/
 theorem eventually_kadiriDyadicHadamardPVRemainder_intervalIntegrable_on_dyadicGoodHeightFilter
     (hsrc : zeroImagDyadicCumulativeCountBoundSource)
@@ -141,6 +181,96 @@ theorem eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_sequen
       ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
         R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)
   exact hrem_event
+
+/--
+A selected signed horizontal `log^2` bound is equivalent, up to the already-proved local
+principal `log^2` budget, to selected local Hadamard/PV remainder control.
+-/
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_positiveHorizontalSegmentLogDerivBound
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C) :
+    ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨P, hP, hprincipal⟩ :=
+    eventually_kadiriDyadicGoodHeightFilter_localPrincipal_logSq hsrc
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  refine ⟨C + P, add_nonneg hC hP, ?_⟩
+  filter_upwards [hseg_event, hprincipal] with T hseg_T hprincipal_T
+  intro σ hσ
+  let logDerivTerm : ℂ :=
+    deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I))
+  let principal : ℂ :=
+    ∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  have hrem_eq :
+      kadiriLocalZetaLogDerivPVRemainder T σ = logDerivTerm - principal := by
+    rfl
+  have hlog :
+      ‖logDerivTerm‖ ≤ C * Real.log |T| ^ (2 : ℕ) := by
+    simpa [logDerivTerm] using hseg_T σ hσ
+  have hprincipal_bound :
+      ‖principal‖ ≤ P * Real.log |T| ^ (2 : ℕ) := by
+    simpa [principal] using hprincipal_T σ
+  calc
+    ‖kadiriLocalZetaLogDerivPVRemainder T σ‖
+        = ‖logDerivTerm - principal‖ := by rw [hrem_eq]
+    _ ≤ ‖logDerivTerm‖ + ‖principal‖ := norm_sub_le logDerivTerm principal
+    _ ≤ C * Real.log |T| ^ (2 : ℕ) + P * Real.log |T| ^ (2 : ℕ) :=
+        add_le_add hlog hprincipal_bound
+    _ = (C + P) * Real.log |T| ^ (2 : ℕ) := by ring
+
+/--
+Absolute-height horizontal `log^2` control on the selected filter is the same remaining
+analytic input as selected local Hadamard/PV remainder control.
+-/
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_horizontalSegmentLogDerivBound
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C) :
+    ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨P, hP, hprincipal⟩ :=
+    eventually_kadiriDyadicGoodHeightFilter_localPrincipal_logSq hsrc
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  refine ⟨C + P, add_nonneg hC hP, ?_⟩
+  filter_upwards [hseg_event, hprincipal] with T hseg_T hprincipal_T
+  intro σ hσ
+  let logDerivTerm : ℂ :=
+    deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I))
+  let principal : ℂ :=
+    ∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  have hrem_eq :
+      kadiriLocalZetaLogDerivPVRemainder T σ = logDerivTerm - principal := by
+    rfl
+  have hlog :
+      ‖logDerivTerm‖ ≤ C * Real.log |T| ^ (2 : ℕ) := by
+    simpa [logDerivTerm] using hseg_T σ hσ T rfl
+  have hprincipal_bound :
+      ‖principal‖ ≤ P * Real.log |T| ^ (2 : ℕ) := by
+    simpa [principal] using hprincipal_T σ
+  calc
+    ‖kadiriLocalZetaLogDerivPVRemainder T σ‖
+        = ‖logDerivTerm - principal‖ := by rw [hrem_eq]
+    _ ≤ ‖logDerivTerm‖ + ‖principal‖ := norm_sub_le logDerivTerm principal
+    _ ≤ C * Real.log |T| ^ (2 : ℕ) + P * Real.log |T| ^ (2 : ℕ) :=
+        add_le_add hlog hprincipal_bound
+    _ = (C + P) * Real.log |T| ^ (2 : ℕ) := by ring
 
 /--
 Selected local Hadamard/PV `log^2` control combines with the selector's distance gap and
