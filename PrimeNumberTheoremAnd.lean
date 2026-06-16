@@ -32,6 +32,7 @@ import PrimeNumberTheoremAnd.IEANTN.FKS2
 import PrimeNumberTheoremAnd.IEANTN.FKS2Floor.Cor22Floor
 import PrimeNumberTheoremAnd.IEANTN.Goldbach
 import PrimeNumberTheoremAnd.IEANTN.Kadiri
+import PrimeNumberTheoremAnd.IEANTN.KadiriEq11Reduction
 import PrimeNumberTheoremAnd.IEANTN.KadiriGammaStrip
 import PrimeNumberTheoremAnd.IEANTN.KadiriHadamardTruncation
 import PrimeNumberTheoremAnd.IEANTN.KadiriNearBand
