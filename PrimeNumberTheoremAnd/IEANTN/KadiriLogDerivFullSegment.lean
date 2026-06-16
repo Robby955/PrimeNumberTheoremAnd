@@ -2048,16 +2048,68 @@ theorem exists_kadiriDyadicGoodHeightSelector_logRadius_offPole
   · exact kadiriLocalZeroWindow_gap_of_dyadic_gap (X := (2 : ℝ) ^ k)
       (η := c / Real.log ((2 : ℝ) ^ k)) (T := T) hT hgap
 
+/--
+Budget-carrying off-pole selector.
+
+This is the concrete form used to define the selected dyadic good-height radius: the
+radius `c / log(2^k)` is nonnegative, satisfies the finite bad-interval smallness
+condition, and yields a selected off-pole height with dyadic and local zero gaps.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_logRadius_offPole_with_budget
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      let η : ℝ := c / Real.log ((2 : ℝ) ^ k)
+      0 ≤ η ∧
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+          (2 * η) < (2 : ℝ) ^ k ∧
+      ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|) := by
+  obtain ⟨c, hc, hbudget⟩ :=
+    exists_kadiriDyadicGoodHeightSelector_logRadius_budget hsrc
+  refine ⟨c, hc, ?_⟩
+  filter_upwards [hbudget, Filter.eventually_ge_atTop (1 : ℕ)] with k hbudget_k hk
+  let X : ℝ := (2 : ℝ) ^ k
+  let η : ℝ := c / Real.log X
+  have hXpos : 0 < X := by
+    dsimp [X]
+    exact pow_pos (by norm_num) k
+  have hk_ne : k ≠ 0 := by omega
+  have hX_gt_one : 1 < X := by
+    dsimp [X]
+    exact one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+  have hlog_pos : 0 < Real.log X := Real.log_pos hX_gt_one
+  have hη : 0 ≤ η := by
+    dsimp [η]
+    exact div_nonneg hc.le hlog_pos.le
+  have hsmall :
+      ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η) < X :=
+    hbudget_k η hη (by simp [η, X])
+  obtain ⟨T, hT, hgap⟩ :=
+    exists_kadiriDyadicGoodHeight_of_card_mul_radius_lt
+      (X := X) (η := η) hXpos hη hsmall
+  refine ⟨by simpa [η, X] using hη, by simpa [η, X] using hsmall,
+    T, by simpa [X] using hT, ?_, ?_, ?_⟩
+  · exact kadiriHorizontalZetaOffPoleHeight_of_dyadic_gap
+      (X := X) (η := η) (T := T) hXpos hη hT hgap
+  · intro rho hrho
+    exact hgap rho (by simpa [X] using hrho)
+  · exact kadiriLocalZeroWindow_gap_of_dyadic_gap (X := X)
+      (η := η) (T := T) hT hgap
+
 /-- The radius constant selected by the concrete dyadic good-height construction. -/
 noncomputable def kadiriDyadicGoodHeightRadius
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) : ℝ :=
-  Classical.choose (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole hsrc)
+  Classical.choose (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole_with_budget hsrc)
 
 theorem kadiriDyadicGoodHeightRadius_pos
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
     0 < kadiriDyadicGoodHeightRadius hsrc := by
   exact (Classical.choose_spec
-    (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole hsrc)).1
+    (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole_with_budget hsrc)).1
 
 /-- The full dyadic good-height package at level `k` for a selected height `T`. -/
 def kadiriDyadicGoodHeightSequenceSpec
@@ -2077,9 +2129,9 @@ theorem eventually_exists_kadiriDyadicGoodHeightSequenceSpec
       ∃ T : ℝ, kadiriDyadicGoodHeightSequenceSpec hsrc k T := by
   have hsel :=
     (Classical.choose_spec
-      (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole hsrc)).2
+      (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole_with_budget hsrc)).2
   filter_upwards [hsel] with k hk
-  obtain ⟨T, hT, hoff, hgap_dyadic, hgap_local⟩ := hk
+  obtain ⟨_hη, _hsmall, T, hT, hoff, hgap_dyadic, hgap_local⟩ := hk
   exact ⟨T, hT, hoff, hgap_dyadic, hgap_local⟩
 
 /--
@@ -2104,6 +2156,36 @@ theorem eventually_kadiriDyadicGoodHeightSequence_spec
   filter_upwards [eventually_exists_kadiriDyadicGoodHeightSequenceSpec hsrc] with k hk
   have hchoose := Classical.choose_spec hk
   simpa [kadiriDyadicGoodHeightSequence, hk] using hchoose
+
+/--
+The actual selected dyadic good-height sequence carries the concrete radius budget.
+
+This exposes the finite bad-interval smallness certificate for the same radius used by
+`kadiriDyadicGoodHeightSequenceSpec`, so endpoint code can consume the selected height,
+off-pole property, and dyadic/local zero gaps without carrying `hsmall` separately.
+-/
+theorem eventually_kadiriDyadicGoodHeightSequence_spec_with_budget
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∀ᶠ k : ℕ in atTop,
+      let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+      0 ≤ η ∧
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+          (2 * η) < (2 : ℝ) ^ k ∧
+      kadiriDyadicGoodHeightSequence hsrc k ∈
+          Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+      kadiriHorizontalZetaOffPoleHeight (kadiriDyadicGoodHeightSequence hsrc k) ∧
+      (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+        η < |kadiriDyadicGoodHeightSequence hsrc k - (rho : ℂ).im|) ∧
+      (∀ rho : NontrivialZeros,
+        rho ∈ kadiriLocalZeroWindow (kadiriDyadicGoodHeightSequence hsrc k) →
+          η < |kadiriDyadicGoodHeightSequence hsrc k - (rho : ℂ).im|) := by
+  have hbudget :=
+    (Classical.choose_spec
+      (exists_kadiriDyadicGoodHeightSelector_logRadius_offPole_with_budget hsrc)).2
+  filter_upwards [hbudget, eventually_kadiriDyadicGoodHeightSequence_spec hsrc]
+    with k hbudget_k hspec
+  obtain ⟨hη, hsmall, _T, _hT, _hoff, _hgap_dyadic, _hgap_local⟩ := hbudget_k
+  exact ⟨hη, hsmall, hspec.1, hspec.2.1, hspec.2.2.1, hspec.2.2.2⟩
 
 theorem tendsto_kadiriDyadicGoodHeightSequence_atTop
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
