@@ -4710,6 +4710,68 @@ theorem kadiri_thm_3_1_q1_eq_12_kadiriTestFn {d : ℝ} (hd : 0 < d) {f : ℝ →
     hb hdecay hdecay' ha hastrip ha1 hT hoff
     (kadiriTestFn_eq12_hPhi_rect hd hf_C2 hf_supp ha hstrip)
 
+theorem kadiri_thm_3_1_q1_eq_12_kadiriTestFn_evaluated {d : ℝ} (hd : 0 < d)
+    {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    {a : ℝ} (ha : 0 < a) (hastrip : a < (s.re - 1) / 2) (ha1 : a < 1)
+    {T : ℝ} (hT : 0 < T) (hoff : kadiriEq12HorizontalZetaOffPoleHeight T) :
+    let φ : ℝ → ℂ := kadiriTestFn f s
+    let Φ : ℂ → ℂ := fun z ↦ ∫ y, φ y * exp (-z * (y : ℂ)) ∂volume
+    kadiri_thm_3_1_q1_I φ a T =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      + ((f 0 : ℂ) / (s - 1) - laplaceTransform f (s - 1))
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+          (fun ρ ↦ (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)) := by
+  dsimp
+  have hbase := kadiri_thm_3_1_q1_eq_12_kadiriTestFn hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hs ha hastrip ha1 hT hoff
+  dsimp at hbase
+  have hΦ1 : (∫ y, kadiriTestFn f s y * exp (-(-1 : ℂ) * (y : ℂ)) ∂volume) =
+      (f 0 : ℂ) / (s - 1) - laplaceTransform f (s - 1) := by
+    have hre : (0 : ℝ) < (s + (-1 : ℂ)).re := by
+      simp only [Complex.add_re, Complex.neg_re, Complex.one_re]
+      linarith
+    rw [kadiriTestFn_laplaceTransform hd hf_C2 hf_supp s (-1) hre,
+      show s + (-1 : ℂ) = s - 1 by ring]
+  have hzero : riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+      (fun ρ ↦ ∫ y, kadiriTestFn f s y * exp (-(-ρ) * (y : ℂ)) ∂volume) =
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+        (fun ρ ↦ (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)) := by
+    unfold riemannZeta.zeroes_sum
+    refine tsum_congr fun ρ ↦ ?_
+    change (∫ y, kadiriTestFn f s y * exp (-(-ρ.val) * (y : ℂ)) ∂volume) *
+        (riemannZeta.order ρ.val : ℂ) =
+      ((f 0 : ℂ) / (s - ρ.val) - laplaceTransform f (s - ρ.val)) *
+        (riemannZeta.order ρ.val : ℂ)
+    congr 1
+    have hlt : (ρ.val : ℂ).re < 1 := ρ.property.1.2
+    have hre : (0 : ℝ) < (s + -ρ.val).re := by
+      simp only [Complex.add_re, Complex.neg_re]
+      linarith
+    rw [kadiriTestFn_laplaceTransform hd hf_C2 hf_supp s (-ρ.val) hre,
+      show s + -ρ.val = s - ρ.val by ring]
+  rw [hΦ1, hzero] at hbase
+  exact hbase
+
 /-! ### Evaluation helpers for `kadiriTestFn`
 
 Pointwise unfoldings of \ref{kadiri-test-fn} used inside the proof of
