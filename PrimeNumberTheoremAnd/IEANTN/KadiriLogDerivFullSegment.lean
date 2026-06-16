@@ -1293,6 +1293,24 @@ theorem kadiri_neg_zeta_logDeriv_horizontal_intervalIntegrable_of_offPole
       hs_cont
   exact hderiv_cont.div hzeta_cont (by simpa [s] using hzeta_ne)
 
+/-- The actual zeta logarithmic-derivative integrand is integrable on the right segment. -/
+theorem kadiri_neg_zeta_logDeriv_right_intervalIntegrable_of_offPole
+    (a T : ℝ) (ha : 0 ≤ a) (hT : kadiriHorizontalZetaOffPoleHeight T) :
+    IntervalIntegrable
+      (fun σ : ℝ =>
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+      volume 0 (1 + a) := by
+  have hfull :=
+    kadiri_neg_zeta_logDeriv_horizontal_intervalIntegrable_of_offPole a T ha hT
+  have hright : 0 ≤ 1 + a := by linarith
+  have hfull_interval : -a ≤ 1 + a := by linarith
+  refine hfull.mono_set ?_
+  intro σ hσ
+  rw [Set.uIcc_of_le hright] at hσ
+  rw [Set.uIcc_of_le hfull_interval]
+  exact ⟨by linarith [hσ.1], hσ.2⟩
+
 /-- The dyadic zero-principal finite sum is integrable on off-pole heights. -/
 theorem kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole
     (a T : ℝ) (k : ℕ) (hT : kadiriHorizontalZetaOffPoleHeight T) :
@@ -1732,6 +1750,169 @@ theorem
       a e ha he hea k B kadiriHorizontalZetaOffPoleFilter
       kadiriHorizontalZetaOffPoleFilter_le_cofinite
       eventually_kadiriHorizontalZetaOffPoleHeight hzeta_rem_bound
+
+/--
+Right-segment actual zeta logarithmic-derivative bound from the sign-correct zeta
+Hadamard/PV remainder and the finite principal-part budget on the same right segment.
+-/
+theorem kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal
+    (a T : ℝ) (ha : 0 ≤ a) (k : ℕ) (P B : ℝ)
+    (hT : kadiriHorizontalZetaOffPoleHeight T)
+    (hprincipal_bound :
+      ‖∫ σ in 0..(1 + a),
+          ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤ P)
+    (hzeta_rem_bound :
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ‖∫ σ in 0..(1 + a),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ B + P := by
+  let principal : ℝ → ℂ := fun σ =>
+    ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  let zetaRem : ℝ → ℂ := fun σ => kadiriDyadicZetaLogDerivPVRemainder k T σ
+  have hright : 0 ≤ 1 + a := by linarith
+  have hfull_interval : -a ≤ 1 + a := by linarith
+  have hsubset : Set.uIcc 0 (1 + a) ⊆ Set.uIcc (-a) (1 + a) := by
+    intro σ hσ
+    rw [Set.uIcc_of_le hright] at hσ
+    rw [Set.uIcc_of_le hfull_interval]
+    exact ⟨by linarith [hσ.1], hσ.2⟩
+  have hprincipal_int :
+      IntervalIntegrable principal volume 0 (1 + a) := by
+    have hprincipal_full :
+        IntervalIntegrable principal volume (-a) (1 + a) := by
+      simpa [principal] using
+        kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole a T k hT
+    exact hprincipal_full.mono_set hsubset
+  have hzetaRem_int :
+      IntervalIntegrable zetaRem volume 0 (1 + a) := by
+    have hzetaRem_full :
+        IntervalIntegrable zetaRem volume (-a) (1 + a) := by
+      simpa [zetaRem] using
+        kadiriDyadicZetaLogDerivPVRemainder_intervalIntegrable_of_offPole a T ha k hT
+    exact hzetaRem_full.mono_set hsubset
+  have hEq :
+      Set.EqOn
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        (fun σ : ℝ => -zetaRem σ - principal σ)
+        [[0, 1 + a]] := by
+    intro σ _hσ
+    simp [kadiriDyadicZetaLogDerivPVRemainder, zetaRem, principal]
+    ring
+  have hsplit :
+      (∫ σ in 0..(1 + a), -zetaRem σ - principal σ) =
+        -(∫ σ in 0..(1 + a), zetaRem σ) -
+          ∫ σ in 0..(1 + a), principal σ := by
+    calc
+      (∫ σ in 0..(1 + a), -zetaRem σ - principal σ)
+          = ∫ σ in 0..(1 + a), ((-zetaRem) - principal) σ := by
+            rfl
+      _ = (∫ σ in 0..(1 + a), (-zetaRem) σ) -
+            ∫ σ in 0..(1 + a), principal σ := by
+            exact intervalIntegral.integral_sub hzetaRem_int.neg hprincipal_int
+      _ = -(∫ σ in 0..(1 + a), zetaRem σ) -
+            ∫ σ in 0..(1 + a), principal σ := by
+            simp
+  have hprincipal' :
+      ‖∫ σ in 0..(1 + a), principal σ‖ ≤ P := by
+    simpa [principal] using hprincipal_bound
+  calc
+    ‖∫ σ in 0..(1 + a),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖∫ σ in 0..(1 + a), -zetaRem σ - principal σ‖ := by
+          rw [intervalIntegral.integral_congr hEq]
+    _ = ‖-(∫ σ in 0..(1 + a), zetaRem σ) -
+          ∫ σ in 0..(1 + a), principal σ‖ := by
+          rw [hsplit]
+    _ ≤ ‖∫ σ in 0..(1 + a), zetaRem σ‖ +
+          ‖∫ σ in 0..(1 + a), principal σ‖ := by
+          simpa [sub_eq_add_neg, norm_neg, add_comm, add_left_comm, add_assoc] using
+            norm_add_le (-(∫ σ in 0..(1 + a), zetaRem σ))
+              (-(∫ σ in 0..(1 + a), principal σ))
+    _ ≤ B + P := add_le_add hzeta_rem_bound hprincipal'
+
+/--
+Eventual right-segment actual zeta logarithmic-derivative bound from right-segment
+principal-part and sign-correct zeta remainder budgets.
+-/
+theorem
+    eventually_kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal_on_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) (P B : ℝ) (L : Filter ℝ)
+    (hoff : ∀ᶠ T : ℝ in L, kadiriHorizontalZetaOffPoleHeight T)
+    (hprincipal_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a),
+          ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤ P)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ B + P := by
+  filter_upwards [hoff, hprincipal_bound, hzeta_rem_bound]
+    with T hT hprincipal_T hzeta_T
+  exact
+    kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal
+      a T ha k P B hT hprincipal_T hzeta_T
+
+/--
+Full-segment assembly from reflected nonpositive control and right-segment zeta
+Hadamard/PV plus principal-part budgets.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_reflected_and_right_zeta_remainder_on_filter
+    (a D P B : ℝ) (ha : 0 ≤ a) (k : ℕ) (L : Filter ℝ)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hoff : ∀ᶠ T : ℝ in L, kadiriHorizontalZetaOffPoleHeight T)
+    (hdigamma_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0)
+    (hdigamma_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hprincipal_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), (
+          ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖ ≤ P)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) + (B + P) := by
+  have hright_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        volume 0 (1 + a) := by
+    filter_upwards [hoff] with T hT
+    exact kadiri_neg_zeta_logDeriv_right_intervalIntegrable_of_offPole a T ha hT
+  have hright_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ B + P :=
+    eventually_kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal_on_filter
+      a ha k P B L hoff hprincipal_bound hzeta_rem_bound
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget_on_filter
+      a D (B + P) ha L hlarge hdigamma_int hdigamma_bound hright_int hright_bound
 
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
