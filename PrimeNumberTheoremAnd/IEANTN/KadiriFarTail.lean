@@ -999,10 +999,11 @@ private lemma log_abs_shift_add_two_le_log_band_product {T : ℝ} (hTnonneg : 0 
 
 /--
 The inverse-square unit-band majorant built from the concrete U6a local counts is
-eventually `O(log T)`.
+eventually summable and `O(log T)`.
 -/
-theorem exists_kadiriFarTailUnitBandMajorant_tsum_le_log :
+theorem exists_kadiriFarTailUnitBandMajorant_summable_and_tsum_le_log :
     ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ T : ℝ in Filter.atTop,
+      Summable (fun n : ℕ => kadiriFarTailUnitBandMajorant T n) ∧
       (∑' n : ℕ, kadiriFarTailUnitBandMajorant T n) ≤ R * Real.log T := by
   obtain ⟨C, hC_nonneg, hcount⟩ := exists_u6aNearbyZeroCount_le_log_abs_add_one
   let A : ℕ → ℝ := fun n => (((n : ℝ) + 1)⁻¹ ^ (2 : ℕ))
@@ -1137,6 +1138,7 @@ theorem exists_kadiriFarTailUnitBandMajorant_tsum_le_log :
               (mul_le_mul_of_nonneg_right hlogT4_add_one_le hA0_nonneg)
               (by nlinarith [hL0_nonneg, hlogT_one])
       _ = (3 * A0 + L0) * Real.log T := by ring
+  refine ⟨hmajorant_sum, ?_⟩
   calc
     (∑' n : ℕ, kadiriFarTailUnitBandMajorant T n)
         ≤ ∑' n : ℕ, B n := htsum_le_B
@@ -1146,6 +1148,40 @@ theorem exists_kadiriFarTailUnitBandMajorant_tsum_le_log :
     _ = R * Real.log T := by
         dsimp [R]
         ring
+
+theorem exists_kadiriFarTailUnitBandMajorant_tsum_le_log :
+    ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ T : ℝ in Filter.atTop,
+      (∑' n : ℕ, kadiriFarTailUnitBandMajorant T n) ≤ R * Real.log T := by
+  obtain ⟨R, hR_nonneg, hR_eventually⟩ :=
+    exists_kadiriFarTailUnitBandMajorant_summable_and_tsum_le_log
+  exact ⟨R, hR_nonneg, hR_eventually.mono (fun _ hT => hT.2)⟩
+
+theorem exists_kadiri_far_tail_weighted_three_height_sq_tsum_le_log :
+    ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ T : ℝ in Filter.atTop,
+      riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1)
+        ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+        (fun ρ => 3 * |T - ρ.im|⁻¹ ^ (2 : ℕ)) ≤ R * Real.log T := by
+  obtain ⟨R, hR_nonneg, hR_eventually⟩ :=
+    exists_kadiriFarTailUnitBandMajorant_summable_and_tsum_le_log
+  refine ⟨R, hR_nonneg, ?_⟩
+  filter_upwards [hR_eventually] with T hT
+  exact (kadiri_far_tail_weighted_three_height_sq_tsum_le_unitBandMajorant_tsum
+    T hT.1).trans hT.2
+
+theorem exists_kadiri_far_tail_paired_zeroes_sum_norm_le_log :
+    ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ T : ℝ in Filter.atTop,
+      ∀ σ : ℝ, σ ∈ Set.uIcc (-1 : ℝ) 2 →
+        ‖riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1)
+          ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+          (fun ρ => (1 : ℂ) / (((σ : ℂ) + (T : ℂ) * I) - ρ) -
+            (1 : ℂ) / (((2 : ℂ) + (T : ℂ) * I) - ρ))‖ ≤
+          R * Real.log T := by
+  obtain ⟨R, hR_nonneg, hR_eventually⟩ :=
+    exists_kadiriFarTailUnitBandMajorant_summable_and_tsum_le_log
+  refine ⟨R, hR_nonneg, ?_⟩
+  filter_upwards [hR_eventually] with T hT σ hσ
+  exact (kadiri_far_tail_paired_zeroes_sum_norm_le_unitBandMajorant_tsum
+    T σ hσ hT.1).trans hT.2
 
 /-- The paired Hadamard zero contribution over the upper unit band
 `T + n + 1 <= Im rho <= T + n + 2`. -/
