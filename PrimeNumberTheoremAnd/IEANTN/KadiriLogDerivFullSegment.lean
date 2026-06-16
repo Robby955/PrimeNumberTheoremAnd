@@ -1,5 +1,6 @@
 import PrimeNumberTheoremAnd.IEANTN.Kadiri
 import PrimeNumberTheoremAnd.IEANTN.KadiriTransversalKernel
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.ZetaBounds
 
 /-!
@@ -1803,6 +1804,22 @@ theorem
   filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleHeight] with T hT
   exact kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable a T ha hT.1
 
+/-- Iterating `digamma (z + 1) = digamma z + z⁻¹` over a finite shift. -/
+theorem kadiri_digamma_add_nat_eq_add_sum
+    (z : ℂ) (n : ℕ) (hpoles : ∀ i m : ℕ, z + i ≠ -(m : ℂ)) :
+    digamma (z + n) = digamma z + ∑ i ∈ Finset.range n, (z + i)⁻¹ := by
+  induction n with
+  | zero =>
+      simp
+  | succ n ih =>
+      have hstep :
+          digamma (z + (n + 1 : ℕ)) = digamma (z + n) + (z + n)⁻¹ := by
+        simpa [Nat.cast_succ, add_assoc, add_comm, add_left_comm] using
+          (Complex.digamma_apply_add_one (z + n) (hpoles n))
+      rw [hstep, ih]
+      rw [Finset.sum_range_succ]
+      ring
+
 /--
 A pointwise bound for the digamma pair controls its nonpositive horizontal-segment
 integral.
@@ -1825,6 +1842,210 @@ theorem kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_b
           (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
             digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))) hpoint
   simpa [sub_eq_add_neg, abs_of_nonneg ha] using hnorm
+
+/--
+Pointwise logarithmic bound for the digamma pair on the nonpositive horizontal segment.
+
+The first argument is shifted a fixed finite number of steps into the right half-plane;
+the second argument is already in the right half-plane after reflection.
+-/
+theorem
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_pointwise_log_bound_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ∀ σ ∈ Ι (-a) 0,
+          ‖(1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+            ≤ G * Real.log |T| ^ 9 := by
+  let n : ℕ := ⌈a⌉₊ + 1
+  obtain ⟨Cleft, hCleft_pos, hCleft_bound⟩ :=
+    Complex.exists_norm_digamma_le_log (a := 1) (b := (n : ℝ)) one_pos
+  obtain ⟨Cright, hCright_pos, hCright_bound⟩ :=
+    Complex.exists_norm_digamma_div_two_le_log (a := 1) (b := 1 + a) one_pos
+  refine ⟨Cleft + Cright + n, by positivity, ?_⟩
+  have hlog_ge_two : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      (2 : ℝ) ≤ Real.log |T| := by
+    have hlog_abs :
+        Filter.Tendsto (fun T : ℝ => Real.log |T|) Filter.atTop Filter.atTop := by
+      exact Real.tendsto_log_atTop.comp tendsto_norm_atTop_atTop
+    exact (hlog_abs.eventually_ge_atTop 2).filter_mono
+      kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large, hlog_ge_two]
+    with T hlarge hlog_two σ hσ
+  have hle : -a ≤ 0 := by linarith
+  have hσI : σ ∈ Set.Ioc (-a) 0 := by
+    rw [Set.uIoc_of_le hle] at hσ
+    exact hσ
+  have hσ_left : -a ≤ σ := hσI.1.le
+  have hσ_right : σ ≤ 0 := hσI.2
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+  have hlog_pow_one : (1 : ℝ) ≤ Real.log |T| ^ (9 : ℕ) :=
+    one_le_pow₀ hlog_one.le
+  have hlog_pow_nonneg : 0 ≤ Real.log |T| ^ (9 : ℕ) := by positivity
+  have hT_abs_pos : 0 < |T| := by linarith
+  have hT_abs_one : 1 ≤ |T| := by linarith
+  have hT_abs_add_le_pow : |T| + 2 ≤ |T| ^ (9 : ℕ) := by
+    have hsq : |T| + 2 ≤ |T| ^ (2 : ℕ) := by
+      nlinarith [sq_nonneg (|T| - 2)]
+    have hpow : |T| ^ (2 : ℕ) ≤ |T| ^ (9 : ℕ) :=
+      pow_le_pow_right₀ hT_abs_one (by norm_num)
+    exact le_trans hsq hpow
+  have hT_abs_add_le_sq : |T| + 2 ≤ |T| ^ (2 : ℕ) := by
+    nlinarith [sq_nonneg (|T| - 2)]
+  have hlog_abs_add_le_two_log :
+      Real.log (|T| + 2) ≤ 2 * Real.log |T| := by
+    calc
+      Real.log (|T| + 2) ≤ Real.log (|T| ^ (2 : ℕ)) :=
+        Real.log_le_log (by positivity) hT_abs_add_le_sq
+      _ = 2 * Real.log |T| := by
+        rw [Real.log_pow]
+        norm_num
+  have htwo_log_le_log_pow :
+      2 * Real.log |T| ≤ Real.log |T| ^ (9 : ℕ) := by
+    have hlog_one' : 1 ≤ Real.log |T| := by linarith
+    have hsq : 2 * Real.log |T| ≤ Real.log |T| ^ (2 : ℕ) := by
+      nlinarith
+    have hpow : Real.log |T| ^ (2 : ℕ) ≤ Real.log |T| ^ (9 : ℕ) :=
+      pow_le_pow_right₀ hlog_one' (by norm_num)
+    exact le_trans hsq hpow
+  have hlog_abs_add :
+      Real.log (|T| + 2) ≤ Real.log |T| ^ (9 : ℕ) :=
+    le_trans hlog_abs_add_le_two_log htwo_log_le_log_pow
+  have hhalf_abs_add :
+      |T / 2| + 2 ≤ |T| + 2 := by
+    rw [abs_div]
+    have htwo : |(2 : ℝ)| = 2 := by norm_num
+    rw [htwo]
+    linarith [abs_nonneg T]
+  have hlog_half_abs_add :
+      Real.log (|T / 2| + 2) ≤ Real.log |T| ^ (9 : ℕ) :=
+    le_trans (Real.log_le_log (by positivity) hhalf_abs_add) hlog_abs_add
+  let z : ℂ := (((σ : ℂ) + (T : ℂ) * I) / 2)
+  have hpoles : ∀ i m : ℕ, z + i ≠ -(m : ℂ) := by
+    intro i m h
+    have him := congrArg Complex.im h
+    have hT0 : T = 0 := by
+      have : T / 2 = 0 := by
+        simpa [z] using him
+      linarith
+    rw [hT0, abs_zero] at hlarge
+    norm_num at hlarge
+  have hshift :
+      digamma z = digamma (z + n) - ∑ i ∈ Finset.range n, (z + i)⁻¹ := by
+    have h := kadiri_digamma_add_nat_eq_add_sum z n hpoles
+    rw [h]
+    abel
+  have hn_ge : a + 1 ≤ (n : ℝ) := by
+    dsimp [n]
+    push_cast
+    linarith [Nat.le_ceil a]
+  have hshift_re_left : 1 ≤ (z + n).re := by
+    dsimp [z]
+    simp
+    linarith
+  have hshift_re_right : (z + n).re ≤ (n : ℝ) := by
+    dsimp [z]
+    simp
+    linarith
+  have hshift_im : (z + n).im = T / 2 := by
+    simp [z]
+  have hshift_bound :
+      ‖digamma (z + n)‖ ≤ Cleft * Real.log |T| ^ (9 : ℕ) := by
+    calc
+      ‖digamma (z + n)‖
+          ≤ Cleft * Real.log (|(z + n).im| + 2) :=
+            hCleft_bound (z + n) hshift_re_left hshift_re_right
+      _ = Cleft * Real.log (|T / 2| + 2) := by
+            rw [hshift_im]
+      _ ≤ Cleft * Real.log |T| ^ (9 : ℕ) :=
+            mul_le_mul_of_nonneg_left hlog_half_abs_add hCleft_pos.le
+  have hsum_bound :
+      ‖∑ i ∈ Finset.range n, (z + i)⁻¹‖ ≤ (n : ℝ) := by
+    calc
+      ‖∑ i ∈ Finset.range n, (z + i)⁻¹‖
+          ≤ ∑ i ∈ Finset.range n, ‖(z + i)⁻¹‖ := norm_sum_le _ _
+      _ ≤ ∑ i ∈ Finset.range n, (1 : ℝ) := by
+            refine Finset.sum_le_sum ?_
+            intro i hi
+            rw [norm_inv]
+            apply inv_le_one_of_one_le₀
+            have him_ge : 1 ≤ |(z + i).im| := by
+              have hhalf : 1 < |T / 2| := by
+                rw [abs_div]
+                have htwo : |(2 : ℝ)| = 2 := by norm_num
+                rw [htwo]
+                nlinarith
+              have him : (z + i).im = T / 2 := by
+                simp [z]
+              rw [him]
+              exact hhalf.le
+            exact le_trans him_ge (Complex.abs_im_le_norm (z + i))
+      _ = (n : ℝ) := by
+            simp
+  have hleft :
+      ‖digamma z‖ ≤ (Cleft + n) * Real.log |T| ^ (9 : ℕ) := by
+    calc
+      ‖digamma z‖
+          = ‖digamma (z + n) - ∑ i ∈ Finset.range n, (z + i)⁻¹‖ := by
+            rw [hshift]
+      _ ≤ ‖digamma (z + n)‖ + ‖∑ i ∈ Finset.range n, (z + i)⁻¹‖ :=
+            norm_sub_le _ _
+      _ ≤ Cleft * Real.log |T| ^ (9 : ℕ) + (n : ℝ) :=
+            add_le_add hshift_bound hsum_bound
+      _ ≤ Cleft * Real.log |T| ^ (9 : ℕ) +
+            (n : ℝ) * Real.log |T| ^ (9 : ℕ) := by
+            have hn_absorb :
+                (n : ℝ) ≤ (n : ℝ) * Real.log |T| ^ (9 : ℕ) := by
+              calc
+                (n : ℝ) = (n : ℝ) * 1 := by ring
+                _ ≤ (n : ℝ) * Real.log |T| ^ (9 : ℕ) :=
+                    mul_le_mul_of_nonneg_left hlog_pow_one (Nat.cast_nonneg n)
+            exact add_le_add_right hn_absorb _
+      _ = (Cleft + n) * Real.log |T| ^ (9 : ℕ) := by
+            ring
+  let w : ℂ := 1 - (((σ : ℂ) + (T : ℂ) * I))
+  have hw_re_left : 1 ≤ w.re := by
+    dsimp [w]
+    simp
+    linarith
+  have hw_re_right : w.re ≤ 1 + a := by
+    dsimp [w]
+    simp
+    linarith
+  have hw_im : w.im = -T := by
+    simp [w]
+  have hright :
+      ‖digamma (w / 2)‖ ≤ Cright * Real.log |T| ^ (9 : ℕ) := by
+    calc
+      ‖digamma (w / 2)‖
+          ≤ Cright * Real.log (|w.im| + 2) :=
+            hCright_bound w hw_re_left hw_re_right
+      _ = Cright * Real.log (|T| + 2) := by
+            rw [hw_im, abs_neg]
+      _ ≤ Cright * Real.log |T| ^ (9 : ℕ) :=
+            mul_le_mul_of_nonneg_left hlog_abs_add hCright_pos.le
+  have hpair :
+      ‖(1 / 2 : ℂ) * (digamma z + digamma (w / 2))‖
+        ≤ (Cleft + Cright + n) * Real.log |T| ^ (9 : ℕ) := by
+    calc
+      ‖(1 / 2 : ℂ) * (digamma z + digamma (w / 2))‖
+          ≤ ‖digamma z + digamma (w / 2)‖ := by
+            have hhalf_norm : ‖(1 / 2 : ℂ)‖ ≤ (1 : ℝ) := by norm_num
+            calc
+              ‖(1 / 2 : ℂ) * (digamma z + digamma (w / 2))‖
+                  = ‖(1 / 2 : ℂ)‖ * ‖digamma z + digamma (w / 2)‖ := norm_mul _ _
+              _ ≤ 1 * ‖digamma z + digamma (w / 2)‖ :=
+                    mul_le_mul_of_nonneg_right hhalf_norm (norm_nonneg _)
+              _ = ‖digamma z + digamma (w / 2)‖ := by ring
+      _ ≤ ‖digamma z‖ + ‖digamma (w / 2)‖ := norm_add_le _ _
+      _ ≤ (Cleft + n) * Real.log |T| ^ (9 : ℕ) +
+            Cright * Real.log |T| ^ (9 : ℕ) :=
+            add_le_add hleft hright
+      _ = (Cleft + Cright + n) * Real.log |T| ^ (9 : ℕ) := by
+            ring
+  simpa [z, w, add_comm, add_left_comm, add_assoc] using hpair
 
 /--
 Eventual pointwise logarithmic control of the digamma pair supplies the nonpositive
@@ -3637,5 +3858,34 @@ theorem
         a G ha kadiriLargeHorizontalZetaOffPoleFilter hdigamma_point)
       (eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound_on_filter
         a ha k B kadiriLargeHorizontalZetaOffPoleFilter hzeta_rem_point)
+
+/--
+Large off-pole full-segment assembly after discharging the digamma-pair pointwise
+logarithmic bound.
+
+The remaining analytic input is pointwise control of the sign-correct zeta PV remainder
+on the right segment.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_zeta_remainder_pointwise_on_large_offPole_filter
+    (a B : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hzeta_rem_point : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ∀ σ ∈ Ι 0 (1 + a),
+        ‖kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a) +
+              (B * (1 + a) +
+                (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                  M) * Cp) := by
+  obtain ⟨G, hG, hdigamma_point⟩ :=
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_pointwise_log_bound_on_large_offPole_filter
+      a ha
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_pointwise_and_zeta_remainder_pointwise_on_large_offPole_filter
+      a G B ha hG k hdigamma_point hzeta_rem_point
 
 end Kadiri
