@@ -110,6 +110,21 @@ theorem tsum_hadamard_packets_sub_eq_tsum_one_div_sub (s w : ℂ) :
   refine tsum_congr fun ρ => ?_
   ring
 
+/-- Weighted version of `tsum_hadamard_packets_sub_eq_tsum_one_div_sub`, in the
+`riemannZeta.zeroes_sum` form used by the clean multiplicity-aware Hadamard identity. -/
+theorem zeroes_sum_hadamard_packets_sub_eq_zeroes_sum_one_div_sub (s w : ℂ) :
+    riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => 1 / ρ + 1 / (s - ρ)) -
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => 1 / ρ + 1 / (w - ρ)) =
+    riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => 1 / (s - ρ) - 1 / (w - ρ)) := by
+  unfold riemannZeta.zeroes_sum
+  rw [← Summable.tsum_sub (summable_weighted_one_div_add_one_div_at_zeros s)
+    (summable_weighted_one_div_add_one_div_at_zeros w)]
+  refine tsum_congr fun ρ => ?_
+  ring
+
 /-- Pointwise far-tail bound for the paired zero term on a horizontal line. If
 `s` has imaginary part `t` and real part in the Kadiri strip `[-1, 2]`, then the
 subtraction at `2 + it` turns the zero term into an `O(|t - Im ρ|⁻²)` term away
@@ -220,6 +235,43 @@ theorem kadiri_subtract_at_two_add_it_truncation
   have hs_id := hadamard_identity s hs1 hsZ
   have hw_id := hadamard_identity w hw1 hwZ
   have hsum := tsum_hadamard_packets_sub_eq_tsum_one_div_sub s w
+  rw [hs_id, hw_id, ← hsum]
+  simp [w]
+  ring
+
+/-- Subtract the clean multiplicity-aware Kadiri Hadamard identity at `2 + it`
+from the same identity at `s`. The zero contribution stays in `zeroes_sum`
+form, so all zero multiplicities are retained. -/
+theorem kadiri_subtract_at_two_add_it_truncation_clean
+    (s : ℂ) (t : ℝ)
+    (hs0 : s ≠ 0)
+    (hs1 : s ≠ 1)
+    (hsZ : s ∉ riemannZeta.zeroes) :
+    -deriv riemannZeta s / riemannZeta s -
+        (-deriv riemannZeta ((2 : ℂ) + (t : ℂ) * I) /
+          riemannZeta ((2 : ℂ) + (t : ℂ) * I)) =
+      (1 / (s - 1) - 1 / (1 + (t : ℂ) * I)) +
+        ((1 / 2 : ℂ) * digamma (s / 2 + 1) -
+          (1 / 2 : ℂ) * digamma (((2 : ℂ) + (t : ℂ) * I) / 2 + 1)) -
+        riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => 1 / (s - ρ) -
+            1 / (((2 : ℂ) + (t : ℂ) * I) - ρ)) := by
+  let w : ℂ := (2 : ℂ) + (t : ℂ) * I
+  have hw0 : w ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    simp [w] at hre
+  have hw1 : w ≠ 1 := by
+    intro h
+    have hre := congrArg Complex.re h
+    simp [w] at hre
+  have hwZ : w ∉ riemannZeta.zeroes := by
+    intro hz
+    exact (riemannZeta_ne_zero_of_one_le_re (s := w) (by simp [w])) (by
+      simpa [riemannZeta.zeroes] using hz)
+  have hs_id := hadamard_identity s hs0 hs1 hsZ
+  have hw_id := hadamard_identity w hw0 hw1 hwZ
+  have hsum := zeroes_sum_hadamard_packets_sub_eq_zeroes_sum_one_div_sub s w
   rw [hs_id, hw_id, ← hsum]
   simp [w]
   ring
