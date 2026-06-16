@@ -1712,6 +1712,69 @@ theorem kadiriDyadicZetaLogDerivPVRemainderComplex_isBigO_at_truncated_zero
               abel_nf
   exact hdecomp.trans_isBigO (hlocal.sub htail)
 
+/--
+At a retained dyadic zero, the sign-correct finite Hadamard/PV remainder has an explicit
+local punctured-neighborhood norm bound.
+-/
+theorem kadiriDyadicZetaLogDerivPVRemainderComplex_eventually_norm_le_at_truncated_zero
+    (k : ℕ) {rho : NontrivialZeros}
+    (hrho : rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ s in 𝓝[≠] (rho : ℂ),
+        ‖kadiriDyadicZetaLogDerivPVRemainderComplex k s‖ ≤ C := by
+  obtain ⟨C, hC_nonneg, hC⟩ :=
+    (kadiriDyadicZetaLogDerivPVRemainderComplex_isBigO_at_truncated_zero
+      k hrho).exists_nonneg
+  refine ⟨C, hC_nonneg, ?_⟩
+  filter_upwards [hC.bound] with s hs
+  simpa using hs
+
+/--
+One finite norm constant controls the local punctured-neighborhood bounds at every zero
+retained by a fixed dyadic truncation.
+
+The neighborhoods may still depend on the zero; this is the finite-family local Hadamard/PV
+input before any global critical-strip covering argument.
+-/
+theorem
+    kadiriDyadicZetaLogDerivPVRemainderComplex_truncated_zero_uniform_eventually_norm_bound
+    (k : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+        ∀ᶠ s in 𝓝[≠] (rho : ℂ),
+          ‖kadiriDyadicZetaLogDerivPVRemainderComplex k s‖ ≤ C := by
+  classical
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))
+  have hlocal : ∀ rho ∈ S, ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ s in 𝓝[≠] (rho : ℂ),
+        ‖kadiriDyadicZetaLogDerivPVRemainderComplex k s‖ ≤ C := by
+    intro rho hrho
+    exact kadiriDyadicZetaLogDerivPVRemainderComplex_eventually_norm_le_at_truncated_zero
+      k (by simpa [S] using hrho)
+  let C0 : NontrivialZeros → ℝ := fun rho =>
+    if h : rho ∈ S then Classical.choose (hlocal rho h) else 0
+  have hC0_nonneg : ∀ rho ∈ S, 0 ≤ C0 rho := by
+    intro rho hrho
+    have hspec := Classical.choose_spec (hlocal rho hrho)
+    simpa [C0, hrho] using hspec.1
+  have hC0_event : ∀ rho ∈ S,
+      ∀ᶠ s in 𝓝[≠] (rho : ℂ),
+        ‖kadiriDyadicZetaLogDerivPVRemainderComplex k s‖ ≤ C0 rho := by
+    intro rho hrho
+    have hspec := Classical.choose_spec (hlocal rho hrho)
+    simpa [C0, hrho] using hspec.2
+  let C : ℝ := ∑ rho ∈ S, C0 rho
+  refine ⟨C, ?_, ?_⟩
+  · dsimp [C]
+    exact Finset.sum_nonneg fun rho hrho => hC0_nonneg rho hrho
+  · intro rho hrho
+    have hle : C0 rho ≤ C := by
+      dsimp [C]
+      exact Finset.single_le_sum (fun eta heta => hC0_nonneg eta heta)
+        (by simpa [S] using hrho)
+    filter_upwards [hC0_event rho (by simpa [S] using hrho)] with s hs
+    exact hs.trans hle
+
 /-- Heights whose horizontal line avoids the pole at `1` and every non-trivial zeta zero. -/
 def kadiriHorizontalZetaOffPoleHeight (T : ℝ) : Prop :=
   T ≠ 0 ∧ ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T
