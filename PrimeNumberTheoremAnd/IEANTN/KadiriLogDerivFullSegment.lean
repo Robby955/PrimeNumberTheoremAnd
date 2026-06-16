@@ -2623,6 +2623,276 @@ theorem eventually_kadiriDyadicGoodHeightFilter_budget_and_localPrincipal_logSq
     with T hbudget hprincipal_T
   exact ⟨hbudget, hprincipal_T⟩
 
+/-- A quantitative unit-window zero-ordinate gap implies the selected height is off-pole. -/
+theorem kadiriHorizontalZetaOffPoleHeight_of_unit_gap {T η U : ℝ}
+    (hT : 0 < T) (hη : 0 ≤ η)
+    (hU : U ∈ Set.Icc T (T + 1))
+    (hgap : ∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow T →
+      η < |U - (rho : ℂ).im|) :
+    kadiriHorizontalZetaOffPoleHeight U := by
+  constructor
+  · intro hU0
+    linarith [hT, hU.1]
+  · intro rho him
+    have hrho_window : rho ∈ kadiriUnitZeroWindow T := by
+      rw [kadiriUnitZeroWindow]
+      left
+      rw [kadiriLocalZeroWindow, Set.mem_setOf_eq, him]
+      exact abs_le.mpr ⟨by linarith [hU.1], by linarith [hU.2]⟩
+    have hgap_rho := hgap rho hrho_window
+    rw [him] at hgap_rho
+    simp at hgap_rho
+    linarith
+
+/--
+Endpoint-facing unit-window selector: for all large `T`, there is an off-pole height
+`U ∈ [T, T + 1]` with both unit-window and centered local zero-ordinate gaps.
+-/
+theorem exists_kadiriUnitGoodHeightSelector_logRadius_offPole :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ T : ℝ in atTop,
+      ∃ U ∈ Set.Icc T (T + 1),
+        kadiriHorizontalZetaOffPoleHeight U ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow T →
+            c / Real.log T < |U - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow U →
+            c / Real.log T < |U - (rho : ℂ).im|) := by
+  obtain ⟨c, hc, hsel⟩ := exists_kadiriUnitGoodHeightSelector_logRadius
+  refine ⟨c, hc, ?_⟩
+  filter_upwards [hsel, Filter.eventually_gt_atTop (1 : ℝ)] with T hsel_T hT_one
+  obtain ⟨U, hU, hgap_unit⟩ := hsel_T
+  let η : ℝ := c / Real.log T
+  have hT_pos : 0 < T := by linarith
+  have hlogT_pos : 0 < Real.log T := Real.log_pos hT_one
+  have hη : 0 ≤ η := div_nonneg hc.le hlogT_pos.le
+  refine ⟨U, hU, ?_, hgap_unit, ?_⟩
+  · exact kadiriHorizontalZetaOffPoleHeight_of_unit_gap (T := T) (η := η) (U := U)
+      hT_pos hη hU (by simpa [η] using hgap_unit)
+  · exact kadiriLocalZeroWindow_gap_of_unit_gap (T := T) (η := η) (U := U)
+      hU (by simpa [η] using hgap_unit)
+
+/-- The radius constant selected by the unit-window good-height construction. -/
+noncomputable def kadiriUnitGoodHeightRadius : ℝ :=
+  Classical.choose exists_kadiriUnitGoodHeightSelector_logRadius_offPole
+
+theorem kadiriUnitGoodHeightRadius_pos :
+    0 < kadiriUnitGoodHeightRadius := by
+  exact (Classical.choose_spec exists_kadiriUnitGoodHeightSelector_logRadius_offPole).1
+
+/-- The full unit-window good-height package at integer base `n`. -/
+def kadiriUnitGoodHeightSequenceSpec (n : ℕ) (T : ℝ) : Prop :=
+  T ∈ Set.Icc (n : ℝ) ((n : ℝ) + 1) ∧
+    kadiriHorizontalZetaOffPoleHeight T ∧
+      (∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow (n : ℝ) →
+        kadiriUnitGoodHeightRadius / Real.log (n : ℝ) < |T - (rho : ℂ).im|) ∧
+      (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+        kadiriUnitGoodHeightRadius / Real.log (n : ℝ) < |T - (rho : ℂ).im|)
+
+theorem eventually_exists_kadiriUnitGoodHeightSequenceSpec :
+    ∀ᶠ n : ℕ in atTop,
+      ∃ T : ℝ, kadiriUnitGoodHeightSequenceSpec n T := by
+  have hsel :=
+    (Classical.choose_spec exists_kadiriUnitGoodHeightSelector_logRadius_offPole).2
+  have hsel_nat :
+      ∀ᶠ n : ℕ in atTop,
+        ∃ T ∈ Set.Icc (n : ℝ) ((n : ℝ) + 1),
+          kadiriHorizontalZetaOffPoleHeight T ∧
+            (∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow (n : ℝ) →
+              kadiriUnitGoodHeightRadius / Real.log (n : ℝ) < |T - (rho : ℂ).im|) ∧
+            (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+              kadiriUnitGoodHeightRadius / Real.log (n : ℝ) < |T - (rho : ℂ).im|) :=
+    (tendsto_natCast_atTop_atTop (R := ℝ)).eventually hsel
+  filter_upwards [hsel_nat] with n hn
+  obtain ⟨T, hT, hoff, hgap_unit, hgap_local⟩ := hn
+  exact ⟨T, hT, hoff, hgap_unit, hgap_local⟩
+
+/--
+A noncomputable selected good-height sequence, choosing one certified height from each
+large unit interval and falling back to the left endpoint before the selector starts.
+-/
+noncomputable def kadiriUnitGoodHeightSequence (n : ℕ) : ℝ :=
+  by
+    classical
+    exact
+      if h : ∃ T : ℝ, kadiriUnitGoodHeightSequenceSpec n T then
+        Classical.choose h
+      else
+        (n : ℝ)
+
+theorem eventually_kadiriUnitGoodHeightSequence_spec :
+    ∀ᶠ n : ℕ in atTop,
+      kadiriUnitGoodHeightSequenceSpec n (kadiriUnitGoodHeightSequence n) := by
+  filter_upwards [eventually_exists_kadiriUnitGoodHeightSequenceSpec] with n hn
+  have hchoose := Classical.choose_spec hn
+  simpa [kadiriUnitGoodHeightSequence, hn] using hchoose
+
+theorem tendsto_kadiriUnitGoodHeightSequence_atTop :
+    Tendsto kadiriUnitGoodHeightSequence atTop atTop := by
+  rw [Filter.tendsto_atTop]
+  intro B
+  have hnat : ∀ᶠ n : ℕ in atTop, B ≤ (n : ℝ) :=
+    (tendsto_natCast_atTop_atTop (R := ℝ)).eventually (Filter.eventually_ge_atTop B)
+  filter_upwards [eventually_kadiriUnitGoodHeightSequence_spec, hnat] with n hspec hn
+  exact hn.trans hspec.1.1
+
+/-- The good-height filter obtained from the selected unit-window sequence. -/
+noncomputable def kadiriUnitGoodHeightFilter : Filter ℝ :=
+  Filter.map kadiriUnitGoodHeightSequence atTop
+
+theorem kadiriUnitGoodHeightFilter_le_atTop :
+    kadiriUnitGoodHeightFilter ≤ atTop := by
+  simpa [kadiriUnitGoodHeightFilter] using tendsto_kadiriUnitGoodHeightSequence_atTop
+
+theorem eventually_kadiriUnitGoodHeightFilter_offPole :
+    ∀ᶠ T : ℝ in kadiriUnitGoodHeightFilter,
+      kadiriHorizontalZetaOffPoleHeight T := by
+  rw [kadiriUnitGoodHeightFilter]
+  change ∀ᶠ n : ℕ in atTop,
+    kadiriHorizontalZetaOffPoleHeight (kadiriUnitGoodHeightSequence n)
+  exact eventually_kadiriUnitGoodHeightSequence_spec.mono (fun _ hspec => hspec.2.1)
+
+theorem eventually_kadiriUnitGoodHeightFilter_unitInterval :
+    ∀ᶠ T : ℝ in kadiriUnitGoodHeightFilter,
+      ∃ n : ℕ,
+        T = kadiriUnitGoodHeightSequence n ∧
+          T ∈ Set.Icc (n : ℝ) ((n : ℝ) + 1) := by
+  rw [kadiriUnitGoodHeightFilter]
+  change ∀ᶠ m : ℕ in atTop,
+    ∃ n : ℕ,
+      kadiriUnitGoodHeightSequence m = kadiriUnitGoodHeightSequence n ∧
+        kadiriUnitGoodHeightSequence m ∈ Set.Icc (n : ℝ) ((n : ℝ) + 1)
+  filter_upwards [eventually_kadiriUnitGoodHeightSequence_spec] with n hspec
+  exact ⟨n, rfl, hspec.1⟩
+
+theorem eventually_kadiriUnitGoodHeightFilter_localGap :
+    ∀ᶠ T : ℝ in kadiriUnitGoodHeightFilter,
+      ∃ n : ℕ,
+        T = kadiriUnitGoodHeightSequence n ∧
+          ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            kadiriUnitGoodHeightRadius / Real.log (n : ℝ) <
+              |T - (rho : ℂ).im| := by
+  rw [kadiriUnitGoodHeightFilter]
+  change ∀ᶠ m : ℕ in atTop,
+    ∃ n : ℕ,
+      kadiriUnitGoodHeightSequence m = kadiriUnitGoodHeightSequence n ∧
+        ∀ rho : NontrivialZeros,
+          rho ∈ kadiriLocalZeroWindow (kadiriUnitGoodHeightSequence m) →
+            kadiriUnitGoodHeightRadius / Real.log (n : ℝ) <
+              |kadiriUnitGoodHeightSequence m - (rho : ℂ).im|
+  filter_upwards [eventually_kadiriUnitGoodHeightSequence_spec] with n hspec
+  exact ⟨n, rfl, hspec.2.2.2⟩
+
+/-- The selected unit-window sequence carries the local zero-principal `log^2` bound. -/
+theorem exists_kadiriUnitGoodHeightSequence_localPrincipal_logSq :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ᶠ n : ℕ in atTop,
+      ∀ σ : ℝ,
+        ‖∑ rho ∈
+            (kadiriLocalZeroWindow_finite (kadiriUnitGoodHeightSequence n)).toFinset,
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + ((kadiriUnitGoodHeightSequence n : ℝ) : ℂ) * I) -
+                (rho : ℂ)))‖ ≤
+          C * Real.log |kadiriUnitGoodHeightSequence n| ^ (2 : ℕ) := by
+  let c : ℝ := kadiriUnitGoodHeightRadius
+  have hc : 0 < c := by
+    dsimp [c]
+    exact kadiriUnitGoodHeightRadius_pos
+  obtain ⟨D, Tₘᵢₙ, hcnt⟩ := exists_u6aLocalZeroCountLogHypothesis
+  rcases hcnt with ⟨hD, hcnt⟩
+  refine ⟨D / c, div_nonneg hD.le hc.le, ?_⟩
+  let B : ℝ := max (max |Tₘᵢₙ| 3) 1
+  have hnat_large : ∀ᶠ n : ℕ in atTop, B ≤ (n : ℝ) :=
+    (tendsto_natCast_atTop_atTop (R := ℝ)).eventually (Filter.eventually_ge_atTop B)
+  filter_upwards [eventually_kadiriUnitGoodHeightSequence_spec, hnat_large,
+    Filter.eventually_ge_atTop (3 : ℕ)] with n hspec hn_large hn_three
+  intro σ
+  let T : ℝ := kadiriUnitGoodHeightSequence n
+  let X : ℝ := (n : ℝ)
+  have hT : T ∈ Set.Icc X (X + 1) := by
+    simpa [T, X] using hspec.1
+  have hgap_local :
+      ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+        c / Real.log X < |T - (rho : ℂ).im| := by
+    simpa [T, X, c] using hspec.2.2.2
+  have hn_one : (1 : ℕ) < n := by omega
+  have hXpos : 0 < X := by
+    dsimp [X]
+    exact_mod_cast Nat.pos_of_ne_zero (by omega : n ≠ 0)
+  have hX_gt_one : 1 < X := by
+    dsimp [X]
+    exact_mod_cast hn_one
+  have hlogX_pos : 0 < Real.log X := Real.log_pos hX_gt_one
+  have hηpos : 0 < c / Real.log X := div_pos hc hlogX_pos
+  have hTpos : 0 < T := by linarith [hXpos, hT.1]
+  have hTabs : |T| = T := abs_of_pos hTpos
+  have hB_abs : |Tₘᵢₙ| ≤ B := by
+    dsimp [B]
+    exact le_trans (le_max_left |Tₘᵢₙ| 3) (le_max_left (max |Tₘᵢₙ| 3) 1)
+  have hB_three : (3 : ℝ) ≤ B := by
+    dsimp [B]
+    exact le_trans (le_max_right |Tₘᵢₙ| 3) (le_max_left (max |Tₘᵢₙ| 3) 1)
+  have hTmin_abs : Tₘᵢₙ ≤ |T| := by
+    rw [hTabs]
+    calc
+      Tₘᵢₙ ≤ |Tₘᵢₙ| := le_abs_self Tₘᵢₙ
+      _ ≤ B := hB_abs
+      _ ≤ X := by simpa [X] using hn_large
+      _ ≤ T := hT.1
+  have hT_three_abs : (3 : ℝ) ≤ |T| := by
+    rw [hTabs]
+    calc
+      (3 : ℝ) ≤ B := hB_three
+      _ ≤ X := by simpa [X] using hn_large
+      _ ≤ T := hT.1
+  have hlogT_nonneg : 0 ≤ Real.log |T| := Real.log_nonneg (by linarith)
+  have hlogX_le_logT : Real.log X ≤ Real.log |T| := by
+    rw [hTabs]
+    exact Real.log_le_log hXpos hT.1
+  have hcount_T : u6aNearbyZeroCount (-1) 2 T ≤ D * Real.log |T| :=
+    hcnt T hTmin_abs hT_three_abs
+  have hprincipal :=
+    kadiri_local_principal_part_pointwise_bound_of_gap_and_count
+      (η := c / Real.log X) (T := T) (σ := σ) hηpos hT_three_abs
+      hgap_local
+  calc
+    ‖∑ rho ∈ (kadiriLocalZeroWindow_finite (kadiriUnitGoodHeightSequence n)).toFinset,
+        ((riemannZeta.order (rho : ℂ) : ℂ) /
+          (((σ : ℂ) + ((kadiriUnitGoodHeightSequence n : ℝ) : ℂ) * I) -
+            (rho : ℂ)))‖
+        = ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ := by simp [T]
+    _ ≤ (c / Real.log X)⁻¹ * u6aNearbyZeroCount (-1) 2 T := hprincipal
+    _ ≤ (c / Real.log X)⁻¹ * (D * Real.log |T|) :=
+          mul_le_mul_of_nonneg_left hcount_T (inv_nonneg.mpr hηpos.le)
+    _ = (D / c) * (Real.log X * Real.log |T|) := by
+          field_simp [ne_of_gt hc, ne_of_gt hlogX_pos]
+    _ ≤ (D / c) * (Real.log |T| * Real.log |T|) := by
+          exact mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_right hlogX_le_logT hlogT_nonneg)
+            (div_nonneg hD.le hc.le)
+    _ = (D / c) * Real.log |kadiriUnitGoodHeightSequence n| ^ (2 : ℕ) := by
+          simp [T, pow_two]
+
+theorem eventually_kadiriUnitGoodHeightFilter_localPrincipal_logSq :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriUnitGoodHeightFilter,
+        ∀ σ : ℝ,
+          ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
+            C * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨C, hC, hseq⟩ := exists_kadiriUnitGoodHeightSequence_localPrincipal_logSq
+  refine ⟨C, hC, ?_⟩
+  rw [kadiriUnitGoodHeightFilter]
+  change ∀ᶠ n : ℕ in atTop,
+    ∀ σ : ℝ,
+      ‖∑ rho ∈
+          (kadiriLocalZeroWindow_finite (kadiriUnitGoodHeightSequence n)).toFinset,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + ((kadiriUnitGoodHeightSequence n : ℝ) : ℂ) * I) -
+              (rho : ℂ)))‖ ≤
+        C * Real.log |kadiriUnitGoodHeightSequence n| ^ (2 : ℕ)
+  exact hseq
+
 /--
 Pointwise logarithmic-derivative control on a selected horizontal line.
 

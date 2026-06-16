@@ -370,6 +370,163 @@ theorem exists_kadiriDyadicGoodHeightSelector_logRadius
       nlinarith
     exact lt_of_le_of_lt hlog_radius_le hgap_eta
 
+/--
+The zeros that can enter a radius-one local zero window centered at some height in
+`[T, T + 1]`.  The two endpoint windows are enough: if `U ∈ [T, T + 1]` and
+`|Im rho - U| ≤ 1`, then `rho` lies in the local window centered at `T` or at
+`T + 1`.
+-/
+def kadiriUnitZeroWindow (T : ℝ) : Set NontrivialZeros :=
+  kadiriLocalZeroWindow T ∪ kadiriLocalZeroWindow (T + 1)
+
+theorem kadiriUnitZeroWindow_finite (T : ℝ) :
+    (kadiriUnitZeroWindow T).Finite := by
+  exact (kadiriLocalZeroWindow_finite T).union (kadiriLocalZeroWindow_finite (T + 1))
+
+theorem kadiriUnitZeroWindow_ncard_le_local_add (T : ℝ) :
+    (kadiriUnitZeroWindow T).ncard ≤
+      (kadiriLocalZeroWindow T).ncard + (kadiriLocalZeroWindow (T + 1)).ncard := by
+  simpa [kadiriUnitZeroWindow] using
+    (Set.ncard_union_le (kadiriLocalZeroWindow T) (kadiriLocalZeroWindow (T + 1)))
+
+/--
+Finite-union selector in a unit interval.  If the total length of the radius-`η`
+zero-exclusion intervals is below the length of `[T, T + 1]`, then some height in the
+unit interval avoids every excluded zero ordinate.
+-/
+theorem exists_kadiriUnitGoodHeight_of_card_mul_radius_lt {T η : ℝ}
+    (hη : 0 ≤ η)
+    (hsmall : ((kadiriUnitZeroWindow T).ncard : ℝ) * (2 * η) < 1) :
+    ∃ U ∈ Set.Icc T (T + 1),
+      ∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow T →
+        η < |U - (rho : ℂ).im| := by
+  classical
+  let S : Finset NontrivialZeros := (kadiriUnitZeroWindow_finite T).toFinset
+  let bad : Set ℝ := ⋃ rho ∈ S, kadiriZeroBadInterval η rho
+  have hcard :
+      S.card = (kadiriUnitZeroWindow T).ncard := by
+    rw [Set.ncard_eq_toFinset_card (kadiriUnitZeroWindow T) (kadiriUnitZeroWindow_finite T)]
+  have hbad_le : volume bad ≤ ENNReal.ofReal (((kadiriUnitZeroWindow T).ncard : ℝ) * (2 * η)) := by
+    have hbad := kadiri_badInterval_volume_le S hη
+    simpa [bad, hcard] using hbad
+  have hbad_lt_icc : volume bad < volume (Set.Icc T (T + 1)) := by
+    rw [Real.volume_Icc]
+    have hlen : T + 1 - T = (1 : ℝ) := by ring
+    rw [hlen]
+    exact hbad_le.trans_lt ((ENNReal.ofReal_lt_ofReal_iff (by norm_num : (0 : ℝ) < 1)).2 hsmall)
+  by_contra hnone
+  push Not at hnone
+  have hcover : Set.Icc T (T + 1) ⊆ bad := by
+    intro U hU
+    obtain ⟨rho, hrho, hle⟩ := hnone U hU
+    have hrhoS : rho ∈ S := by
+      dsimp [S]
+      exact (kadiriUnitZeroWindow_finite T).mem_toFinset.mpr hrho
+    have hUbad : U ∈ kadiriZeroBadInterval η rho := by
+      rw [kadiriZeroBadInterval]
+      have habs := abs_le.mp hle
+      exact ⟨by linarith, by linarith⟩
+    dsimp [bad]
+    exact Set.mem_iUnion₂.mpr ⟨rho, hrhoS, hUbad⟩
+  exact not_lt_of_ge (measure_mono hcover) hbad_lt_icc
+
+theorem kadiriLocalZeroWindow_gap_of_unit_gap {T η U : ℝ}
+    (hU : U ∈ Set.Icc T (T + 1))
+    (hgap : ∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow T →
+      η < |U - (rho : ℂ).im|) :
+    ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow U →
+      η < |U - (rho : ℂ).im| := by
+  intro rho hrho
+  rw [kadiriLocalZeroWindow, Set.mem_setOf_eq] at hrho
+  have habs := abs_le.mp hrho
+  have hrho_unit : rho ∈ kadiriUnitZeroWindow T := by
+    rw [kadiriUnitZeroWindow]
+    by_cases hle : (rho : ℂ).im ≤ T + 1
+    · left
+      rw [kadiriLocalZeroWindow, Set.mem_setOf_eq]
+      exact abs_le.mpr ⟨by linarith [habs.1, hU.1], by linarith [hle]⟩
+    · right
+      have hge : T + 1 ≤ (rho : ℂ).im := le_of_not_ge hle
+      rw [kadiriLocalZeroWindow, Set.mem_setOf_eq]
+      exact abs_le.mpr ⟨by linarith [hge], by linarith [habs.2, hU.2]⟩
+  exact hgap rho hrho_unit
+
+/--
+Every sufficiently large unit interval contains a height separated from all zero
+ordinates that can enter its local radius-one window by `c / log T`.
+-/
+theorem exists_kadiriUnitGoodHeightSelector_logRadius :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ T : ℝ in atTop,
+      ∃ U ∈ Set.Icc T (T + 1),
+        ∀ rho : NontrivialZeros, rho ∈ kadiriUnitZeroWindow T →
+          c / Real.log T < |U - (rho : ℂ).im| := by
+  obtain ⟨C, hC, hcount⟩ := exists_kadiriLocalZeroWindow_natCard_le_log
+  let c : ℝ := 1 / (16 * (C + 1))
+  have hC1 : 0 < C + 1 := by linarith
+  have hc_pos : 0 < c := by
+    dsimp [c]
+    positivity
+  have hcount_shift :
+      ∀ᶠ T : ℝ in atTop,
+        (Nat.card {rho : NontrivialZeros // |(rho : ℂ).im - (T + 1)| ≤ 1} : ℝ) ≤
+          C * Real.log (T + 1) :=
+    (tendsto_atTop_add_const_right atTop (1 : ℝ) tendsto_id).eventually hcount
+  refine ⟨c, hc_pos, ?_⟩
+  filter_upwards [hcount, hcount_shift, Filter.eventually_ge_atTop (3 : ℝ)]
+    with T hcount_T hcount_T1 hT_large
+  let η : ℝ := c / Real.log T
+  have hT_pos : 0 < T := by linarith
+  have hT_one : 1 < T := by linarith
+  have hT1_pos : 0 < T + 1 := by linarith
+  have hlogT_pos : 0 < Real.log T := Real.log_pos hT_one
+  have hη_nonneg : 0 ≤ η := by
+    exact div_nonneg hc_pos.le hlogT_pos.le
+  have hT1_le_sq : T + 1 ≤ T ^ (2 : ℕ) := by nlinarith
+  have hlogT1_le : Real.log (T + 1) ≤ 2 * Real.log T := by
+    have hle := Real.log_le_log hT1_pos hT1_le_sq
+    have hlog_sq : Real.log (T ^ (2 : ℕ)) = 2 * Real.log T := by
+      rw [Real.log_pow]
+      norm_num
+    simpa [hlog_sq] using hle
+  have hcount_local_T :
+      ((kadiriLocalZeroWindow T).ncard : ℝ) ≤ C * Real.log T := by
+    simpa [kadiriLocalZeroWindow] using hcount_T
+  have hcount_local_T1 :
+      ((kadiriLocalZeroWindow (T + 1)).ncard : ℝ) ≤ C * Real.log (T + 1) := by
+    simpa [kadiriLocalZeroWindow] using hcount_T1
+  have hunit_card :
+      ((kadiriUnitZeroWindow T).ncard : ℝ) ≤
+        ((kadiriLocalZeroWindow T).ncard : ℝ) +
+          ((kadiriLocalZeroWindow (T + 1)).ncard : ℝ) := by
+    exact_mod_cast kadiriUnitZeroWindow_ncard_le_local_add T
+  have hunit_le :
+      ((kadiriUnitZeroWindow T).ncard : ℝ) ≤ 3 * C * Real.log T := by
+    calc
+      ((kadiriUnitZeroWindow T).ncard : ℝ)
+          ≤ ((kadiriLocalZeroWindow T).ncard : ℝ) +
+              ((kadiriLocalZeroWindow (T + 1)).ncard : ℝ) := hunit_card
+      _ ≤ C * Real.log T + C * Real.log (T + 1) :=
+          add_le_add hcount_local_T hcount_local_T1
+      _ ≤ C * Real.log T + C * (2 * Real.log T) := by
+          exact add_le_add_right (mul_le_mul_of_nonneg_left hlogT1_le hC.le) _
+      _ = 3 * C * Real.log T := by ring
+  have hsmall :
+      ((kadiriUnitZeroWindow T).ncard : ℝ) * (2 * η) < 1 := by
+    have hη2_nonneg : 0 ≤ 2 * η := by positivity
+    have hle :
+        ((kadiriUnitZeroWindow T).ncard : ℝ) * (2 * η) ≤
+          (3 * C * Real.log T) * (2 * η) :=
+      mul_le_mul_of_nonneg_right hunit_le hη2_nonneg
+    have hlt : (3 * C * Real.log T) * (2 * η) < 1 := by
+      dsimp [η, c]
+      have hden : 0 < 16 * (C + 1) := by positivity
+      field_simp [ne_of_gt hlogT_pos, ne_of_gt hden]
+      nlinarith [hC]
+    exact hle.trans_lt hlt
+  obtain ⟨U, hU, hgap⟩ :=
+    exists_kadiriUnitGoodHeight_of_card_mul_radius_lt (T := T) (η := η) hη_nonneg hsmall
+  exact ⟨U, hU, by simpa [η] using hgap⟩
+
 end
 
 end Kadiri
