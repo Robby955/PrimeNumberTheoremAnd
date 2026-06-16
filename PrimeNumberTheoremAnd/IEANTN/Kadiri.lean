@@ -1,6 +1,7 @@
 import Architect
 import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.LaplaceInversion
+import PrimeNumberTheoremAnd.IEANTN.KadiriEq11Core
 import PrimeNumberTheoremAnd.PerronFormula
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
@@ -629,35 +630,39 @@ underlying Laplace-inversion identity; equations (11)--(15) are the explicit ste
   \ref{kadiri-thm-3-1-q1}, and any real $a$ with $0 < a < b$ and $a < 1$: for every
   positive integer $n \geq 1$,
   $$ \varphi(\log n)
-     = \frac{1}{2\pi i}
-       \int_{-(1 + a) - i\infty}^{-(1 + a) + i\infty}
-       \Phi(s)\, n^{s}\, ds, $$
+     = \lim_{T \to \infty}
+       \frac{1}{2\pi}
+       \int_{-T}^{T}
+       \Phi(-(1+a)+it)\, n^{-(1+a)+it}\, dt, $$
   where $\Phi(s) := \int_0^{\infty} \varphi(y)\, e^{-sy}\, dy$ is the Laplace transform of
   $\varphi$. The contour $\sigma = -(1 + a)$ lies inside the strip of holomorphy of
   $\Phi$ given by (B). This is the displayed equation just before
   \cite[(11)]{Kadiri2005}. -/)
-  (proof := /-- Standard inverse-Laplace theorem (e.g.\ Widder, \emph{The Laplace
-  Transform}, Ch.~III, Theorem~7.3). Hypotheses (A) (regularity / mean-value condition at
-  jumps) and (B) (the $O(1/|t|)$ decay of $\Phi$ on the strip) provide exactly what is
-  needed for the inversion integral to converge absolutely and recover $\varphi$ at
-  $y = \log n \geq 0$. To be formalised. -/)
+  (proof := /-- Standard inverse-Laplace theorem in symmetric principal-value form.
+  The Kadiri decay hypotheses make the vertically shifted source integrable, and
+  differentiability at $y = \log n$ supplies the local Dirichlet-kernel quotient
+  condition. -/)
   (latexEnv := "sublemma")
   (discussion := 1535)]
-theorem kadiri_thm_3_1_q1_laplace_inversion {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
-    {b : ℝ} (_hb : 0 < b)
-    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+theorem kadiri_thm_3_1_q1_laplace_inversion {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1)
-    {n : ℕ} (_hn : 1 ≤ n) :
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1)
+    {n : ℕ} (hn : 1 ≤ n) :
     let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-    (φ (Real.log n) : ℂ) =
-      (1 / (2 * (Real.pi : ℂ))) *
-        ∫ t : ℝ,
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ))) *
+          ∫ t in (-T)..T,
           Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
-            ((n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I)) := by
-  sorry
+            ((n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I)))
+      atTop (𝓝 (φ (Real.log n))) := by
+  exact kadiri_thm_3_1_q1_laplace_inversion_pv
+    (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+    (a := a) ha hab ha1 (n := n) hn
 
 @[blueprint
   "kadiri-thm-3-1-q1-eq-11"
@@ -665,36 +670,46 @@ theorem kadiri_thm_3_1_q1_laplace_inversion {φ : ℝ → ℂ} (_hφ : ContDiff 
   (statement := /-- For $\varphi$ satisfying (A) and (B) of \ref{kadiri-thm-3-1-q1},
   and any real $a$ with $0 < a < b$ and $a < 1$,
   $$ \sum_{n \geq 1} \Lambda(n)\, \varphi(\log n)
-     = \frac{1}{2 \pi i}
-       \int_{1 + a - i\infty}^{1 + a + i\infty}
-         \left(-\frac{\zeta'}{\zeta}\right)(s)\, \Phi(-s)\, ds, $$
+     = \lim_{T \to \infty}
+       \frac{1}{2 \pi}
+       \int_{-T}^{T}
+         \left(-\frac{\zeta'}{\zeta}\right)(1+a+it)\,
+         \Phi(-(1+a+it))\, dt, $$
   with $\Phi$ as in \ref{kadiri-thm-3-1-q1-laplace-inversion}. This is equation~(11) of
-  \cite{Kadiri2005}, page~11, specialized to $q = 1$. -/)
+  \cite{Kadiri2005}, page~11, specialized to $q = 1$, formalized as a symmetric
+  principal-value limit. -/)
   (proof := /-- Corollary of \ref{kadiri-thm-3-1-q1-laplace-inversion}: multiply that
-  identity by $\Lambda(n)$, sum over $n \geq 1$, and exchange sum and integral
-  (justified by absolute convergence of the Dirichlet series for $-\zeta'/\zeta$ on
-  $\sigma > 1$ combined with the $O(1/|t|)$ decay of $\Phi$ from (B)). The Dirichlet
-  series identity $-\zeta'/\zeta(s) = \sum_n \Lambda(n) n^{-s}$ converts the sum into a
-  factor of $-\zeta'/\zeta(s)$ in the integrand. Finally, change of variable
-  $s \mapsto -s$ maps the contour $\sigma = -(1 + a)$ to $\sigma = 1 + a$ (with the
-  orientation-flip cancelling the sign from $ds$). To be formalised. -/)
+  identity by $\Lambda(n)$, sum over $n \geq 1$, and exchange the von Mangoldt sum with
+  the symmetric truncation. The exchange is a Tannery argument: the finite-window
+  Fourier/Laplace estimate gives a uniform summable majorant, and the Dirichlet series
+  identity $-\zeta'/\zeta(s) = \sum_n \Lambda(n)n^{-s}$ collapses the sum on
+  $\Re s > 1$. -/)
   (latexEnv := "sublemma")
   (discussion := 1536)]
-theorem kadiri_thm_3_1_q1_eq_11 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
-    {b : ℝ} (_hb : 0 < b)
-    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+theorem kadiri_thm_3_1_q1_eq_11 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1) :
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
     let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-    (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n)) =
-      (1 / (2 * (Real.pi : ℂ))) *
-        ∫ t : ℝ,
-          (-deriv riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I) /
-              riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) *
-            Φ (-(((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) := by
-  sorry
+    Tendsto
+      (fun T : ℝ =>
+        (1 / (2 * (Real.pi : ℂ))) *
+          ∫ t in (-T)..T,
+            (-deriv riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I) /
+                riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) *
+              Φ (-(((1 + a : ℝ) : ℂ) + (t : ℂ) * I)))
+      atTop
+      (𝓝 (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) := by
+  exact kadiri_thm_3_1_q1_eq_11_pv_of_pointwise_inversion
+    (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+    (a := a) ha hab ha1
+    (fun n hn =>
+      kadiri_thm_3_1_q1_laplace_inversion
+        (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+        (a := a) ha hab ha1 (n := n) hn)
 
 @[blueprint
   "kadiri-thm-3-1-q1-I"
