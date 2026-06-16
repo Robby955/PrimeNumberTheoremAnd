@@ -1090,6 +1090,43 @@ theorem eventually_kadiriDyadicHadamardPVRemainder_intervalIntegrable
   exact kadiriDyadicHadamardPVRemainder_intervalIntegrable_of_offPole a T ha k hT
 
 /--
+A pointwise bound for the concrete dyadic Hadamard/PV remainder controls its full
+horizontal-segment integral.
+-/
+theorem kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_bound
+    (a T : ℝ) (ha : 0 ≤ a) (k : ℕ) (B : ℝ)
+    (hpoint : ∀ σ ∈ Ι (-a) (1 + a),
+      ‖kadiriDyadicHadamardPVRemainder k T σ‖ ≤ B) :
+    ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖ ≤
+      B * (1 + 2 * a) := by
+  have hlen_nonneg : 0 ≤ 1 + 2 * a := by linarith
+  have hnorm :=
+    intervalIntegral.norm_integral_le_of_norm_le_const
+      (a := -a) (b := 1 + a) (C := B)
+      (f := fun σ : ℝ => kadiriDyadicHadamardPVRemainder k T σ) hpoint
+  have hlen_abs : |a + (a + 1)| = 1 + 2 * a := by
+    rw [abs_of_nonneg]
+    · ring
+    · linarith
+  simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, hlen_abs] using hnorm
+
+/--
+Eventual pointwise control of the concrete dyadic Hadamard/PV remainder supplies the
+eventual integral norm budget needed by the full-segment assembly.
+-/
+theorem eventually_kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_bound
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) (B : ℝ)
+    (hpoint : ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      ∀ σ ∈ Ι (-a) (1 + a),
+        ‖kadiriDyadicHadamardPVRemainder k T σ‖ ≤ B) :
+    ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..(1 + a), kadiriDyadicHadamardPVRemainder k T σ‖ ≤
+        B * (1 + 2 * a) := by
+  filter_upwards [hpoint] with T hT_point
+  exact kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_bound
+    a T ha k B hT_point
+
+/--
 Actual full-segment dyadic off-pole bound from a concrete Hadamard/PV remainder budget.
 
 Compared with
@@ -1196,6 +1233,33 @@ theorem
       kadiriHorizontalZetaOffPoleFilter_le_cofinite
       (eventually_kadiriDyadicHadamardPVRemainder_intervalIntegrable a ha k)
       hrem_bound
+
+/--
+Actual full-segment dyadic off-pole bound from a pointwise bound on the concrete
+Hadamard/PV remainder.
+
+This is the form left for the analytic Hadamard/PV estimate: prove pointwise control of
+`kadiriDyadicHadamardPVRemainder` on the moving segment, and the pole-sum/counting
+machinery supplies the integral bound.
+-/
+theorem
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_pointwise_bound
+    (a e : ℝ) (ha : 0 ≤ a) (he : 0 < e) (hea : e ≤ a) (k : ℕ) (B : ℝ)
+    (hpoint : ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      ∀ σ ∈ Ι (-a) (1 + a),
+        ‖kadiriDyadicHadamardPVRemainder k T σ‖ ≤ B) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (2 * |riemannZeta.N ((2 : ℝ) ^ (k + 1))| +
+              weightedZeroHeightBucket) * C + B * (1 + 2 * a) := by
+  exact
+    kadiri_logDeriv_zeta_full_segment_dyadic_offpole_eventually_bound_of_concrete_remainder_bound
+      a e ha he hea k (B * (1 + 2 * a))
+      (eventually_kadiriDyadicHadamardPVRemainder_integral_bound_of_pointwise_bound
+        a ha k B hpoint)
 
 /--
 Concrete truncated-zero version of the finite-family moving-pole bound.
