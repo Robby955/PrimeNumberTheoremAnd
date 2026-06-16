@@ -876,6 +876,77 @@ theorem kadiri_neg_zeta_logDeriv_meromorphicOrderAt_one :
     kadiri_neg_zeta_logDeriv_principal_part_at_one
 
 /--
+Multiplying `-ζ'/ζ` by a meromorphic factor that has no pole cannot create
+higher-order poles. Candidate pole points are the zeta pole, nontrivial zeros,
+or ordinary nonzero zeta points.
+-/
+theorem kadiri_neg_zeta_logDeriv_mul_hasSimplePolesOn_of_nonnegative_order
+    {Ψ : ℂ → ℂ} {U : Set ℂ}
+    (hΨ_mero : ∀ z ∈ U, MeromorphicAt Ψ z)
+    (hΨ_nonneg : ∀ z ∈ U, 0 ≤ meromorphicOrderAt Ψ z)
+    (hpoles :
+      ∀ z ∈ U, z = (1 : ℂ) ∨
+        (∃ rho : NontrivialZeros, (rho : ℂ) = z) ∨ riemannZeta z ≠ 0) :
+    CH2.HasSimplePolesOn
+      (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) U := by
+  intro z hzU
+  have hbase_mero : MeromorphicAt
+      (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) z :=
+    kadiri_neg_zeta_logDeriv_meromorphicAt z
+  have hΨz_mero : MeromorphicAt Ψ z := hΨ_mero z hzU
+  have hΨz_nonneg : 0 ≤ meromorphicOrderAt Ψ z := hΨ_nonneg z hzU
+  have hprod_order :
+      meromorphicOrderAt
+          (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) z =
+        meromorphicOrderAt (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) z +
+          meromorphicOrderAt Ψ z := by
+    change meromorphicOrderAt
+        ((fun z : ℂ => -deriv riemannZeta z / riemannZeta z) * Ψ) z =
+      meromorphicOrderAt (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) z +
+        meromorphicOrderAt Ψ z
+    exact meromorphicOrderAt_mul hbase_mero hΨz_mero
+  rw [hprod_order]
+  rcases hpoles z hzU with hz_one | hz_zero | hz_ne_zero
+  · subst z
+    rw [kadiri_neg_zeta_logDeriv_meromorphicOrderAt_one]
+    exact le_add_of_nonneg_right hΨz_nonneg
+  · rcases hz_zero with ⟨rho, hρz⟩
+    subst z
+    rw [kadiri_neg_zeta_logDeriv_meromorphicOrderAt_at_nontrivialZero]
+    exact le_add_of_nonneg_right hΨz_nonneg
+  · by_cases hz_one : z = (1 : ℂ)
+    · subst z
+      rw [kadiri_neg_zeta_logDeriv_meromorphicOrderAt_one]
+      exact le_add_of_nonneg_right hΨz_nonneg
+    · have hbase_nonneg :
+          0 ≤ meromorphicOrderAt
+            (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) z :=
+        kadiri_neg_zeta_logDeriv_meromorphicOrderAt_nonneg_of_zeta_ne_zero
+          hz_one hz_ne_zero
+      have hsum_nonneg :
+          (0 : WithTop ℤ) ≤
+            meromorphicOrderAt (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) z +
+              meromorphicOrderAt Ψ z :=
+        add_nonneg hbase_nonneg hΨz_nonneg
+      exact le_trans
+        (WithTop.coe_le_coe.2 (by norm_num : (-1 : ℤ) ≤ 0))
+        hsum_nonneg
+
+/-- Analytic test factors satisfy the nonnegative-order hypothesis above. -/
+theorem kadiri_neg_zeta_logDeriv_mul_hasSimplePolesOn_of_analyticAt
+    {Ψ : ℂ → ℂ} {U : Set ℂ}
+    (hΨ : ∀ z ∈ U, AnalyticAt ℂ Ψ z)
+    (hpoles :
+      ∀ z ∈ U, z = (1 : ℂ) ∨
+        (∃ rho : NontrivialZeros, (rho : ℂ) = z) ∨ riemannZeta z ≠ 0) :
+    CH2.HasSimplePolesOn
+      (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) U := by
+  exact kadiri_neg_zeta_logDeriv_mul_hasSimplePolesOn_of_nonnegative_order
+    (fun z hz => (hΨ z hz).meromorphicAt)
+    (fun z hz => (hΨ z hz).meromorphicOrderAt_nonneg)
+    hpoles
+
+/--
 After multiplication by a continuous test factor, the residue at the zeta pole
 `s = 1` is the test factor value.
 -/
