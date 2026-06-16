@@ -1673,6 +1673,90 @@ theorem kadiri_rectangleIntegral_laplace_eq_residue_sum_of_offPole
         kadiri_rectangle_poleSet_residue_sum
           hφ ha ha1 hab hT_nonneg hT_off hφ_decay
 
+theorem kadiri_rectangleIntegral_laplace_eq_line_terms
+    (φ : ℝ → ℂ) {a T : ℝ} (ha : 0 < a) (hT : 0 ≤ T) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    RectangleIntegral'
+      (fun s : ℂ =>
+        (-deriv riemannZeta s / riemannZeta s) *
+          (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+      kadiri_thm_3_1_q1_I φ a T
+      - (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I))) := by
+  have ha_le : -a ≤ 1 + a := by linarith
+  have hT_le : -T ≤ T := by linarith
+  rw [kadiri_thm_3_1_q1_I]
+  dsimp [RectangleIntegral', RectangleIntegral, HIntegral, VIntegral]
+  simp only [ofReal_neg, neg_mul, neg_re, ofReal_re, mul_re, I_re, mul_zero,
+    ofReal_im, I_im, mul_one, sub_self, neg_zero, add_zero, ofReal_add, ofReal_one,
+    neg_im, mul_im, zero_add]
+  rw [intervalIntegral.integral_of_le ha_le]
+  rw [intervalIntegral.integral_of_le ha_le]
+  rw [intervalIntegral.integral_of_le hT_le]
+  rw [intervalIntegral.integral_of_le hT_le]
+  rw [MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  rw [MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  rw [MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  rw [MeasureTheory.integral_Ioc_eq_integral_Ioo]
+  field_simp [Complex.I_ne_zero]
+  ring
+
+private lemma kadiri_eq12_algebra {main left top bottom residue rect : ℂ}
+    (hline : rect = main - left - top + bottom) (hrect : rect = residue) :
+    main = left + top - bottom + residue := by
+  rw [← hrect, hline]
+  ring
+
+theorem kadiri_thm_3_1_q1_eq_12_of_offPole {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (_hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1)
+    {T : ℝ} (hT : 0 < T) (hT_off : kadiriHorizontalZetaOffPoleHeight T) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    kadiri_thm_3_1_q1_I φ a T =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      + Φ (-1)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  have hrect :=
+    kadiri_rectangleIntegral_laplace_eq_residue_sum_of_offPole
+      hφ ha ha1 hab hT.le hT_off hφ_decay
+  have hline :=
+    kadiri_rectangleIntegral_laplace_eq_line_terms φ ha hT.le
+  simpa only [neg_neg, one_mul, sub_eq_add_neg, add_assoc] using
+    (kadiri_eq12_algebra (hline := hline) (hrect := hrect))
+
 end
 
 end Kadiri
