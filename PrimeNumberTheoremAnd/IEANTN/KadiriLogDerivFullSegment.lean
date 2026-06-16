@@ -932,6 +932,89 @@ def kadiriTruncatedNontrivialZeros (R : ℝ) : Finset NontrivialZeros :=
   unfold kadiriTruncatedNontrivialZeros
   exact (nontrivialZeros_abs_im_lt_finite R).mem_toFinset
 
+/--
+Any finite family of non-trivial zeros has a positive real-part margin inside
+`[0, 1 + a]`.
+-/
+theorem nontrivialZeros_finset_endpoint_margin_exists
+    (a : ℝ) (ha : 0 ≤ a) (S : Finset NontrivialZeros) :
+    ∃ e : ℝ, 0 < e ∧
+      ∀ rho ∈ S, (rho : ℂ).re ∈ Set.Icc e (1 + a - e) := by
+  classical
+  refine Finset.induction_on S ?_ ?_
+  · refine ⟨1, by norm_num, ?_⟩
+    intro rho hrho
+    simp at hrho
+  · intro rho0 S hrho0_notin ih
+    obtain ⟨eS, heS, hS⟩ := ih
+    let m : ℝ := min (rho0 : ℂ).re (1 + a - (rho0 : ℂ).re)
+    have hm_pos : 0 < m := by
+      have hre_pos : 0 < (rho0 : ℂ).re := rho0.property.1.1
+      have hupper_pos : 0 < 1 + a - (rho0 : ℂ).re := by
+        have hlt : (rho0 : ℂ).re < 1 := rho0.property.1.2
+        linarith
+      exact lt_min hre_pos hupper_pos
+    refine ⟨min m eS, lt_min hm_pos heS, ?_⟩
+    intro eta heta
+    rcases Finset.mem_insert.mp heta with heta_eq | hetaS
+    · subst eta
+      constructor
+      · exact le_trans (min_le_left m eS)
+          (min_le_left (rho0 : ℂ).re (1 + a - (rho0 : ℂ).re))
+      · have hle : min m eS ≤ 1 + a - (rho0 : ℂ).re :=
+          le_trans (min_le_left m eS)
+            (min_le_right (rho0 : ℂ).re (1 + a - (rho0 : ℂ).re))
+        linarith
+    · have heta_margin := hS eta hetaS
+      constructor
+      · exact le_trans (min_le_right m eS) heta_margin.1
+      · linarith [min_le_right m eS, heta_margin.2]
+
+/-- The absolute-height truncated zero family has a positive right-segment endpoint margin. -/
+theorem kadiriTruncatedNontrivialZeros_endpoint_margin_exists
+    (a R : ℝ) (ha : 0 ≤ a) :
+    ∃ e : ℝ, 0 < e ∧
+      ∀ rho : NontrivialZeros, |(rho : ℂ).im| < R →
+        (rho : ℂ).re ∈ Set.Icc e (1 + a - e) := by
+  obtain ⟨e, he, hS⟩ :=
+    nontrivialZeros_finset_endpoint_margin_exists
+      a ha (kadiriTruncatedNontrivialZeros R)
+  refine ⟨e, he, ?_⟩
+  intro rho hrho
+  exact hS rho ((mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mpr hrho)
+
+/-- Any finite family of non-trivial zeros has a finite multiplicity-norm cap. -/
+theorem nontrivialZeros_finset_order_norm_bound_exists
+    (S : Finset NontrivialZeros) :
+    ∃ M : ℝ, 0 ≤ M ∧
+      ∀ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M := by
+  classical
+  refine Finset.induction_on S ?_ ?_
+  · refine ⟨0, by norm_num, ?_⟩
+    intro rho hrho
+    simp at hrho
+  · intro rho0 S hrho0_notin ih
+    obtain ⟨M, hM_nonneg, hS⟩ := ih
+    refine ⟨max ‖(riemannZeta.order (rho0 : ℂ) : ℂ)‖ M, ?_, ?_⟩
+    · exact le_trans (norm_nonneg _) (le_max_left _ _)
+    · intro eta heta
+      rcases Finset.mem_insert.mp heta with heta_eq | hetaS
+      · subst eta
+        exact le_max_left _ _
+      · exact le_trans (hS eta hetaS) (le_max_right _ _)
+
+/-- The absolute-height truncated zero family has a finite multiplicity-norm cap. -/
+theorem kadiriTruncatedNontrivialZeros_order_norm_bound_exists
+    (R : ℝ) :
+    ∃ M : ℝ, 0 ≤ M ∧
+      ∀ rho : NontrivialZeros, |(rho : ℂ).im| < R →
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M := by
+  obtain ⟨M, hM_nonneg, hS⟩ :=
+    nontrivialZeros_finset_order_norm_bound_exists (kadiriTruncatedNontrivialZeros R)
+  refine ⟨M, hM_nonneg, ?_⟩
+  intro rho hrho
+  exact hS rho ((mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mpr hrho)
+
 /-- For a non-trivial zero, the complex norm of the zeta order is its real order. -/
 theorem kadiri_nontrivial_zero_zeta_order_norm_eq (rho : NontrivialZeros) :
     ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ =
@@ -1081,6 +1164,50 @@ theorem kadiri_truncated_zero_family_eventually_off_height (R : ℝ) :
   apply hT_not_bad
   exact ⟨rho, by simpa [S] using
     (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mpr hrho, hEq⟩
+
+/--
+For any filter finer than `cofinite`, the truncated zero family has a selected endpoint
+margin and eventually avoids the moving horizontal height.
+-/
+theorem
+    eventually_kadiri_truncated_zero_family_endpoint_margin_and_off_height_on_filter
+    (a R : ℝ) (ha : 0 ≤ a) (L : Filter ℝ) (hL : L ≤ Filter.cofinite) :
+    ∃ e : ℝ, 0 < e ∧
+      ∀ᶠ T : ℝ in L,
+        ∀ rho : NontrivialZeros, |(rho : ℂ).im| < R →
+          (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T := by
+  obtain ⟨e, he, hmargin⟩ :=
+    kadiriTruncatedNontrivialZeros_endpoint_margin_exists a R ha
+  refine ⟨e, he, ?_⟩
+  filter_upwards [(kadiri_truncated_zero_family_eventually_off_height R).filter_mono hL]
+    with T hoff
+  intro rho hrho
+  exact ⟨hmargin rho hrho, hoff rho hrho⟩
+
+/--
+Dyadic selector for the right-segment principal budget: a real endpoint margin, eventual
+off-height deletion, and a finite multiplicity-norm cap for the truncated zero family.
+-/
+theorem
+    kadiri_dyadic_truncated_zero_family_margin_and_multiplicity_selector_on_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) (L : Filter ℝ) (hL : L ≤ Filter.cofinite) :
+    ∃ e M : ℝ, 0 < e ∧ 0 ≤ M ∧
+      (∀ᶠ T : ℝ in L,
+        ∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+            (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T) ∧
+      (∀ rho : NontrivialZeros,
+        |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+          ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) := by
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨e, he, hmargin_off⟩ :=
+    eventually_kadiri_truncated_zero_family_endpoint_margin_and_off_height_on_filter
+      a R ha L hL
+  obtain ⟨M, hM_nonneg, hM⟩ :=
+    kadiriTruncatedNontrivialZeros_order_norm_bound_exists R
+  refine ⟨e, M, he, hM_nonneg, ?_, ?_⟩
+  · simpa [R] using hmargin_off
+  · simpa [R] using hM
 
 /--
 Cofinite-height form of the dyadic moving-pole bound.  This discharges the explicit
@@ -1427,6 +1554,36 @@ theorem kadiriHorizontalZetaOffPoleFilter_le_cofinite :
 /-- Along the off-pole filter, the height condition holds eventually by definition. -/
 theorem eventually_kadiriHorizontalZetaOffPoleHeight :
     ∀ᶠ T : ℝ in kadiriHorizontalZetaOffPoleFilter,
+      kadiriHorizontalZetaOffPoleHeight T := by
+  have hprincipal :
+      ∀ᶠ T : ℝ in 𝓟 {T : ℝ | kadiriHorizontalZetaOffPoleHeight T},
+        kadiriHorizontalZetaOffPoleHeight T :=
+    Filter.mem_principal_self _
+  exact hprincipal.filter_mono inf_le_right
+
+/--
+Large positive heights, restricted to the horizontal lines that avoid `0` and the
+non-trivial zero ordinates.
+-/
+noncomputable def kadiriLargeHorizontalZetaOffPoleFilter : Filter ℝ :=
+  Filter.atTop ⊓ 𝓟 {T : ℝ | kadiriHorizontalZetaOffPoleHeight T}
+
+/-- The large off-pole filter is finer than the cofinite filter. -/
+theorem kadiriLargeHorizontalZetaOffPoleFilter_le_cofinite :
+    kadiriLargeHorizontalZetaOffPoleFilter ≤ Filter.cofinite := by
+  exact le_trans inf_le_left Filter.atTop_le_cofinite
+
+/-- Along the large off-pole filter, `3 < |T|` eventually holds. -/
+theorem eventually_kadiriLargeHorizontalZetaOffPoleFilter_large :
+    ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter, 3 < |T| := by
+  have htop : ∀ᶠ T : ℝ in Filter.atTop, 3 < |T| := by
+    filter_upwards [Filter.eventually_gt_atTop (3 : ℝ)] with T hT
+    exact lt_of_lt_of_le hT (le_abs_self T)
+  exact htop.filter_mono inf_le_left
+
+/-- Along the large off-pole filter, the off-pole height condition holds by definition. -/
+theorem eventually_kadiriLargeHorizontalZetaOffPoleHeight :
+    ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
       kadiriHorizontalZetaOffPoleHeight T := by
   have hprincipal :
       ∀ᶠ T : ℝ in 𝓟 {T : ℝ | kadiriHorizontalZetaOffPoleHeight T},
@@ -2288,5 +2445,90 @@ theorem
       hzeta_rem_bound
   refine ⟨C, Cp, hC, hCp, ?_⟩
   simpa [P, R] using hfull
+
+/--
+Full-segment off-pole assembly with the dyadic endpoint-margin selector and multiplicity
+cap selected from the finite truncated zero family.
+
+After this step, the right-segment principal-part hypotheses are discharged. The remaining
+inputs are the analytic right-segment zeta PV remainder budget and the reflected/digamma
+budgets.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_selected_truncated_principal_on_filter
+    (a D B : ℝ) (ha : 0 ≤ a) (k : ℕ) (L : Filter ℝ) (hL : L ≤ Filter.cofinite)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hoff : ∀ᶠ T : ℝ in L, kadiriHorizontalZetaOffPoleHeight T)
+    (hdigamma_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0)
+    (hdigamma_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) +
+              (B + (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp) := by
+  obtain ⟨e, M, he, hM_nonneg, hmargin_off, hM⟩ :=
+    kadiri_dyadic_truncated_zero_family_margin_and_multiplicity_selector_on_filter
+      a ha k L hL
+  obtain ⟨C, Cp, hC, hCp, hfull⟩ :=
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_reflected_right_zeta_remainder_and_truncated_principal_card_on_filter
+      a e D B M ha he k L hlarge hoff hdigamma_int hdigamma_bound hmargin_off hM
+      hzeta_rem_bound
+  exact ⟨e, M, C, Cp, he, hM_nonneg, hC, hCp, hfull⟩
+
+/--
+Large off-pole full-segment assembly with the dyadic principal budget selected from the
+finite truncated zero family.
+
+This discharges the filter large-height condition, off-pole condition, endpoint-margin
+selector, and multiplicity cap. The remaining assumptions are exactly the digamma-pair
+budget and the right-segment zeta PV remainder budget on the large off-pole filter.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_selected_truncated_principal_on_large_offPole_filter
+    (a D B : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hdigamma_int : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0)
+    (hdigamma_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) +
+              (B + (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp) := by
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_selected_truncated_principal_on_filter
+      a D B ha k kadiriLargeHorizontalZetaOffPoleFilter
+      kadiriLargeHorizontalZetaOffPoleFilter_le_cofinite
+      eventually_kadiriLargeHorizontalZetaOffPoleFilter_large
+      eventually_kadiriLargeHorizontalZetaOffPoleHeight
+      hdigamma_int hdigamma_bound hzeta_rem_bound
 
 end Kadiri
