@@ -1616,6 +1616,63 @@ theorem kadiri_rectangle_poleSet_residue_sum
           (kadiri_laplace_candidate_residue_sum
             (φ := φ) hφ (b := b) (T := T) hb hφ_decay)
 
+theorem kadiri_rectangleIntegral_laplace_eq_residue_sum_of_offPole
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
+    (ha : 0 < a) (ha1 : a < 1) (hab : a < b) (hT_nonneg : 0 ≤ T)
+    (hT_off : kadiriHorizontalZetaOffPoleHeight T)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    RectangleIntegral'
+      (fun s : ℂ =>
+        (-deriv riemannZeta s / riemannZeta s) *
+          (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+      (∫ y : ℝ, φ y * exp ((1 : ℂ) * (y : ℂ)) ∂volume) -
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ : ℂ => ∫ y : ℝ, φ y * exp (ρ * (y : ℂ)) ∂volume) := by
+  have hre :
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).re ≤
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).re := by
+    simp
+    linarith
+  have him :
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).im ≤
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).im := by
+    simp
+    linarith
+  calc
+    RectangleIntegral'
+        (fun s : ℂ =>
+          (-deriv riemannZeta s / riemannZeta s) *
+            (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+        (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)
+        = CH2.sumResiduesIn
+          (fun s : ℂ =>
+            (-deriv riemannZeta s / riemannZeta s) *
+              (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+          (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+              (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+            {z | meromorphicOrderAt
+              (fun s : ℂ =>
+                (-deriv riemannZeta s / riemannZeta s) *
+                  (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)) z < 0}) := by
+            exact CH2.RectangleIntegral'_eq_sumResiduesIn hre him
+              (kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_meromorphicOn
+                hφ ha hab hT_nonneg hφ_decay)
+              (kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_no_poles_boundary
+                hφ ha ha1 hab hT_nonneg hT_off hφ_decay)
+              (kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_poles_finite
+                hφ ha ha1 hab hT_nonneg hφ_decay)
+              (kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_hasSimplePolesOn
+                hφ ha ha1 hab hT_nonneg hφ_decay)
+    _ = (∫ y : ℝ, φ y * exp ((1 : ℂ) * (y : ℂ)) ∂volume) -
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ : ℂ => ∫ y : ℝ, φ y * exp (ρ * (y : ℂ)) ∂volume) :=
+        kadiri_rectangle_poleSet_residue_sum
+          hφ ha ha1 hab hT_nonneg hT_off hφ_decay
+
 end
 
 end Kadiri
