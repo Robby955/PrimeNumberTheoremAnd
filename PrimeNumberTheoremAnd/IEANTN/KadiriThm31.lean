@@ -1260,6 +1260,101 @@ theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_poles_finite
     have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT hzRect
     exact (kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay).meromorphicOrderAt_nonneg
 
+theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_no_poles_boundary
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
+    (ha : 0 < a) (ha1 : a < 1) (hab : a < b) (hT_nonneg : 0 ≤ T)
+    (hT_off : kadiriHorizontalZetaOffPoleHeight T)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    Disjoint
+      (RectangleBorder (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))
+      {z | meromorphicOrderAt
+        (fun s : ℂ =>
+          (-deriv riemannZeta s / riemannZeta s) *
+            (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)) z < 0} := by
+  rw [Set.disjoint_left]
+  intro z hzB hzPole
+  simp only [Set.mem_setOf_eq] at hzPole
+  let Ψ : ℂ → ℂ :=
+    fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume
+  have hzRect : z ∈ Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) :=
+    rectangleBorder_subset_rectangle _ _ hzB
+  have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT_nonneg hzRect
+  have hΨ_an : AnalyticAt ℂ Ψ z :=
+    kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay
+  have hcandidate :
+      z = (1 : ℂ) ∨
+        ∃ rho : NontrivialZeros, (rho : ℂ) = z ∧ |(rho : ℂ).im| ≤ T := by
+    exact kadiri_rectangle_neg_zeta_logDeriv_mul_pole_candidate
+      (Ψ := Ψ) ha ha1 hT_nonneg hzRect hΨ_an.meromorphicAt
+      hΨ_an.meromorphicOrderAt_nonneg (by simpa [Ψ] using hzPole)
+  have hleft_right :
+      (-a : ℝ) ≤ (1 + a : ℝ) := by linarith
+  have hbot_top :
+      (-T : ℝ) ≤ T := by linarith
+  simp only [RectangleBorder, Set.mem_union, Complex.mem_reProdIm, Set.mem_singleton_iff,
+    Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.I_re, Complex.I_im,
+    mul_zero, add_zero, sub_zero, mul_one, zero_add,
+    Complex.add_im, Complex.ofReal_im, Complex.mul_im,
+    Set.uIcc_of_le hleft_right, Set.uIcc_of_le hbot_top] at hzB
+  rcases hzB with (((⟨hz_re, hz_im⟩ | ⟨hz_re, hz_im⟩) | ⟨hz_re, hz_im⟩) |
+    ⟨hz_re, hz_im⟩)
+  · rcases hcandidate with hz_one | ⟨rho, hρz, _hρT⟩
+    · subst z
+      exact hT_off.1 (by simpa using hz_im)
+    · have hzero : riemannZeta z = 0 := by
+        rw [← hρz]
+        exact rho.property.2.2
+      have hnonzero :
+          riemannZeta (((z.re : ℂ) + ((-T : ℝ) : ℂ) * I)) ≠ 0 :=
+        riemannZeta_ne_zero_on_horizontal_border_of_offPole
+          (T := T) (σ := z.re) (t := -T) hT_off (Or.inr rfl)
+      have hz_eq : ((z.re : ℂ) + ((-T : ℝ) : ℂ) * I) = z := by
+        apply Complex.ext <;> simp [hz_im]
+      exact hnonzero (by rw [hz_eq]; exact hzero)
+  · rcases hcandidate with hz_one | ⟨rho, hρz, _hρT⟩
+    · subst z
+      simp at hz_re
+      linarith
+    · have hzero : riemannZeta z = 0 := by
+        rw [← hρz]
+        exact rho.property.2.2
+      have hzeta_ne : riemannZeta z ≠ 0 := by
+        apply riemannZeta_ne_zero_of_neg_one_lt_re_nonpos
+        · rw [hz_re]
+          linarith
+        · rw [hz_re]
+          linarith
+      exact hzeta_ne hzero
+  · rcases hcandidate with hz_one | ⟨rho, hρz, _hρT⟩
+    · subst z
+      simp at hz_im
+      exact hT_off.1 hz_im.symm
+    · have hzero : riemannZeta z = 0 := by
+        rw [← hρz]
+        exact rho.property.2.2
+      have hnonzero :
+          riemannZeta (((z.re : ℂ) + (T : ℂ) * I)) ≠ 0 :=
+        riemannZeta_ne_zero_on_horizontal_border_of_offPole
+          (T := T) (σ := z.re) (t := T) hT_off (Or.inl rfl)
+      have hz_eq : ((z.re : ℂ) + (T : ℂ) * I) = z := by
+        apply Complex.ext <;> simp [hz_im]
+      exact hnonzero (by simpa [hz_eq] using hzero)
+  · rcases hcandidate with hz_one | ⟨rho, hρz, _hρT⟩
+    · subst z
+      simp at hz_re
+      linarith
+    · have hzero : riemannZeta z = 0 := by
+        rw [← hρz]
+        exact rho.property.2.2
+      have hzeta_ne : riemannZeta z ≠ 0 := by
+        apply riemannZeta_ne_zero_of_one_le_re
+        rw [hz_re]
+        linarith
+      exact hzeta_ne hzero
+
 /--
 After multiplication by a continuous test factor, the residue at the zeta pole
 `s = 1` is the test factor value.
