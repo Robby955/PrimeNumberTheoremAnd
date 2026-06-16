@@ -88,6 +88,107 @@ private theorem logDeriv_principal_part_of_factorization
   exact htarget.trans_isBigO ((hPhiSlope.const_mul_left (m : ℂ)).add hloguPhi)
 
 /--
+The logarithmic derivative of a meromorphic function with finite local order is
+meromorphic at that point.
+-/
+theorem kadiri_logDeriv_meromorphicAt_of_order
+    {g : ℂ → ℂ} {p : ℂ} {m : ℤ}
+    (hMer : MeromorphicAt g p)
+    (horder : meromorphicOrderAt g p = ((m : ℤ) : WithTop ℤ)) :
+    MeromorphicAt (logDeriv g) p := by
+  obtain ⟨u, hu, hu_ne, hfactor_smul⟩ := (meromorphicOrderAt_eq_int_iff hMer).1 horder
+  have hfactor : g =ᶠ[𝓝[≠] p] fun s ↦ (s - p) ^ m * u s := by
+    simpa using hfactor_smul
+  let model : ℂ → ℂ := fun s ↦ (m : ℂ) / (s - p) + logDeriv u s
+  have hmodel : MeromorphicAt model p := by
+    have hprincipal : MeromorphicAt (fun s : ℂ ↦ (m : ℂ) / (s - p)) p := by
+      exact (analyticAt_const.meromorphicAt).div
+        ((analyticAt_id.sub analyticAt_const).meromorphicAt)
+    have hlogu : MeromorphicAt (logDeriv u) p := by
+      rw [show logDeriv u = fun z ↦ deriv u z / u z by rfl]
+      exact hu.deriv.meromorphicAt.div hu.meromorphicAt
+    exact hprincipal.add hlogu
+  have hu_ne_eventually : ∀ᶠ s in 𝓝[≠] p, u s ≠ 0 :=
+    (hu.continuousAt.eventually_ne hu_ne).filter_mono nhdsWithin_le_nhds
+  have hu_analytic_eventually : ∀ᶠ s in 𝓝[≠] p, AnalyticAt ℂ u s :=
+    hu.eventually_analyticAt.filter_mono nhdsWithin_le_nhds
+  have hlog_to_prod :
+      logDeriv g =ᶠ[𝓝[≠] p]
+        logDeriv (fun s ↦ (s - p) ^ m * u s) := by
+    rw [show logDeriv g = fun s ↦ deriv g s / g s by rfl]
+    rw [show logDeriv (fun s ↦ (s - p) ^ m * u s) =
+      fun s ↦ deriv (fun s ↦ (s - p) ^ m * u s) s / ((s - p) ^ m * u s) by rfl]
+    exact hfactor.nhdsNE_deriv.div hfactor
+  have hsplit :
+      logDeriv (fun s ↦ (s - p) ^ m * u s) =ᶠ[𝓝[≠] p]
+        fun s ↦ (m : ℂ) / (s - p) + logDeriv u s := by
+    filter_upwards [self_mem_nhdsWithin, hu_ne_eventually, hu_analytic_eventually]
+      with s hs hune hs_an
+    have hs_ne : s ≠ p := hs
+    have hpow_ne : (s - p) ^ m ≠ 0 := zpow_ne_zero _ (sub_ne_zero.mpr hs_ne)
+    have hpow_diff : DifferentiableAt ℂ (fun z : ℂ ↦ (z - p) ^ m) s :=
+      ((by fun_prop : DifferentiableAt ℂ (fun z : ℂ ↦ z - p) s).zpow
+        (Or.inl (sub_ne_zero.mpr hs_ne)))
+    rw [logDeriv_mul s hpow_ne hune hpow_diff hs_an.differentiableAt]
+    rw [logDeriv_zpow_sub]
+  exact hmodel.congr ((hlog_to_prod.trans hsplit).symm)
+
+/--
+If `Phi` is analytic at the same point, then the Kadiri-style integrand
+`(-logDeriv g) * Phi` is meromorphic there.
+-/
+theorem kadiri_negLogDeriv_mul_meromorphicAt_of_order
+    {g Phi : ℂ → ℂ} {p : ℂ} {m : ℤ}
+    (hMer : MeromorphicAt g p)
+    (horder : meromorphicOrderAt g p = ((m : ℤ) : WithTop ℤ))
+    (hPhi : AnalyticAt ℂ Phi p) :
+    MeromorphicAt (fun s ↦ (-logDeriv g s) * Phi s) p := by
+  have hlog : MeromorphicAt (logDeriv g) p :=
+    kadiri_logDeriv_meromorphicAt_of_order hMer horder
+  have hneg : MeromorphicAt (fun s ↦ -logDeriv g s) p := by
+    have hconst : MeromorphicAt (fun _ : ℂ ↦ (-1 : ℂ)) p :=
+      analyticAt_const.meromorphicAt
+    have hprod : MeromorphicAt ((fun _ : ℂ ↦ (-1 : ℂ)) * logDeriv g) p :=
+      hconst.mul hlog
+    refine hprod.congr ?_
+    filter_upwards with s
+    simp [Pi.mul_apply]
+  exact hneg.mul hPhi.meromorphicAt
+
+/--
+Away from `1` and the zeros of `ζ`, the Kadiri integrand is meromorphic
+whenever `Phi` is analytic at the reflected point.
+-/
+theorem kadiri_riemannZeta_negLogDeriv_mul_meromorphicAt_of_ne_one_ne_zero
+    {Phi : ℂ → ℂ} {z : ℂ}
+    (hz_one : z ≠ 1)
+    (hzeta : riemannZeta z ≠ 0)
+    (hPhi : AnalyticAt ℂ Phi (-z)) :
+    MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s)) z := by
+  have hzeta_an : AnalyticAt ℂ riemannZeta z := by
+    exact riemannZeta_analyticOn_compl_one z
+      (by simpa [Set.mem_compl_iff] using hz_one)
+  have hlog : AnalyticAt ℂ (logDeriv riemannZeta) z := by
+    rw [show logDeriv riemannZeta =
+      fun s ↦ deriv riemannZeta s / riemannZeta s by rfl]
+    exact hzeta_an.deriv.div hzeta_an hzeta
+  have hPhi_comp : AnalyticAt ℂ (fun s : ℂ ↦ Phi (-s)) z := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) z := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := z)) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) z).neg
+    simpa [Function.comp_def] using hPhi.comp hneg
+  have hneglog : MeromorphicAt (fun s ↦ -logDeriv riemannZeta s) z := by
+    have hconst : MeromorphicAt (fun _ : ℂ ↦ (-1 : ℂ)) z :=
+      analyticAt_const.meromorphicAt
+    have hprod : MeromorphicAt ((fun _ : ℂ ↦ (-1 : ℂ)) * logDeriv riemannZeta) z :=
+      hconst.mul hlog.meromorphicAt
+    refine hprod.congr ?_
+    filter_upwards with s
+    simp [Pi.mul_apply]
+  exact hneglog.mul hPhi_comp.meromorphicAt
+
+/--
 Rectangle residue evaluation from an explicit order-`m` logarithmic-derivative
 principal part.
 
@@ -291,6 +392,29 @@ theorem kadiri_riemannZeta_negLogDeriv_residue_order_principal_part
           AnalyticAt ℂ (fun s : ℂ ↦ s) (rho : ℂ)).neg
     simpa [Function.comp_def] using hPhi.comp hneg
   exact kadiri_negLogDeriv_residue_order_principal_part
+    (g := riemannZeta)
+    (Phi := fun s ↦ Phi (-s))
+    (p := (rho : ℂ))
+    (m := riemannZeta.order (rho : ℂ))
+    (riemannZeta_analyticAt_nontrivialZero rho).meromorphicAt
+    (riemannZeta_meromorphicOrderAt_eq_order_of_nontrivialZero rho)
+    hPhi_comp
+
+/--
+The Kadiri integrand is meromorphic at each non-trivial zeta zero once `Phi`
+is analytic at the reflected zero.
+-/
+theorem kadiri_riemannZeta_negLogDeriv_mul_meromorphicAt_nontrivialZero
+    {Phi : ℂ → ℂ} (rho : NontrivialZeros)
+    (hPhi : AnalyticAt ℂ Phi (-(rho : ℂ))) :
+    MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s)) (rho : ℂ) := by
+  have hPhi_comp : AnalyticAt ℂ (fun s : ℂ ↦ Phi (-s)) (rho : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (rho : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (rho : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (rho : ℂ)).neg
+    simpa [Function.comp_def] using hPhi.comp hneg
+  exact kadiri_negLogDeriv_mul_meromorphicAt_of_order
     (g := riemannZeta)
     (Phi := fun s ↦ Phi (-s))
     (p := (rho : ℂ))

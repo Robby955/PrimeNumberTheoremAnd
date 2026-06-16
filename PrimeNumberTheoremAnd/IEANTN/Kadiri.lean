@@ -858,6 +858,28 @@ lemma kadiri_eq12_candidate_residue_set_closed_height_disjoint_rectangleBorder_o
   exact kadiri_eq12_candidate_residue_set_disjoint_rectangleBorder ha hT
 
 /--
+At a closed-height zero, the Kadiri eq-12 integrand is meromorphic once the
+height avoids zero ordinates and `Φ` is analytic on the corresponding open
+height strip.
+-/
+theorem kadiri_eq12_integrand_meromorphicAt_closed_height_zero_of_off_height
+    {Φ : ℂ → ℂ} {T : ℝ}
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) :
+    MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (ρ : ℂ) := by
+  have hρ_open_mem : (ρ : ℂ) ∈ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T) := by
+    rw [← kadiri_eq12_zeroes_rect_closed_height_eq_open_height_of_off_height hoff]
+    exact ρ.property
+  let ρopen : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T) :=
+    ⟨(ρ : ℂ), hρ_open_mem⟩
+  let rhoNT : NontrivialZeros :=
+    ⟨(ρ : ℂ), ρ.property.1, Set.mem_univ _, ρ.property.2.2⟩
+  exact kadiri_riemannZeta_negLogDeriv_mul_meromorphicAt_nontrivialZero
+    (Phi := Φ) rhoNT (by simpa [rhoNT, ρopen] using hΦ_zero ρopen)
+
+/--
 Sign-correct finite-sum form of the non-trivial-zero residue packet in
 Kadiri equation (12).
 -/
