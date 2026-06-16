@@ -134,6 +134,79 @@ theorem kadiri_logDeriv_meromorphicAt_of_order
   exact hmodel.congr ((hlog_to_prod.trans hsplit).symm)
 
 /--
+The logarithmic derivative of a finite-order meromorphic germ has at worst a
+simple pole.
+-/
+theorem kadiri_logDeriv_order_ge_neg_one_of_order
+    {g : ℂ → ℂ} {p : ℂ} {m : ℤ}
+    (hMer : MeromorphicAt g p)
+    (horder : meromorphicOrderAt g p = ((m : ℤ) : WithTop ℤ)) :
+    ((-1 : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt (logDeriv g) p := by
+  obtain ⟨u, hu, hu_ne, hfactor_smul⟩ := (meromorphicOrderAt_eq_int_iff hMer).1 horder
+  have hfactor : g =ᶠ[𝓝[≠] p] fun s ↦ (s - p) ^ m * u s := by
+    simpa using hfactor_smul
+  let principal : ℂ → ℂ := fun s ↦ (m : ℂ) / (s - p)
+  let regular : ℂ → ℂ := logDeriv u
+  let model : ℂ → ℂ := fun s ↦ principal s + regular s
+  have hprincipal_mero : MeromorphicAt principal p := by
+    exact (analyticAt_const.meromorphicAt).div
+      ((analyticAt_id.sub analyticAt_const).meromorphicAt)
+  have hprincipal_ge :
+      ((-1 : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt principal p := by
+    by_cases hm : (m : ℂ) = 0
+    · have hzero : principal = fun _ : ℂ ↦ 0 := by
+        ext s
+        simp [principal, hm]
+      rw [hzero, meromorphicOrderAt_const]
+      simp
+    · rw [show principal = (fun _ : ℂ ↦ (m : ℂ)) / (fun s : ℂ ↦ s - p) by
+        rfl]
+      rw [meromorphicOrderAt_div
+        (f := fun _ : ℂ ↦ (m : ℂ)) (g := fun s : ℂ ↦ s - p)
+        (x := p) (analyticAt_const.meromorphicAt)
+        ((analyticAt_id.sub analyticAt_const).meromorphicAt)]
+      rw [meromorphicOrderAt_const, if_neg hm, meromorphicOrderAt_id_sub_const]
+      norm_num
+  have hregular_an : AnalyticAt ℂ regular p := by
+    rw [show regular = fun z ↦ deriv u z / u z by rfl]
+    exact hu.deriv.div hu hu_ne
+  have hregular_ge : ((-1 : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt regular p := by
+    exact le_trans
+      (WithTop.coe_le_coe.mpr (by norm_num : (-1 : ℤ) ≤ 0))
+      hregular_an.meromorphicOrderAt_nonneg
+  have hmodel_ge : ((-1 : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt model p := by
+    have hmin_ge :
+        ((-1 : ℤ) : WithTop ℤ) ≤
+          min (meromorphicOrderAt principal p) (meromorphicOrderAt regular p) :=
+      le_min hprincipal_ge hregular_ge
+    exact le_trans hmin_ge
+      (meromorphicOrderAt_add hprincipal_mero hregular_an.meromorphicAt)
+  have hu_ne_eventually : ∀ᶠ s in 𝓝[≠] p, u s ≠ 0 :=
+    (hu.continuousAt.eventually_ne hu_ne).filter_mono nhdsWithin_le_nhds
+  have hu_analytic_eventually : ∀ᶠ s in 𝓝[≠] p, AnalyticAt ℂ u s :=
+    hu.eventually_analyticAt.filter_mono nhdsWithin_le_nhds
+  have hlog_to_prod :
+      logDeriv g =ᶠ[𝓝[≠] p]
+        logDeriv (fun s ↦ (s - p) ^ m * u s) := by
+    rw [show logDeriv g = fun s ↦ deriv g s / g s by rfl]
+    rw [show logDeriv (fun s ↦ (s - p) ^ m * u s) =
+      fun s ↦ deriv (fun s ↦ (s - p) ^ m * u s) s / ((s - p) ^ m * u s) by rfl]
+    exact hfactor.nhdsNE_deriv.div hfactor
+  have hsplit :
+      logDeriv (fun s ↦ (s - p) ^ m * u s) =ᶠ[𝓝[≠] p]
+        fun s ↦ principal s + regular s := by
+    filter_upwards [self_mem_nhdsWithin, hu_ne_eventually, hu_analytic_eventually]
+      with s hs hune hs_an
+    have hs_ne : s ≠ p := hs
+    have hpow_ne : (s - p) ^ m ≠ 0 := zpow_ne_zero _ (sub_ne_zero.mpr hs_ne)
+    have hpow_diff : DifferentiableAt ℂ (fun z : ℂ ↦ (z - p) ^ m) s :=
+      ((by fun_prop : DifferentiableAt ℂ (fun z : ℂ ↦ z - p) s).zpow
+        (Or.inl (sub_ne_zero.mpr hs_ne)))
+    rw [logDeriv_mul s hpow_ne hune hpow_diff hs_an.differentiableAt]
+    rw [logDeriv_zpow_sub]
+  rwa [meromorphicOrderAt_congr (hlog_to_prod.trans hsplit)]
+
+/--
 If `Phi` is analytic at the same point, then the Kadiri-style integrand
 `(-logDeriv g) * Phi` is meromorphic there.
 -/
@@ -154,6 +227,50 @@ theorem kadiri_negLogDeriv_mul_meromorphicAt_of_order
     filter_upwards with s
     simp [Pi.mul_apply]
   exact hneg.mul hPhi.meromorphicAt
+
+/--
+Multiplying by an analytic factor preserves the at-worst-simple-pole bound for
+`-logDeriv`.
+-/
+theorem kadiri_negLogDeriv_mul_order_ge_neg_one_of_order
+    {g Phi : ℂ → ℂ} {p : ℂ} {m : ℤ}
+    (hMer : MeromorphicAt g p)
+    (horder : meromorphicOrderAt g p = ((m : ℤ) : WithTop ℤ))
+    (hPhi : AnalyticAt ℂ Phi p) :
+    ((-1 : ℤ) : WithTop ℤ) ≤
+      meromorphicOrderAt (fun s ↦ (-logDeriv g s) * Phi s) p := by
+  have hlog_ge : ((-1 : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt (logDeriv g) p :=
+    kadiri_logDeriv_order_ge_neg_one_of_order hMer horder
+  have hneg_mero : MeromorphicAt (fun s ↦ -logDeriv g s) p := by
+    have hlog : MeromorphicAt (logDeriv g) p :=
+      kadiri_logDeriv_meromorphicAt_of_order hMer horder
+    have hconst : MeromorphicAt (fun _ : ℂ ↦ (-1 : ℂ)) p :=
+      analyticAt_const.meromorphicAt
+    have hprod : MeromorphicAt ((fun _ : ℂ ↦ (-1 : ℂ)) * logDeriv g) p :=
+      hconst.mul hlog
+    refine hprod.congr ?_
+    filter_upwards with s
+    simp [Pi.mul_apply]
+  have hneg_order :
+      meromorphicOrderAt (fun s ↦ -logDeriv g s) p =
+        meromorphicOrderAt (logDeriv g) p := by
+    have hfun_neg :
+        meromorphicOrderAt (fun s ↦ -logDeriv g s) p =
+          meromorphicOrderAt (-(logDeriv g)) p := by
+      apply meromorphicOrderAt_congr
+      filter_upwards with s
+      simp [Pi.neg_apply]
+    rw [hfun_neg, ← meromorphicOrderAt_neg (f := logDeriv g) (x := p)]
+  have hprod_order :
+      meromorphicOrderAt (fun s ↦ (-logDeriv g s) * Phi s) p =
+        meromorphicOrderAt (fun s ↦ -logDeriv g s) p +
+          meromorphicOrderAt Phi p := by
+    rw [show (fun s ↦ (-logDeriv g s) * Phi s) =
+        (fun s ↦ -logDeriv g s) * Phi by rfl]
+    exact meromorphicOrderAt_mul hneg_mero hPhi.meromorphicAt
+  rw [hprod_order, hneg_order]
+  have hsum := add_le_add hlog_ge hPhi.meromorphicOrderAt_nonneg
+  simpa using hsum
 
 /--
 Away from `1` and the zeros of `ζ`, the Kadiri integrand is meromorphic
@@ -415,6 +532,30 @@ theorem kadiri_riemannZeta_negLogDeriv_mul_meromorphicAt_nontrivialZero
           AnalyticAt ℂ (fun s : ℂ ↦ s) (rho : ℂ)).neg
     simpa [Function.comp_def] using hPhi.comp hneg
   exact kadiri_negLogDeriv_mul_meromorphicAt_of_order
+    (g := riemannZeta)
+    (Phi := fun s ↦ Phi (-s))
+    (p := (rho : ℂ))
+    (m := riemannZeta.order (rho : ℂ))
+    (riemannZeta_analyticAt_nontrivialZero rho).meromorphicAt
+    (riemannZeta_meromorphicOrderAt_eq_order_of_nontrivialZero rho)
+    hPhi_comp
+
+/--
+At a non-trivial zeta zero, the Kadiri integrand has at most a simple pole once
+`Phi` is analytic at the reflected zero.
+-/
+theorem kadiri_riemannZeta_negLogDeriv_mul_order_ge_neg_one_nontrivialZero
+    {Phi : ℂ → ℂ} (rho : NontrivialZeros)
+    (hPhi : AnalyticAt ℂ Phi (-(rho : ℂ))) :
+    ((-1 : ℤ) : WithTop ℤ) ≤
+      meromorphicOrderAt (fun s ↦ (-logDeriv riemannZeta s) * Phi (-s)) (rho : ℂ) := by
+  have hPhi_comp : AnalyticAt ℂ (fun s : ℂ ↦ Phi (-s)) (rho : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (rho : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (rho : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (rho : ℂ)).neg
+    simpa [Function.comp_def] using hPhi.comp hneg
+  exact kadiri_negLogDeriv_mul_order_ge_neg_one_of_order
     (g := riemannZeta)
     (Phi := fun s ↦ Phi (-s))
     (p := (rho : ℂ))

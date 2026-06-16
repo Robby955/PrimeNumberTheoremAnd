@@ -880,6 +880,28 @@ theorem kadiri_eq12_integrand_meromorphicAt_closed_height_zero_of_off_height
     (Phi := Φ) rhoNT (by simpa [rhoNT, ρopen] using hΦ_zero ρopen)
 
 /--
+Closed-height zeros in the eq-12 rectangle contribute at most simple poles to
+the Kadiri integrand under the same off-height conversion.
+-/
+theorem kadiri_eq12_integrand_order_ge_neg_one_closed_height_zero_of_off_height
+    {Φ : ℂ → ℂ} {T : ℝ}
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) :
+    ((-1 : ℤ) : WithTop ℤ) ≤
+      meromorphicOrderAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (ρ : ℂ) := by
+  have hρ_open_mem : (ρ : ℂ) ∈ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T) := by
+    rw [← kadiri_eq12_zeroes_rect_closed_height_eq_open_height_of_off_height hoff]
+    exact ρ.property
+  let ρopen : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T) :=
+    ⟨(ρ : ℂ), hρ_open_mem⟩
+  let rhoNT : NontrivialZeros :=
+    ⟨(ρ : ℂ), ρ.property.1, Set.mem_univ _, ρ.property.2.2⟩
+  exact kadiri_riemannZeta_negLogDeriv_mul_order_ge_neg_one_nontrivialZero
+    (Phi := Φ) rhoNT (by simpa [rhoNT, ρopen] using hΦ_zero ρopen)
+
+/--
 Sign-correct finite-sum form of the non-trivial-zero residue packet in
 Kadiri equation (12).
 -/
