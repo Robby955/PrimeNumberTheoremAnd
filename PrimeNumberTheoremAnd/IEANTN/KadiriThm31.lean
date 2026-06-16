@@ -1475,6 +1475,147 @@ theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_no_poles_boundary
         linarith
       exact hzeta_ne hzero
 
+theorem kadiri_rectangle_poleSet_residue_sum
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
+    (ha : 0 < a) (ha1 : a < 1) (hab : a < b) (hT_nonneg : 0 ≤ T)
+    (hT_off : kadiriHorizontalZetaOffPoleHeight T)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    CH2.sumResiduesIn
+      (fun s : ℂ =>
+        (-deriv riemannZeta s / riemannZeta s) *
+          (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+      (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s : ℂ =>
+            (-deriv riemannZeta s / riemannZeta s) *
+              (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)) z < 0}) =
+      (∫ y : ℝ, φ y * exp ((1 : ℂ) * (y : ℂ)) ∂volume) -
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ : ℂ => ∫ y : ℝ, φ y * exp (ρ * (y : ℂ)) ∂volume) := by
+  classical
+  let Ψ : ℂ → ℂ := fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume
+  let F : ℂ → ℂ := fun s : ℂ => (-deriv riemannZeta s / riemannZeta s) * Ψ s
+  let R : Set ℂ := Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+    (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)
+  let P : Set ℂ := {z | meromorphicOrderAt F z < 0}
+  let Z : Set ℂ := riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+  let S : Set ℂ := insert (1 : ℂ) Z
+  have hb : 0 < b := lt_trans ha hab
+  have hRmero : MeromorphicOn F R := by
+    simpa [F, Ψ, R] using
+      (kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_meromorphicOn
+        hφ ha hab hT_nonneg hφ_decay)
+  have hS_subset_R : S ⊆ R := by
+    intro z hz
+    have hre_le :
+        (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).re ≤
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).re := by
+      simp
+      linarith
+    have him_le :
+        (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).im ≤
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).im := by
+      simp
+      linarith
+    change z ∈ Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)
+    rw [mem_Rect hre_le him_le]
+    rcases hz with hz_one | hzZ
+    · subst z
+      simp only [ofReal_neg, neg_mul, add_re, neg_re, ofReal_re, mul_re, I_re, mul_zero,
+        ofReal_im, I_im, mul_one, sub_self, neg_zero, add_zero, one_re, ofReal_add,
+        ofReal_one, le_add_iff_nonneg_right, add_im, neg_im, mul_im, zero_add, one_im,
+        Left.neg_nonpos_iff, and_self]
+      exact ⟨by linarith, ha.le, hT_nonneg⟩
+    · rcases hzZ with ⟨hre, him, _hzeta⟩
+      simp only [ofReal_neg, neg_mul, add_re, neg_re, ofReal_re, mul_re, I_re, mul_zero,
+        ofReal_im, I_im, mul_one, sub_self, neg_zero, add_zero, ofReal_add, ofReal_one,
+        one_re, add_im, neg_im, mul_im, zero_add, one_im]
+      exact ⟨by linarith [hre.1], by linarith [hre.2], le_of_lt him.1,
+        le_of_lt him.2⟩
+  have hset_eq : R ∩ P = S ∩ P := by
+    ext z
+    constructor
+    · intro hz
+      rcases hz with ⟨hzR, hzP⟩
+      have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT_nonneg hzR
+      have hΨ_an : AnalyticAt ℂ Ψ z :=
+        kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay
+      have hcandidate :
+          z = (1 : ℂ) ∨
+            ∃ rho : NontrivialZeros, (rho : ℂ) = z ∧ |(rho : ℂ).im| ≤ T := by
+        exact kadiri_rectangle_neg_zeta_logDeriv_mul_pole_candidate
+          (Ψ := Ψ) ha ha1 hT_nonneg hzR hΨ_an.meromorphicAt
+          hΨ_an.meromorphicOrderAt_nonneg (by simpa [F, P] using hzP)
+      refine ⟨?_, hzP⟩
+      rcases hcandidate with hz_one | ⟨rho, hρz, hρT⟩
+      · exact Or.inl hz_one
+      · have hzero : riemannZeta z = 0 := by
+          rw [← hρz]
+          exact rho.property.2.2
+        have him_abs : |z.im| ≤ T := by
+          simpa [hρz] using hρT
+        have him_bounds := abs_le.mp him_abs
+        have him_ne_top : z.im ≠ T := by
+          intro htop
+          have hnonzero :
+              riemannZeta (((z.re : ℂ) + (T : ℂ) * I)) ≠ 0 :=
+            riemannZeta_ne_zero_on_horizontal_border_of_offPole
+              (T := T) (σ := z.re) (t := T) hT_off (Or.inl rfl)
+          have hz_eq : ((z.re : ℂ) + (T : ℂ) * I) = z := by
+            apply Complex.ext <;> simp [htop]
+          exact hnonzero (by rw [hz_eq]; exact hzero)
+        have him_ne_bot : z.im ≠ -T := by
+          intro hbot
+          have hnonzero :
+              riemannZeta (((z.re : ℂ) + ((-T : ℝ) : ℂ) * I)) ≠ 0 :=
+            riemannZeta_ne_zero_on_horizontal_border_of_offPole
+              (T := T) (σ := z.re) (t := -T) hT_off (Or.inr rfl)
+          have hz_eq : ((z.re : ℂ) + ((-T : ℝ) : ℂ) * I) = z := by
+            apply Complex.ext <;> simp [hbot]
+          exact hnonzero (by rw [hz_eq]; exact hzero)
+        have hz_re : z.re ∈ Set.Ioo (0 : ℝ) 1 := by
+          rw [← hρz]
+          exact rho.property.1
+        have hz_im : z.im ∈ Set.Ioo (-T) T := by
+          exact ⟨lt_of_le_of_ne him_bounds.1 him_ne_bot.symm,
+            lt_of_le_of_ne him_bounds.2 him_ne_top⟩
+        have hz_zero : z ∈ riemannZeta.zeroes := by
+          simpa [riemannZeta.zeroes] using hzero
+        exact Or.inr ⟨hz_re, hz_im, hz_zero⟩
+    · intro hz
+      exact ⟨hS_subset_R hz.1, hz.2⟩
+  have hresidue_reduce :
+      CH2.sumResiduesIn F (R ∩ P) = CH2.sumResiduesIn F S := by
+    refine CH2.sumResiduesIn_inter_eq_of_set_eq (F := F) (Rn := R) (S2 := S) (P := P)
+      hset_eq ?_
+    intro s hsS hs_not_pole
+    have hs_not_pole' : ¬ meromorphicOrderAt F s < 0 := by
+      simpa [P] using hs_not_pole
+    exact CH2.residue_eq_zero_of_not_pole_of_meromorphicAt
+      (hRmero s (hS_subset_R hsS)) (le_of_not_gt hs_not_pole')
+  calc
+    CH2.sumResiduesIn
+        (fun s : ℂ =>
+          (-deriv riemannZeta s / riemannZeta s) *
+            (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+        (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+            (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+          {z | meromorphicOrderAt
+            (fun s : ℂ =>
+              (-deriv riemannZeta s / riemannZeta s) *
+                (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)) z < 0})
+        = CH2.sumResiduesIn F (R ∩ P) := by rfl
+    _ = CH2.sumResiduesIn F S := hresidue_reduce
+    _ = (∫ y : ℝ, φ y * exp ((1 : ℂ) * (y : ℂ)) ∂volume) -
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ : ℂ => ∫ y : ℝ, φ y * exp (ρ * (y : ℂ)) ∂volume) := by
+        simpa [F, Ψ, S, Z] using
+          (kadiri_laplace_candidate_residue_sum
+            (φ := φ) hφ (b := b) (T := T) hb hφ_decay)
+
 end
 
 end Kadiri
