@@ -29,6 +29,413 @@ open ArithmeticFunction hiding log
 open Filter
 open scoped Topology
 
+private lemma zetaPiFactor_eq_cpow_for_xi (s : ℂ) :
+    zetaPiFactor s = (Real.pi : ℂ) ^ (-(s / 2)) := by
+  unfold zetaPiFactor
+  rw [Complex.cpow_def_of_ne_zero, Complex.ofReal_log Real.pi_pos.le]
+  · ring_nf
+  · exact_mod_cast Real.pi_ne_zero
+
+private lemma completedZetaFactor_eq_mul_completedRiemannZeta_for_xi {s : ℂ}
+    (hs0 : s ≠ 0) (hΓhalf : Gamma (s / 2) ≠ 0) :
+    completedZetaFactor s = (s * (s - 1) / 2) * completedRiemannZeta s := by
+  have hGamma :
+      Gamma (s / 2 + 1) = (s / 2) * Gamma (s / 2) := by
+    exact Gamma_add_one (s / 2) (div_ne_zero hs0 two_ne_zero)
+  rw [completedZetaFactor, zetaPoleFactor, zetaGammaFactor, zetaPiFactor_eq_cpow_for_xi,
+    hGamma, riemannZeta_def_of_ne_zero hs0, Gammaℝ_def]
+  field_simp [hs0, hΓhalf]
+
+private lemma gamma_half_avoid_neg_nat_of_shift_for_xi {s : ℂ} (hs0 : s ≠ 0)
+    (hΓdiff : ∀ m : ℕ, s / 2 + 1 ≠ -m) :
+    ∀ m : ℕ, s / 2 ≠ -m := by
+  intro m hm
+  cases m with
+  | zero =>
+      apply hs0
+      rw [show s = 2 * (s / 2) by ring, hm]
+      ring
+  | succ m =>
+      have hbad : s / 2 + 1 = -(m : ℂ) := by
+        rw [hm]
+        norm_num
+      exact hΓdiff m hbad
+
+private lemma zetaGammaFactor_shift_avoid_of_not_zero_for_xi {s : ℂ}
+    (hsZ : s ∉ riemannZeta.zeroes) :
+    ∀ m : ℕ, s / 2 + 1 ≠ -m := by
+  intro m hm
+  apply hsZ
+  have hs_eq : s = -2 * ((m : ℂ) + 1) := by
+    calc
+      s = 2 * (s / 2 + 1) - 2 := by ring
+      _ = 2 * (-(m : ℂ)) - 2 := by rw [hm]
+      _ = -2 * ((m : ℂ) + 1) := by ring
+  rw [riemannZeta.zeroes]
+  simpa [hs_eq, Nat.cast_add, Nat.cast_one] using
+    riemannZeta_neg_two_mul_nat_add_one m
+
+private lemma zetaGammaFactor_ne_zero_of_not_zero_for_xi {s : ℂ}
+    (hsZ : s ∉ riemannZeta.zeroes) :
+    zetaGammaFactor s ≠ 0 := by
+  unfold zetaGammaFactor
+  exact Gamma_ne_zero (zetaGammaFactor_shift_avoid_of_not_zero_for_xi hsZ)
+
+private lemma completedZetaFactor_eq_riemannXi_of_Gamma_half_ne_zero {s : ℂ}
+    (hs0 : s ≠ 0) (hs1 : s ≠ 1) (hΓhalf : Gamma (s / 2) ≠ 0) :
+    completedZetaFactor s = riemannXi s := by
+  rw [completedZetaFactor_eq_mul_completedRiemannZeta_for_xi hs0 hΓhalf,
+    riemannXi_eq_mul_completedRiemannZeta hs0 hs1]
+  ring
+
+private lemma completedZetaFactor_eventually_eq_riemannXi {s : ℂ}
+    (hs0 : s ≠ 0) (hs1 : s ≠ 1)
+    (hΓdiff : ∀ m : ℕ, s / 2 + 1 ≠ -m) :
+    completedZetaFactor =ᶠ[𝓝 s] riemannXi := by
+  have hΓhalf_diff : ∀ m : ℕ, s / 2 ≠ -m :=
+    gamma_half_avoid_neg_nat_of_shift_for_xi hs0 hΓdiff
+  have hΓhalf : Gamma (s / 2) ≠ 0 := Gamma_ne_zero hΓhalf_diff
+  have hΓcont : ContinuousAt (fun w : ℂ => Gamma (w / 2)) s := by
+    have hdiv : ContinuousAt (fun w : ℂ => w / 2) s := by
+      simpa [div_eq_mul_inv, mul_comm] using
+        ((continuousAt_const : ContinuousAt (fun _ : ℂ => (2 : ℂ)⁻¹) s).mul continuousAt_id)
+    exact ContinuousAt.comp' (f := fun w : ℂ => w / 2) (g := Gamma)
+      ((differentiableAt_Gamma _ hΓhalf_diff).continuousAt) hdiv
+  filter_upwards [eventually_ne_nhds hs0, eventually_ne_nhds hs1,
+      hΓcont.eventually_ne hΓhalf] with w hw0 hw1 hwΓ
+  exact completedZetaFactor_eq_riemannXi_of_Gamma_half_ne_zero hw0 hw1 hwΓ
+
+private lemma logDeriv_completedZetaFactor_eq_logDeriv_riemannXi {s : ℂ}
+    (hs0 : s ≠ 0) (hs1 : s ≠ 1)
+    (hΓdiff : ∀ m : ℕ, s / 2 + 1 ≠ -m) :
+    logDeriv completedZetaFactor s = logDeriv riemannXi s := by
+  have hEq := completedZetaFactor_eventually_eq_riemannXi hs0 hs1 hΓdiff
+  rw [logDeriv_apply, logDeriv_apply]
+  have hderiv_eq : deriv completedZetaFactor s = deriv riemannXi s := hEq.deriv.eq_of_nhds
+  rw [hderiv_eq]
+  exact congrArg (fun z => deriv riemannXi s / z) hEq.eq_of_nhds
+
+private lemma xi_gamma_half_ne_zero_of_re_pos {s : ℂ} (hsre : 0 < s.re) :
+    Gamma (s / 2) ≠ 0 := by
+  refine Gamma_ne_zero ?_
+  intro m hm
+  have hre := congrArg Complex.re hm
+  have hm_nonneg : (0 : ℝ) ≤ m := by exact_mod_cast Nat.zero_le m
+  simp at hre
+  nlinarith
+
+private lemma xi_gamma_factor_ne_zero_of_re_pos {s : ℂ} (hsre : 0 < s.re) :
+    zetaGammaFactor s ≠ 0 := by
+  unfold zetaGammaFactor
+  refine Gamma_ne_zero ?_
+  intro m hm
+  have hre := congrArg Complex.re hm
+  have hm_nonneg : (0 : ℝ) ≤ m := by exact_mod_cast Nat.zero_le m
+  simp at hre
+  nlinarith
+
+private lemma xi_gamma_factor_differentiableAt_of_re_pos {s : ℂ} (hsre : 0 < s.re) :
+    DifferentiableAt ℂ zetaGammaFactor s := by
+  unfold zetaGammaFactor
+  refine (differentiableAt_Gamma _ ?_).comp s (by fun_prop)
+  intro m hm
+  have hre := congrArg Complex.re hm
+  have hm_nonneg : (0 : ℝ) ≤ m := by exact_mod_cast Nat.zero_le m
+  simp at hre
+  nlinarith
+
+private lemma xi_gamma_factor_analyticAt_of_re_pos {s : ℂ} (hsre : 0 < s.re) :
+    AnalyticAt ℂ zetaGammaFactor s := by
+  refine Complex.analyticAt_iff_eventually_differentiableAt.mpr ?_
+  have hopen : IsOpen {w : ℂ | 0 < w.re} :=
+    isOpen_lt continuous_const continuous_re
+  filter_upwards [hopen.mem_nhds hsre] with w hw
+  exact xi_gamma_factor_differentiableAt_of_re_pos hw
+
+private theorem completedZetaFactor_eq_riemannXi_of_criticalStrip {s : ℂ}
+    (hsre0 : 0 < s.re) (hsre1 : s.re < 1) :
+    completedZetaFactor s = riemannXi s := by
+  have hs0 : s ≠ 0 := by
+    intro hs
+    rw [hs] at hsre0
+    norm_num at hsre0
+  have hs1 : s ≠ 1 := by
+    intro hs
+    rw [hs] at hsre1
+    norm_num at hsre1
+  have hGamma :
+      Gamma (s / 2 + 1) = (s / 2) * Gamma (s / 2) := by
+    exact Gamma_add_one (s / 2) (div_ne_zero hs0 two_ne_zero)
+  rw [completedZetaFactor, zetaPoleFactor, zetaGammaFactor, zetaPiFactor_eq_cpow_for_xi,
+    riemannXi_eq_mul_completedRiemannZeta hs0 hs1,
+    hGamma, riemannZeta_def_of_ne_zero hs0, Gammaℝ_def]
+  field_simp [hs0, xi_gamma_half_ne_zero_of_re_pos hsre0]
+
+private lemma riemannXi_eventuallyEq_completedZetaFactor_of_criticalStrip {s : ℂ}
+    (hsre0 : 0 < s.re) (hsre1 : s.re < 1) :
+    riemannXi =ᶠ[𝓝 s] completedZetaFactor := by
+  have hopen : IsOpen {w : ℂ | 0 < w.re ∧ w.re < 1} :=
+    (isOpen_lt continuous_const continuous_re).inter
+      (isOpen_lt continuous_re continuous_const)
+  have hmem : s ∈ {w : ℂ | 0 < w.re ∧ w.re < 1} := ⟨hsre0, hsre1⟩
+  filter_upwards [hopen.mem_nhds hmem] with w hw
+  exact (completedZetaFactor_eq_riemannXi_of_criticalStrip hw.1 hw.2).symm
+
+private lemma completedZetaFactor_order_eq_riemannZeta_order_of_criticalStrip
+    {s : ℂ} (hsre0 : 0 < s.re) (hsre1 : s.re < 1) :
+    meromorphicOrderAt completedZetaFactor s = meromorphicOrderAt riemannZeta s := by
+  let G : ℂ → ℂ := fun w => zetaPoleFactor w * zetaPiFactor w * zetaGammaFactor w
+  have hG_an : AnalyticAt ℂ G s := by
+    dsimp [G, zetaPoleFactor, zetaPiFactor]
+    exact (((by fun_prop : AnalyticAt ℂ (fun w : ℂ => w - 1) s).mul
+      (by
+        rw [show (fun w : ℂ => Complex.exp (-(w / 2) * (Real.log Real.pi : ℂ))) =
+          Complex.exp ∘ (fun w : ℂ => -(w / 2) * (Real.log Real.pi : ℂ)) by rfl]
+        exact (Complex.differentiable_exp.analyticAt _).comp (by fun_prop))).mul
+      (xi_gamma_factor_analyticAt_of_re_pos hsre0))
+  have hζ_an : AnalyticAt ℂ riemannZeta s := by
+    have hs1 : s ≠ 1 := by
+      intro hs
+      rw [hs] at hsre1
+      norm_num at hsre1
+    exact riemannZeta_analyticOn_compl_one s (Set.mem_compl_singleton_iff.mpr hs1)
+  have hG_ne : G s ≠ 0 := by
+    dsimp [G, zetaPoleFactor, zetaPiFactor]
+    refine mul_ne_zero (mul_ne_zero ?_ ?_) ?_
+    · intro h
+      have hs : s = 1 := by simpa [sub_eq_zero] using h
+      rw [hs] at hsre1
+      norm_num at hsre1
+    · exact Complex.exp_ne_zero _
+    · exact xi_gamma_factor_ne_zero_of_re_pos hsre0
+  have hmul :
+      meromorphicOrderAt (fun w : ℂ => G w * riemannZeta w) s =
+        meromorphicOrderAt G s + meromorphicOrderAt riemannZeta s :=
+    meromorphicOrderAt_mul hG_an.meromorphicAt hζ_an.meromorphicAt
+  have hG0 : meromorphicOrderAt G s = 0 := by
+    rw [hG_an.meromorphicOrderAt_eq]
+    have horder : analyticOrderAt G s = 0 :=
+      hG_an.analyticOrderAt_eq_zero.mpr hG_ne
+    simp [horder]
+  calc
+    meromorphicOrderAt completedZetaFactor s =
+        meromorphicOrderAt (fun w : ℂ => G w * riemannZeta w) s := by
+          rfl
+    _ = meromorphicOrderAt G s + meromorphicOrderAt riemannZeta s := hmul
+    _ = meromorphicOrderAt riemannZeta s := by rw [hG0, zero_add]
+
+private theorem riemannXi_divisor_eq_riemannZeta_order_of_criticalStrip {s : ℂ}
+    (hsre0 : 0 < s.re) (hsre1 : s.re < 1) :
+    (MeromorphicOn.divisor riemannXi Set.univ) s = riemannZeta.order s := by
+  have hmero : MeromorphicOn riemannXi Set.univ := fun x _ =>
+    (Differentiable.analyticAt (f := riemannXi) differentiable_riemannXi x).meromorphicAt
+  rw [MeromorphicOn.divisor_apply hmero (Set.mem_univ s)]
+  have hcongr : meromorphicOrderAt riemannXi s =
+      meromorphicOrderAt completedZetaFactor s :=
+    meromorphicOrderAt_congr
+      ((riemannXi_eventuallyEq_completedZetaFactor_of_criticalStrip
+        (s := s) hsre0 hsre1).filter_mono nhdsWithin_le_nhds)
+  rw [hcongr,
+    completedZetaFactor_order_eq_riemannZeta_order_of_criticalStrip hsre0 hsre1,
+    riemannZeta.order]
+  rfl
+
+private lemma riemannXi_ne_zero_of_one_le_re {s : ℂ} (hsre : 1 ≤ s.re) :
+    riemannXi s ≠ 0 := by
+  by_cases hs1 : s = 1
+  · subst s
+    norm_num [riemannXi]
+  · have hs0 : s ≠ 0 := by
+      intro hs0
+      rw [hs0] at hsre
+      norm_num at hsre
+    intro hxi
+    have hcompleted : completedRiemannZeta s = 0 := by
+      have h := riemannXi_eq_mul_completedRiemannZeta hs0 hs1
+      rw [hxi] at h
+      have h2 : s * (s - 1) * completedRiemannZeta s = 0 := by
+        rcases div_eq_zero_iff.mp h.symm with hnum | hden
+        · exact hnum
+        · exact False.elim (two_ne_zero hden)
+      rcases mul_eq_zero.mp h2 with h3 | h3
+      · rcases mul_eq_zero.mp h3 with h4 | h4
+        · exact absurd h4 hs0
+        · exact absurd (by linear_combination h4) hs1
+      · exact h3
+    have hζ : riemannZeta s = 0 := by
+      rw [riemannZeta_def_of_ne_zero hs0, hcompleted, zero_div]
+    exact (riemannZeta_ne_zero_of_one_le_re hsre) hζ
+
+private lemma riemannXi_ne_zero_of_re_nonpos {s : ℂ} (hsre : s.re ≤ 0) :
+    riemannXi s ≠ 0 := by
+  intro hxi
+  have hwre : 1 ≤ ((1 : ℂ) - s).re := by
+    simp
+    linarith
+  exact riemannXi_ne_zero_of_one_le_re hwre (by
+    rw [riemannXi_one_sub]
+    exact hxi)
+
+private lemma riemannXi_zero_re_mem_Ioo {s : ℂ} (hxi : riemannXi s = 0) :
+    s.re ∈ Set.Ioo (0 : ℝ) 1 := by
+  have hnot_one_le : ¬ 1 ≤ s.re := fun hsre =>
+    riemannXi_ne_zero_of_one_le_re hsre hxi
+  have hnot_nonpos : ¬ s.re ≤ 0 := fun hsre =>
+    riemannXi_ne_zero_of_re_nonpos hsre hxi
+  exact ⟨lt_of_not_ge hnot_nonpos, lt_of_not_ge hnot_one_le⟩
+
+private theorem riemannZeta_eq_zero_of_riemannXi_eq_zero {s : ℂ} (hxi : riemannXi s = 0)
+    (hs0 : s ≠ 0) (hs1 : s ≠ 1) : riemannZeta s = 0 := by
+  have hcompleted : completedRiemannZeta s = 0 := by
+    have h := riemannXi_eq_mul_completedRiemannZeta hs0 hs1
+    rw [hxi] at h
+    have h2 : s * (s - 1) * completedRiemannZeta s = 0 := by
+      rcases div_eq_zero_iff.mp h.symm with hnum | hden
+      · exact hnum
+      · exact False.elim (two_ne_zero hden)
+    rcases mul_eq_zero.mp h2 with h3 | h3
+    · rcases mul_eq_zero.mp h3 with h4 | h4
+      · exact absurd h4 hs0
+      · exact absurd (by linear_combination h4) hs1
+    · exact h3
+  rw [riemannZeta_def_of_ne_zero hs0, hcompleted, zero_div]
+
+private theorem riemannXi_zero_iff_zeta_nontrivial {s : ℂ} :
+    riemannXi s = 0 ↔ s ∈ riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) := by
+  constructor
+  · intro hxi
+    have hre := riemannXi_zero_re_mem_Ioo hxi
+    have hs0 : s ≠ 0 := by
+      intro hs
+      rw [hs] at hre
+      norm_num at hre
+    have hs1 : s ≠ 1 := by
+      intro hs
+      rw [hs] at hre
+      norm_num at hre
+    exact ⟨hre, Set.mem_univ s.im, riemannZeta_eq_zero_of_riemannXi_eq_zero hxi hs0 hs1⟩
+  · intro hz
+    have hs0 : s ≠ 0 := by
+      intro hs
+      rw [hs] at hz
+      have hre := hz.1
+      norm_num at hre
+    have hs1 : s ≠ 1 := by
+      intro hs
+      rw [hs] at hz
+      have hre := hz.1
+      norm_num at hre
+    have hΓ : Gammaℝ s ≠ 0 := Gammaℝ_ne_zero_of_re_pos hz.1.1
+    have hcompleted : completedRiemannZeta s = 0 := by
+      have hzeta_def := riemannZeta_def_of_ne_zero hs0
+      have hzeta_mul := congrArg (fun x => x * Gammaℝ s) hzeta_def
+      have hΛ_def : completedRiemannZeta s = riemannZeta s * Gammaℝ s := by
+        have : riemannZeta s * Gammaℝ s = completedRiemannZeta s := by
+          simpa [div_eq_mul_inv, mul_assoc, hΓ] using hzeta_mul
+        exact this.symm
+      rw [hΛ_def, hz.2.2, zero_mul]
+    rw [riemannXi_eq_mul_completedRiemannZeta hs0 hs1, hcompleted, mul_zero, zero_div]
+
+private theorem riemannXi_val_eq_zero
+    (p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ)) :
+    riemannXi (Complex.Hadamard.divisorZeroIndex₀_val p) = 0 := by
+  by_contra hxi
+  have hmero : MeromorphicOn riemannXi Set.univ := fun x _ =>
+    (Differentiable.analyticAt (f := riemannXi) differentiable_riemannXi x).meromorphicAt
+  have han : AnalyticAt ℂ riemannXi (Complex.Hadamard.divisorZeroIndex₀_val p) :=
+    Differentiable.analyticAt (f := riemannXi) differentiable_riemannXi _
+  have hdiv : (MeromorphicOn.divisor riemannXi Set.univ)
+      (Complex.Hadamard.divisorZeroIndex₀_val p) = 0 := by
+    rw [MeromorphicOn.divisor_apply hmero (Set.mem_univ _), han.meromorphicOrderAt_eq]
+    have horder : analyticOrderAt riemannXi (Complex.Hadamard.divisorZeroIndex₀_val p) = 0 :=
+      analyticOrderAt_eq_zero.mpr (Or.inr hxi)
+    simp [horder]
+  exact Complex.Hadamard.divisorZeroIndex₀_val_mem_divisor_support p hdiv
+
+private theorem riemannXi_divisorZeroIndex₀_val_mem_nontrivialZero
+    (p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ)) :
+    Complex.Hadamard.divisorZeroIndex₀_val p ∈ NontrivialZeros := by
+  exact (riemannXi_zero_iff_zeta_nontrivial).1 (riemannXi_val_eq_zero p)
+
+private lemma riemannZeta_order_toNat_eq_analyticOrderNatAt (ρ : NontrivialZeros) :
+    Int.toNat (riemannZeta.order (ρ : ℂ)) = analyticOrderNatAt riemannZeta (ρ : ℂ) := by
+  have han := riemannZeta_analyticAt_nontrivialZero ρ
+  have horder_ne_top := riemannZeta_meromorphicOrderAt_ne_top_nontrivialZero ρ
+  unfold riemannZeta.order
+  cases hO : analyticOrderAt riemannZeta (ρ : ℂ) with
+  | top =>
+      exfalso
+      exact horder_ne_top (by simp [han.meromorphicOrderAt_eq, hO])
+  | coe n =>
+      rw [han.meromorphicOrderAt_eq, hO, ENat.map_coe, WithTop.untopD_coe]
+      simp [analyticOrderNatAt, hO]
+
+private lemma riemannXi_divisor_toNat_eq_zeta_analyticOrderNatAt (ρ : NontrivialZeros) :
+    Int.toNat ((MeromorphicOn.divisor riemannXi Set.univ) (ρ : ℂ)) =
+      analyticOrderNatAt riemannZeta (ρ : ℂ) := by
+  have hre := ρ.property.1
+  rw [riemannXi_divisor_eq_riemannZeta_order_of_criticalStrip hre.1 hre.2,
+    riemannZeta_order_toNat_eq_analyticOrderNatAt ρ]
+
+private noncomputable def riemannXiDivisorZeroIndex₀EquivZetaNontrivialSigma :
+    Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) ≃
+      Σ ρ : NontrivialZeros, Fin (analyticOrderNatAt riemannZeta (ρ : ℂ)) where
+  toFun p := by
+    let ρ : NontrivialZeros :=
+      ⟨Complex.Hadamard.divisorZeroIndex₀_val p,
+        riemannXi_divisorZeroIndex₀_val_mem_nontrivialZero p⟩
+    refine ⟨ρ, ?_⟩
+    refine Fin.cast ?_ p.1.2
+    exact riemannXi_divisor_toNat_eq_zeta_analyticOrderNatAt ρ
+  invFun q := by
+    refine ⟨⟨(q.1 : ℂ), ?_⟩, nontrivialZero_ne_zero q.1⟩
+    refine Fin.cast ?_ q.2
+    exact (riemannXi_divisor_toNat_eq_zeta_analyticOrderNatAt q.1).symm
+  left_inv p := by
+    cases p with
+    | mk p hp =>
+      cases p with
+      | mk z n =>
+        simp [Complex.Hadamard.divisorZeroIndex₀_val]
+  right_inv q := by
+    cases q with
+    | mk ρ n =>
+      simp [Complex.Hadamard.divisorZeroIndex₀_val]
+
+private theorem tsum_riemannXi_divisorZeroIndex₀_eq_zeroes_sum {α : Type*} [RCLike α]
+    (φ : ℂ → α)
+    (hsum : Summable fun p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) =>
+      φ (Complex.Hadamard.divisorZeroIndex₀_val p)) :
+    ∑' p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        φ (Complex.Hadamard.divisorZeroIndex₀_val p) =
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) φ := by
+  classical
+  let e := riemannXiDivisorZeroIndex₀EquivZetaNontrivialSigma
+  let g : (Σ ρ : NontrivialZeros, Fin (analyticOrderNatAt riemannZeta (ρ : ℂ))) → α :=
+    fun q => φ (q.1 : ℂ)
+  have hgsum : Summable g := by
+    refine e.summable_iff.mp ?_
+    exact hsum
+  have h1 : (∑' p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+      φ (Complex.Hadamard.divisorZeroIndex₀_val p)) = ∑' q, g q := e.tsum_eq g
+  have h3 : ∀ ρ : NontrivialZeros,
+      (∑' _k : Fin (analyticOrderNatAt riemannZeta (ρ : ℂ)), φ (ρ : ℂ)) =
+        φ (ρ : ℂ) * (riemannZeta.order (ρ : ℂ) : α) := by
+    intro ρ
+    rw [tsum_fintype, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
+      mul_comm]
+    congr 1
+    have h0 : (0 : ℤ) ≤ riemannZeta.order (ρ : ℂ) :=
+      le_of_lt (riemannZeta_order_pos_nontrivialZero ρ)
+    have horder_nat :
+        (analyticOrderNatAt riemannZeta (ρ : ℂ) : ℤ) = riemannZeta.order (ρ : ℂ) := by
+      rw [← riemannZeta_order_toNat_eq_analyticOrderNatAt ρ]
+      exact Int.toNat_of_nonneg h0
+    exact_mod_cast horder_nat
+  rw [h1, hgsum.tsum_sigma]
+  unfold riemannZeta.zeroes_sum
+  exact tsum_congr h3
+
 /-! ## Precursor definitions for Proposition 2.1
 
 `vonMangoldt` (with notation `Λ`), `Complex.Gamma` / `Complex.digamma`, and `riemannZeta`
@@ -113,28 +520,93 @@ theorem hadamardB_spec :
 @[blueprint
   "kadiri-hadamard-identity"
   (title := "Hadamard expansion of $-\\zeta'/\\zeta$ (after equation (16))")
-  (statement := /-- For every $s \in \mathbb{C}$ that is neither $1$ nor a non-trivial zero
-  of $\zeta$,
+  (statement := /-- For every $s \in \mathbb{C}$ that is neither $0$, $1$, nor a zero of
+  $\zeta$,
   $$ -\frac{\zeta'}{\zeta}(s) = -B - \tfrac{1}{2} \log \pi + \frac{1}{s - 1}
        + \tfrac{1}{2} \frac{\Gamma'}{\Gamma}\!\left(\tfrac{s}{2} + 1\right)
-       - \sum_{\rho \in Z(\zeta)} \left(\frac{1}{\rho} + \frac{1}{s - \rho}\right), $$
+       - \sum_{\rho \in Z(\zeta)}
+           \left(\frac{1}{\rho} + \frac{1}{s - \rho}\right), $$
   where $B$ is the Hadamard constant (\ref{kadiri-hadamard-B}). This is the logarithmic
-  derivative of the Hadamard factorisation of $\zeta$
+  derivative of the Hadamard factorisation of $\xi$, transported to non-trivial zeta zeros with
+  multiplicity,
   (\cite[Chapter 12]{Davenport2000}). -/)
   (proof := /-- Differentiate the Hadamard product (\ref{kadiri-hadamard-B}) logarithmically;
   the linear-in-$s$ term in the exponential collapses to the constant $B$. The
   $\tfrac{1}{s-1}$ term comes from the $(s-1)\zeta(s)$ prefactor and the
-  $\tfrac{1}{2} \Gamma'/\Gamma$ term from the gamma factor. To be formalised. -/)
+  $\tfrac{1}{2} \Gamma'/\Gamma$ term from the gamma factor. The zero sum is transported from the
+  nonzero xi divisor to the order-weighted `riemannZeta.zeroes_sum`, so multiplicities are
+  retained. -/)
   (latexEnv := "lemma")
   (discussion := 1474)]
-theorem hadamard_identity (s : ℂ) (hs1 : s ≠ 1)
-    (hsZ : s ∉ riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ)) :
+theorem hadamard_identity (s : ℂ) (hs0 : s ≠ 0) (hs1 : s ≠ 1)
+    (hsZ : s ∉ riemannZeta.zeroes) :
     -deriv riemannZeta s / riemannZeta s =
       -hadamardB - (1 / 2 : ℂ) * Real.log Real.pi + 1 / (s - 1) +
       (1 / 2 : ℂ) * digamma (s / 2 + 1) -
-      ∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
-        (1 / (ρ.val : ℂ) + 1 / (s - ρ.val)) := by
-  sorry
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => 1 / ρ + 1 / (s - ρ)) := by
+  let zero : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) → ℂ :=
+    fun ρ => Complex.Hadamard.divisorZeroIndex₀_val ρ
+  have hsXi : ∀ ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+      s ≠ Complex.Hadamard.divisorZeroIndex₀_val ρ := by
+    intro ρ hρ
+    apply hsZ
+    rw [hρ]
+    exact (riemannXi_divisorZeroIndex₀_val_mem_nontrivialZero ρ).2.2
+  have hΓdiff : ∀ m : ℕ, s / 2 + 1 ≠ -m :=
+    zetaGammaFactor_shift_avoid_of_not_zero_for_xi hsZ
+  have hΓ : zetaGammaFactor s ≠ 0 :=
+    zetaGammaFactor_ne_zero_of_not_zero_for_xi hsZ
+  have hζ : riemannZeta s ≠ 0 := by
+    simpa [riemannZeta.zeroes] using hsZ
+  rcases hadamardB_spec with ⟨P, hdeg, hfac, hB⟩
+  have hXi :
+      logDeriv riemannXi s =
+        Polynomial.eval s P.derivative +
+          ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+            (1 / (s - zero ρ) + 1 / zero ρ) := by
+    simpa [zero] using
+      logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
+        (P := P) (z := s) hfac hsXi
+  have hPder : Polynomial.eval s P.derivative = hadamardB := by
+    calc
+      Polynomial.eval s P.derivative = Polynomial.eval 0 P.derivative :=
+        Polynomial.eval_derivative_eq_eval_derivative_zero_of_degree_le_one hdeg s
+      _ = hadamardB := hB.symm
+  have hHad :
+      logDeriv completedZetaFactor s =
+        hadamardB +
+          ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+            (1 / (s - zero ρ) + 1 / zero ρ) := by
+    rw [logDeriv_completedZetaFactor_eq_logDeriv_riemannXi hs0 hs1 hΓdiff, hXi, hPder]
+  have hBridge :=
+    neg_zeta_logDeriv_eq_of_completed_hadamard_logDeriv
+      s hadamardB
+      (∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        (1 / (s - zero ρ) + 1 / zero ρ))
+      hs1 hΓdiff hΓ hζ hHad
+  have hsum_comm :
+      (∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        (1 / (s - zero ρ) + 1 / zero ρ)) =
+      (∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        (1 / zero ρ + 1 / (s - zero ρ))) := by
+    refine tsum_congr fun ρ => ?_
+    ring
+  have hsumm := summable_riemannXi_logDerivTerms_divisorZeroIndex₀ (z := s) hsXi
+  have hsumm' :
+      Summable
+        (fun ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) =>
+          1 / zero ρ + 1 / (s - zero ρ)) :=
+    hsumm.congr fun ρ => add_comm _ _
+  have hreidx :
+      (∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        (1 / zero ρ + 1 / (s - zero ρ))) =
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => 1 / ρ + 1 / (s - ρ)) :=
+    tsum_riemannXi_divisorZeroIndex₀_eq_zeroes_sum
+      (fun ρ => 1 / ρ + 1 / (s - ρ)) hsumm'
+  rw [hBridge, hsum_comm, hreidx]
+  ring
 
 /-! ## Sublemmas for the proof of Theorem 3.1
 
