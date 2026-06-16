@@ -1202,6 +1202,140 @@ theorem kadiri_nontrivial_zero_zeta_order_norm_eq (rho : NontrivialZeros) :
   rw [Complex.norm_intCast]
   exact_mod_cast abs_of_nonneg hordZ
 
+/-- The local zero window's order-norm budget is bounded by the Jensen local count atom. -/
+theorem kadiriLocalZeroWindow_orderNorm_sum_le_nearbyZeroCount {T : ℝ} (hT : 3 ≤ |T|) :
+    (∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) ≤
+      u6aNearbyZeroCount (-1) 2 T := by
+  classical
+  let L : Finset NontrivialZeros := (kadiriLocalZeroWindow_finite T).toFinset
+  let N : Finset ℂ := (u6aFTNearbyWindow_finite T).toFinset
+  have hcount := riemannZeta.zeroes_sum_eq_finset_of_finite
+    (I := Set.uIcc (-1 : ℝ) 2) (J := Set.Icc (T - 1) (T + 1))
+    (fun _ => (1 : ℝ)) (u6aFTNearbyWindow_finite T)
+  have hcount_finset :
+      u6aNearbyZeroCount (-1) 2 T =
+        ∑ z ∈ N, ((riemannZeta.order z : ℤ) : ℝ) := by
+    simpa [u6aNearbyZeroCount, N] using hcount
+  have himage_subset : L.image (fun rho : NontrivialZeros => (rho : ℂ)) ⊆ N := by
+    intro z hz
+    rw [Finset.mem_image] at hz
+    obtain ⟨rho, hrhoL, rfl⟩ := hz
+    dsimp [L] at hrhoL
+    have hrho : rho ∈ kadiriLocalZeroWindow T :=
+      (kadiriLocalZeroWindow_finite T).mem_toFinset.mp hrhoL
+    rw [kadiriLocalZeroWindow, Set.mem_setOf_eq] at hrho
+    dsimp [N]
+    rw [(u6aFTNearbyWindow_finite T).mem_toFinset]
+    unfold u6aFTNearbyWindow riemannZeta.zeroes_rect
+    have him_abs := abs_le.mp hrho
+    refine ⟨?_, ?_, riemannZeta_nontrivialZero_zero rho⟩
+    · rw [Set.mem_uIcc]
+      exact Or.inl ⟨by linarith [rho.property.1.1], by linarith [rho.property.1.2]⟩
+    · exact ⟨by linarith [him_abs.1], by linarith [him_abs.2]⟩
+  have hsum_image :
+      (∑ rho ∈ L, ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ)) =
+        ∑ z ∈ L.image (fun rho : NontrivialZeros => (rho : ℂ)),
+          ((riemannZeta.order z : ℤ) : ℝ) := by
+    rw [Finset.sum_image]
+    intro rho _ eta _ hcast
+    exact Subtype.ext hcast
+  have hnonneg_N : ∀ z ∈ N, 0 ≤ ((riemannZeta.order z : ℤ) : ℝ) := by
+    intro z hz
+    dsimp [N] at hz
+    have hzmem : z ∈ u6aFTNearbyWindow T :=
+      (u6aFTNearbyWindow_finite T).mem_toFinset.mp hz
+    unfold u6aFTNearbyWindow riemannZeta.zeroes_rect at hzmem
+    obtain ⟨_hre, him, _hζ⟩ := hzmem
+    have hzne1 : z ≠ 1 := by
+      intro h1
+      rw [h1] at him
+      have him0 : (0 : ℝ) ∈ Set.Icc (T - 1) (T + 1) := by
+        simpa using him
+      have hTabs : |T| ≤ 1 := abs_le.mpr ⟨by linarith [him0.2], by linarith [him0.1]⟩
+      linarith
+    exact_mod_cast riemannZeta_order_nonneg hzne1
+  have hsum_le :
+      (∑ z ∈ L.image (fun rho : NontrivialZeros => (rho : ℂ)),
+          ((riemannZeta.order z : ℤ) : ℝ)) ≤
+        ∑ z ∈ N, ((riemannZeta.order z : ℤ) : ℝ) := by
+    exact Finset.sum_le_sum_of_subset_of_nonneg himage_subset
+      (fun z hzN _hzNot => hnonneg_N z hzN)
+  calc
+    (∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖)
+        = ∑ rho ∈ L, ((riemannZeta.order (rho : ℂ) : ℤ) : ℝ) := by
+          dsimp [L]
+          refine Finset.sum_congr rfl fun rho _hrho => ?_
+          exact kadiri_nontrivial_zero_zeta_order_norm_eq rho
+    _ = ∑ z ∈ L.image (fun rho : NontrivialZeros => (rho : ℂ)),
+          ((riemannZeta.order z : ℤ) : ℝ) := hsum_image
+    _ ≤ ∑ z ∈ N, ((riemannZeta.order z : ℤ) : ℝ) := hsum_le
+    _ = u6aNearbyZeroCount (-1) 2 T := hcount_finset.symm
+
+/--
+Pointwise finite-principal-part control from a quantitative height gap.
+
+At a selected good height, every zero in the local window is at ordinate distance at least
+`η`, so the whole local principal block is bounded by `η⁻¹` times the order-weighted
+local zero count.
+-/
+theorem kadiri_local_principal_part_pointwise_bound_of_gap_and_count {η T σ : ℝ}
+    (hη : 0 < η) (hT : 3 ≤ |T|)
+    (hgap : ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+      η < |T - (rho : ℂ).im|) :
+    ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+        ((riemannZeta.order (rho : ℂ) : ℂ) /
+          (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
+      η⁻¹ * u6aNearbyZeroCount (-1) 2 T := by
+  classical
+  let S : Finset NontrivialZeros := (kadiriLocalZeroWindow_finite T).toFinset
+  have hterm : ∀ rho ∈ S,
+      ‖((riemannZeta.order (rho : ℂ) : ℂ) /
+          (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
+        η⁻¹ * ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ := by
+    intro rho hrho
+    have hrho_window : rho ∈ kadiriLocalZeroWindow T := by
+      dsimp [S] at hrho
+      exact (kadiriLocalZeroWindow_finite T).mem_toFinset.mp hrho
+    let z : ℂ := ((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)
+    have hz_im : z.im = T - (rho : ℂ).im := by
+      simp [z]
+    have hgap_rho : η < |z.im| := by
+      rw [hz_im]
+      simpa [abs_sub_comm] using hgap rho hrho_window
+    have hz_norm_ge : η ≤ ‖z‖ := le_trans hgap_rho.le (Complex.abs_im_le_norm z)
+    have hdiv :
+        ‖((riemannZeta.order (rho : ℂ) : ℂ) / z)‖ =
+          ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ / ‖z‖ := by
+      rw [norm_div]
+    rw [show (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)) = z by rfl, hdiv]
+    rw [div_eq_mul_inv]
+    calc
+      ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * ‖z‖⁻¹
+          ≤ ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * η⁻¹ :=
+            mul_le_mul_of_nonneg_left (inv_anti₀ hη hz_norm_ge)
+              (norm_nonneg ((riemannZeta.order (rho : ℂ) : ℂ)))
+      _ = η⁻¹ * ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ := by ring
+  calc
+    ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+        ((riemannZeta.order (rho : ℂ) : ℂ) /
+          (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+        ≤ ∑ rho ∈ S,
+            ‖((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ := by
+          dsimp [S]
+          exact norm_sum_le _ _
+    _ ≤ ∑ rho ∈ S, η⁻¹ * ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ :=
+          Finset.sum_le_sum hterm
+    _ = η⁻¹ * (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) := by
+          rw [Finset.mul_sum]
+    _ ≤ η⁻¹ * u6aNearbyZeroCount (-1) 2 T :=
+          mul_le_mul_of_nonneg_left
+            (by simpa [S] using
+              kadiriLocalZeroWindow_orderNorm_sum_le_nearbyZeroCount (T := T) hT)
+            (inv_nonneg.mpr hη.le)
+
 /-- The truncated family's norm budget is its order-weighted multiplicity sum. -/
 theorem kadiriTruncatedNontrivialZeros_orderNorm_sum_eq (R : ℝ) :
     (∑ rho ∈ kadiriTruncatedNontrivialZeros R,
@@ -1887,6 +2021,93 @@ theorem exists_kadiriDyadicGoodHeightSelector_logRadius_offPole
       hXpos hη hT hgap
   · exact kadiriLocalZeroWindow_gap_of_dyadic_gap (X := (2 : ℝ) ^ k)
       (η := c / Real.log ((2 : ℝ) ^ k)) (T := T) hT hgap
+
+/--
+Selected dyadic good heights give a pointwise `log^2` bound for the local zero principal
+block.
+
+This is the finite principal-block half of the Backlund/Kadiri good-height estimate:
+the selector supplies the `c / log X` ordinate gap, while the U6a local Jensen atom
+supplies the order-weighted `O(log |T|)` zero count.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_localPrincipal_logSq
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ᶠ k : ℕ in atTop,
+      ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T ∧
+          ∀ σ : ℝ,
+            ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
+              C * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨c, hc, hsel⟩ := exists_kadiriDyadicGoodHeightSelector_logRadius_offPole hsrc
+  obtain ⟨D, Tₘᵢₙ, hcnt⟩ := exists_u6aLocalZeroCountLogHypothesis
+  rcases hcnt with ⟨hD, hcnt⟩
+  refine ⟨D / c, div_nonneg hD.le hc.le, ?_⟩
+  let B : ℝ := max (max |Tₘᵢₙ| 3) 1
+  have hpow_large : ∀ᶠ k : ℕ in atTop, B ≤ (2 : ℝ) ^ k := by
+    exact (tendsto_pow_atTop_atTop_of_one_lt (by norm_num : (1 : ℝ) < 2)).eventually
+      (Filter.eventually_ge_atTop B)
+  filter_upwards [hsel, hpow_large, Filter.eventually_ge_atTop (1 : ℕ)]
+    with k hsel_k hk_large hk_one
+  obtain ⟨T, hT, hoff, _hgap_dyadic, hgap_local⟩ := hsel_k
+  refine ⟨T, hT, hoff, ?_⟩
+  intro σ
+  let X : ℝ := (2 : ℝ) ^ k
+  have hXpos : 0 < X := by
+    dsimp [X]
+    exact pow_pos (by norm_num) k
+  have hk_ne : k ≠ 0 := by omega
+  have hX_gt_one : 1 < X := by
+    dsimp [X]
+    exact one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+  have hlogX_pos : 0 < Real.log X := Real.log_pos hX_gt_one
+  have hηpos : 0 < c / Real.log X := div_pos hc hlogX_pos
+  have hTpos : 0 < T := by linarith [hXpos, hT.1]
+  have hTabs : |T| = T := abs_of_pos hTpos
+  have hB_abs : |Tₘᵢₙ| ≤ B := by
+    dsimp [B]
+    exact le_trans (le_max_left |Tₘᵢₙ| 3) (le_max_left (max |Tₘᵢₙ| 3) 1)
+  have hB_three : (3 : ℝ) ≤ B := by
+    dsimp [B]
+    exact le_trans (le_max_right |Tₘᵢₙ| 3) (le_max_left (max |Tₘᵢₙ| 3) 1)
+  have hTmin_abs : Tₘᵢₙ ≤ |T| := by
+    rw [hTabs]
+    calc
+      Tₘᵢₙ ≤ |Tₘᵢₙ| := le_abs_self Tₘᵢₙ
+      _ ≤ B := hB_abs
+      _ ≤ X := by simpa [X] using hk_large
+      _ ≤ T := hT.1.le
+  have hT_three_abs : (3 : ℝ) ≤ |T| := by
+    rw [hTabs]
+    calc
+      (3 : ℝ) ≤ B := hB_three
+      _ ≤ X := by simpa [X] using hk_large
+      _ ≤ T := hT.1.le
+  have hlogT_nonneg : 0 ≤ Real.log |T| := Real.log_nonneg (by linarith)
+  have hlogX_le_logT : Real.log X ≤ Real.log |T| := by
+    rw [hTabs]
+    exact Real.log_le_log hXpos hT.1.le
+  have hcount_T : u6aNearbyZeroCount (-1) 2 T ≤ D * Real.log |T| :=
+    hcnt T hTmin_abs hT_three_abs
+  have hprincipal :=
+    kadiri_local_principal_part_pointwise_bound_of_gap_and_count
+      (η := c / Real.log X) (T := T) (σ := σ) hηpos hT_three_abs
+      (by simpa [X] using hgap_local)
+  calc
+    ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+        ((riemannZeta.order (rho : ℂ) : ℂ) /
+          (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+        ≤ (c / Real.log X)⁻¹ * u6aNearbyZeroCount (-1) 2 T := hprincipal
+    _ ≤ (c / Real.log X)⁻¹ * (D * Real.log |T|) :=
+          mul_le_mul_of_nonneg_left hcount_T (inv_nonneg.mpr hηpos.le)
+    _ = (D / c) * (Real.log X * Real.log |T|) := by
+          field_simp [ne_of_gt hc, ne_of_gt hlogX_pos]
+    _ ≤ (D / c) * (Real.log |T| * Real.log |T|) := by
+          exact mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_right hlogX_le_logT hlogT_nonneg)
+            (div_nonneg hD.le hc.le)
+    _ = (D / c) * Real.log |T| ^ (2 : ℕ) := by ring
 
 /--
 Pointwise logarithmic-derivative control on a selected horizontal line.
