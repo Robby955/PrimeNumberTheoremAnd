@@ -105,6 +105,149 @@ theorem exists_kadiriDyadicGoodHeightSelector :
   exact exists_kadiriDyadicGoodHeight_of_card_mul_radius_lt (X := X) (η := η)
     (by linarith) hη hsmall
 
+/-- The dyadic good-height zero window at scale `2^k` is contained in the cumulative
+dyadic zero-counting window below `2^(k+2)`. -/
+theorem kadiriDyadicZeroWindow_ncard_le_cumulative_dyadic_count (k : ℕ) :
+    (kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard ≤
+      Nat.card {rho : NontrivialZeros // |(rho : ℂ).im| < (2 : ℝ) ^ (k + 2)} := by
+  classical
+  let target : Set NontrivialZeros := {rho | |(rho : ℂ).im| < (2 : ℝ) ^ (k + 2)}
+  have htarget_fin : target.Finite := by
+    dsimp [target]
+    exact nontrivialZeros_abs_im_lt_finite ((2 : ℝ) ^ (k + 2))
+  have hsub : kadiriDyadicZeroWindow ((2 : ℝ) ^ k) ⊆ target := by
+    intro rho hrho
+    rw [kadiriDyadicZeroWindow, Set.mem_setOf_eq] at hrho
+    dsimp [target]
+    have hXpos : 0 < (2 : ℝ) ^ k := pow_pos (by norm_num) k
+    have hXge1 : 1 ≤ (2 : ℝ) ^ k :=
+      one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 2)
+    have him_nonneg : 0 ≤ (rho : ℂ).im := by linarith [hrho.1, hXge1]
+    have habs : |(rho : ℂ).im| = (rho : ℂ).im := abs_of_nonneg him_nonneg
+    rw [habs]
+    have hpow : (2 : ℝ) ^ (k + 2) = 4 * (2 : ℝ) ^ k := by
+      rw [show k + 2 = k + 1 + 1 by omega, pow_succ, pow_succ]
+      ring
+    rw [hpow]
+    linarith [hrho.2, hXpos, hXge1]
+  have hcard := Set.ncard_le_ncard hsub htarget_fin
+  rw [← Nat.card_coe_set_eq target] at hcard
+  exact hcard
+
+/-- Concrete dyadic cardinal profile for the good-height zero window, derived from the
+existing cumulative dyadic zero-counting source. -/
+theorem exists_kadiriDyadicZeroWindow_card_le_count_profile
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ,
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) ≤
+        C * (((k + 2 : ℕ) : ℝ)) * ((2 : ℝ) ^ (k + 1)) := by
+  rcases hsrc with ⟨C, hC, hcount⟩
+  refine ⟨C, hC, ?_⟩
+  intro k
+  have hcard_nat := kadiriDyadicZeroWindow_ncard_le_cumulative_dyadic_count k
+  have hcardR :
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) ≤
+        (Nat.card {rho : NontrivialZeros // |(rho : ℂ).im| < (2 : ℝ) ^ (k + 2)} :
+          ℝ) := by
+    exact_mod_cast hcard_nat
+  have hcount_succ := hcount (k + 1)
+  have hcount_succ_bound :
+      (Nat.card {rho : NontrivialZeros // |(rho : ℂ).im| < (2 : ℝ) ^ (k + 2)} :
+          ℝ) ≤
+        C * (((k + 2 : ℕ) : ℝ)) * ((2 : ℝ) ^ (k + 1)) := by
+    simpa [show k + 1 + 1 = k + 2 by omega] using hcount_succ
+  exact hcardR.trans hcount_succ_bound
+
+/--
+Dyadic quantitative good-height selector with the radius chosen from the concrete
+zero-count/coarse-budget profile.
+
+The output no longer carries the earlier cardinal-radius smallness hypothesis: the
+source `zeroImagDyadicCumulativeCountBoundSource` supplies a constant `C`, and the proof
+chooses a universal `c > 0` so that `c / log(2^k)` is below the radius allowed by the
+finite-union bad-interval measure bound for all large dyadic levels.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_logRadius
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        ∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+          c / Real.log ((2 : ℝ) ^ k) < |T - (rho : ℂ).im| := by
+  obtain ⟨C, hC, hcount⟩ := exists_kadiriDyadicZeroWindow_card_le_count_profile hsrc
+  let c : ℝ := Real.log 2 / (64 * (C + 1))
+  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
+  have hC1 : 0 < C + 1 := by linarith
+  have hc_pos : 0 < c := by
+    dsimp [c]
+    positivity
+  refine ⟨c, hc_pos, ?_⟩
+  filter_upwards [Filter.eventually_ge_atTop (1 : ℕ)] with k hk
+  let X : ℝ := (2 : ℝ) ^ k
+  let K : ℝ := ((k + 2 : ℕ) : ℝ)
+  let η : ℝ := (16 * (C + 1) * K)⁻¹
+  have hX_pos : 0 < X := by
+    dsimp [X]
+    exact pow_pos (by norm_num) k
+  have hK_pos : 0 < K := by
+    dsimp [K]
+    exact_mod_cast Nat.succ_pos (k + 1)
+  have hη_nonneg : 0 ≤ η := by
+    dsimp [η]
+    positivity
+  have hcard :
+      ((kadiriDyadicZeroWindow X).ncard : ℝ) ≤ C * K * (2 * X) := by
+    have hcountk := hcount k
+    have hpow_succ : (2 : ℝ) ^ (k + 1) = 2 * X := by
+      dsimp [X]
+      rw [pow_succ]
+      ring
+    simpa [X, K, hpow_succ] using hcountk
+  have hsmall :
+      ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η) < X := by
+    have hmul_nonneg : 0 ≤ 2 * η := by positivity
+    have hle :
+        ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η) ≤
+          (C * K * (2 * X)) * (2 * η) :=
+      mul_le_mul_of_nonneg_right hcard hmul_nonneg
+    have hlt : (C * K * (2 * X)) * (2 * η) < X := by
+      dsimp [η]
+      rw [inv_eq_one_div]
+      have hden : 0 < 16 * (C + 1) * K := by positivity
+      field_simp [ne_of_gt hden]
+      nlinarith [mul_pos hC1 hX_pos]
+    exact hle.trans_lt hlt
+  obtain ⟨T, hT, hgap⟩ :=
+    exists_kadiriDyadicGoodHeight_of_card_mul_radius_lt (X := X) (η := η)
+      hX_pos hη_nonneg hsmall
+  refine ⟨T, ?_, ?_⟩
+  · simpa [X] using hT
+  · intro rho hrho
+    have hgap_eta : η < |T - (rho : ℂ).im| := hgap rho (by simpa [X] using hrho)
+    have hk_pos : 0 < (k : ℝ) := by exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_one hk)
+    have hk_ne : k ≠ 0 := by omega
+    have hX_gt_one : 1 < X := by
+      dsimp [X]
+      exact one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+    have hlogX_pos : 0 < Real.log X := Real.log_pos hX_gt_one
+    have hlogX_eq : Real.log X = (k : ℝ) * Real.log 2 := by
+      dsimp [X]
+      rw [Real.log_pow]
+    have hK_le : K ≤ 4 * (k : ℝ) := by
+      dsimp [K]
+      have hk_nat : k + 2 ≤ 4 * k := by omega
+      exact_mod_cast hk_nat
+    have hlog_radius_le : c / Real.log X ≤ η := by
+      dsimp [c, η]
+      rw [hlogX_eq]
+      have hden1 : 0 < 64 * (C + 1) := by positivity
+      have hden2 : 0 < (k : ℝ) * Real.log 2 := mul_pos hk_pos hlog2
+      have hden3 : 0 < 16 * (C + 1) * K := by positivity
+      rw [inv_eq_one_div]
+      field_simp [ne_of_gt hden1, ne_of_gt hden2, ne_of_gt hden3, ne_of_gt hlog2,
+        ne_of_gt hk_pos, ne_of_gt hC1]
+      nlinarith
+    exact lt_of_le_of_lt hlog_radius_le hgap_eta
+
 end
 
 end Kadiri
