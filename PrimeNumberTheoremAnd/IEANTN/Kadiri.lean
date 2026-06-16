@@ -992,6 +992,46 @@ theorem residue_eq_of_isBigO_sub_simple_pole {f : ℂ → ℂ} {p A : ℂ}
   field_simp [hzp]
   ring
 
+/-- A bounded simple-pole principal part gives an at-most-simple order bound. -/
+theorem meromorphicOrderAt_ge_neg_one_of_isBigO_sub_simple_pole {f : ℂ → ℂ} {p A : ℂ}
+    (hmero : MeromorphicAt f p)
+    (near_p : (f - fun z ↦ A / (z - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
+    ((-1 : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt f p := by
+  have hsub_tendsto : Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 0) := by
+    simpa using
+      ((continuous_id.sub continuous_const).continuousAt.continuousWithinAt.tendsto :
+        Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 (p - p)))
+  have hsub_little : (fun z : ℂ ↦ z - p) =o[𝓝[≠] p] (1 : ℂ → ℂ) :=
+    (Asymptotics.isLittleO_one_iff ℂ).2 hsub_tendsto
+  have hrem_zero : Tendsto (fun z : ℂ ↦ (z - p) * ((f - fun z ↦ A / (z - p)) z))
+      (𝓝[≠] p) (𝓝 0) := by
+    simpa using hsub_little.mul_isBigO near_p
+  have htarget : Tendsto (fun z : ℂ ↦ A + (z - p) * ((f - fun z ↦ A / (z - p)) z))
+      (𝓝[≠] p) (𝓝 A) := by
+    simpa using tendsto_const_nhds.add hrem_zero
+  have hmul_tendsto : Tendsto (fun z : ℂ ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
+    refine htarget.congr' ?_
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    have hzp : z - p ≠ 0 := sub_ne_zero.mpr hz
+    simp [Pi.sub_apply, div_eq_mul_inv]
+    field_simp [hzp]
+    ring
+  have hmul_mero : MeromorphicAt (fun z : ℂ ↦ (z - p) * f z) p := by
+    change MeromorphicAt ((fun z : ℂ ↦ z - p) * f) p
+    exact (by fun_prop : MeromorphicAt (fun z : ℂ ↦ z - p) p).mul hmero
+  have hmul_nonneg :
+      (0 : WithTop ℤ) ≤ meromorphicOrderAt (fun z : ℂ ↦ (z - p) * f z) p := by
+    exact (tendsto_nhds_iff_meromorphicOrderAt_nonneg hmul_mero).1 ⟨A, hmul_tendsto⟩
+  change (0 : WithTop ℤ) ≤ meromorphicOrderAt ((fun z : ℂ ↦ z - p) * f) p at hmul_nonneg
+  rw [meromorphicOrderAt_mul (by fun_prop : MeromorphicAt (fun z : ℂ ↦ z - p) p)
+    hmero, meromorphicOrderAt_id_sub_const] at hmul_nonneg
+  cases hord : meromorphicOrderAt f p with
+  | top => simp
+  | coe n =>
+      rw [hord] at hmul_nonneg
+      have hn : (0 : ℤ) ≤ 1 + n := WithTop.coe_le_coe.mp (by simpa using hmul_nonneg)
+      exact WithTop.coe_le_coe.mpr (by linarith)
+
 /-- CH2 residue value at the simple pole `s = 1` for the Kadiri integrand. -/
 theorem kadiri_eq12_one_residue_value {Φ : ℂ → ℂ} (hΦ : AnalyticAt ℂ Φ (-1)) :
     CH2.residue (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ) = Φ (-1) := by
@@ -1024,6 +1064,46 @@ theorem kadiri_eq12_one_residue_value {Φ : ℂ → ℂ} (hΦ : AnalyticAt ℂ �
   ext z
   simp [f, g, div_eq_mul_inv]
 
+/--
+The pole at `s = 1` is at most simple for the Kadiri integrand once
+meromorphicity at `1` is supplied.
+-/
+theorem kadiri_eq12_one_order_ge_neg_one_of_meromorphicAt {Φ : ℂ → ℂ}
+    (hΦ : AnalyticAt ℂ Φ (-1))
+    (hmero_one : MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ)) :
+    ((-1 : ℤ) : WithTop ℤ) ≤
+      meromorphicOrderAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ) := by
+  let f : ℂ → ℂ := fun s ↦ -logDeriv riemannZeta s
+  let g : ℂ → ℂ := fun s ↦ Φ (-s)
+  have hΦ_comp : AnalyticAt ℂ g (1 : ℂ) := by
+    have hneg : AnalyticAt ℂ (fun s : ℂ ↦ -s) (1 : ℂ) := by
+      simpa [Pi.neg_def] using
+        ((analyticAt_id (𝕜 := ℂ) (z := (1 : ℂ))) :
+          AnalyticAt ℂ (fun s : ℂ ↦ s) (1 : ℂ)).neg
+    simpa [g, Function.comp_def] using hΦ.comp hneg
+  let U : Set ℂ := {s | AnalyticAt ℂ g s}
+  have hU : U ∈ 𝓝 (1 : ℂ) :=
+    hΦ_comp.eventually_analyticAt
+  have g_holc : HolomorphicOn g U := by
+    intro s hs
+    exact hs.differentiableAt.differentiableWithinAt
+  have f_near_p :
+      (f - fun z : ℂ ↦ 1 * (z - 1)⁻¹) =O[𝓝[≠] (1 : ℂ)]
+        (1 : ℂ → ℂ) := by
+    simp only [one_mul, f]
+    simpa [logDeriv_apply, Pi.neg_apply, Pi.div_apply, neg_div] using
+      riemannZetaLogDerivResidueBigO
+  have hnear :
+      (f * g - fun z : ℂ ↦ 1 * g (1 : ℂ) * (z - 1)⁻¹) =O[𝓝[≠] (1 : ℂ)]
+        (1 : ℂ → ℂ) :=
+    ResidueMult g_holc hU f_near_p
+  refine meromorphicOrderAt_ge_neg_one_of_isBigO_sub_simple_pole
+    (f := fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (p := (1 : ℂ)) (A := Φ (-1))
+    hmero_one ?_
+  convert hnear using 1
+  ext z
+  simp [f, g, div_eq_mul_inv]
+
 /-- CH2 residue value at a nontrivial zero for the Kadiri integrand. -/
 theorem kadiri_eq12_nontrivial_zero_residue_value
     {Φ : ℂ → ℂ} (rho : NontrivialZeros)
@@ -1052,6 +1132,27 @@ theorem kadiri_eq12_sumResiduesIn_candidate_eq_of_analytic
       ⟨(ρ : ℂ), ρ.property.1, Set.mem_univ _, ρ.property.2.2⟩
     exact kadiri_eq12_nontrivial_zero_residue_value (Φ := Φ) rhoNT
       (by simpa [rhoNT] using hΦ_zero ρ)
+
+/--
+The closed-height candidate pole set has only at-most-simple Kadiri integrand
+poles under the off-height conversion.
+-/
+theorem kadiri_eq12_candidate_order_ge_neg_one_of_off_height
+    {Φ : ℂ → ℂ} {T : ℝ}
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_one : AnalyticAt ℂ Φ (-1))
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (hmero_one : MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ)) :
+    ∀ z ∈ ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)),
+      ((-1 : ℤ) : WithTop ℤ) ≤
+        meromorphicOrderAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z := by
+  intro z hz
+  rcases hz with hz1 | hzzero
+  · subst z
+    exact kadiri_eq12_one_order_ge_neg_one_of_meromorphicAt hΦ_one hmero_one
+  · exact kadiri_eq12_integrand_order_ge_neg_one_closed_height_zero_of_off_height
+      hoff hΦ_zero ⟨z, hzzero⟩
 
 /-- Mechanical border decomposition for the rectangle used in Kadiri equation (12). -/
 theorem kadiri_thm_3_1_q1_eq_12_rectangle_side_decomposition
@@ -1153,6 +1254,60 @@ theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_pole_set
         (Φ := Φ) (T := T) hΦ_one hΦ_zero
 
 /--
+The closed-height pole-set identity reduces `HasSimplePolesOn` to the local
+order bounds at `1` and at the non-trivial zeros.
+-/
+theorem kadiri_eq12_hasSimplePolesOn_of_closed_pole_set
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_one : AnalyticAt ℂ Φ (-1))
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (hmero : MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
+    (hpoles_eq_closed :
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} =
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T))) :
+    CH2.HasSimplePolesOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)) := by
+  intro z hzrect
+  by_cases hzneg : meromorphicOrderAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0
+  · have hcandidate :
+        z ∈ ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) := by
+      rw [← hpoles_eq_closed]
+      exact ⟨hzrect, hzneg⟩
+    have h1_rect : (1 : ℂ) ∈
+        Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) := by
+      simp only [Rectangle, Complex.ofReal_re, Complex.ofReal_im, Complex.sub_re,
+        Complex.sub_im, Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im,
+        Complex.I_re, Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub, add_zero, zero_add]
+      constructor
+      · change (1 : ℝ) ∈ Set.uIcc (-a) (1 + a)
+        rw [Set.uIcc_of_le (by linarith [ha])]
+        exact ⟨by linarith [ha], by linarith [ha]⟩
+      · change (0 : ℝ) ∈ Set.uIcc (-T) T
+        rw [Set.uIcc_of_le (by linarith [hT])]
+        exact ⟨by linarith [hT], by linarith [hT]⟩
+    have hmero_one :
+        MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ) :=
+      hmero (1 : ℂ) h1_rect
+    exact kadiri_eq12_candidate_order_ge_neg_one_of_off_height
+      hoff hΦ_one hΦ_zero hmero_one z hcandidate
+  · have hnonneg :
+        (0 : WithTop ℤ) ≤
+          meromorphicOrderAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z :=
+      le_of_not_gt hzneg
+    exact le_trans (WithTop.coe_le_coe.mpr (by norm_num : (-1 : ℤ) ≤ 0)) hnonneg
+
+/--
 Variant of the CH2 residue-sum bridge using the geometrically natural closed
 height pole set. The off-height hypothesis removes the two horizontal-border
 heights and converts the support to the open-height Kadiri packet.
@@ -1164,10 +1319,6 @@ theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_closed_pole_set
     (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
       AnalyticAt ℂ Φ (-(ρ : ℂ)))
     (hmero : MeromorphicOn
-      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
-      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
-        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
-    (hsimple : CH2.HasSimplePolesOn
       (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
       (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
         (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
@@ -1184,7 +1335,11 @@ theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_closed_pole_set
         (fun ρ ↦ Φ (-ρ)) := by
   refine kadiri_eq12_rectangleIntegral_eq_residue_packet_of_pole_set
     (ha := ha) (hT := hT) (hΦ_one := hΦ_one) (hΦ_zero := hΦ_zero)
-    (hmero := hmero) ?_ (hsimple := hsimple) ?_
+    (hmero := hmero) ?_
+    (hsimple := kadiri_eq12_hasSimplePolesOn_of_closed_pole_set
+      (ha := ha) (hT := hT) (hoff := hoff) (hΦ_one := hΦ_one)
+      (hΦ_zero := hΦ_zero) (hmero := hmero) (hpoles_eq_closed := hpoles_eq_closed))
+    ?_
   · rw [Set.disjoint_left]
     intro z hz_border hz_pole
     have hz_rect :
@@ -1246,9 +1401,8 @@ theorem kadiri_thm_3_1_q1_eq_12_from_rectangleIntegral
 
 /--
 Assembly form of Kadiri equation (12) from the closed-height analytic pole
-package. The remaining mathematical content is exactly the package of
-analyticity, meromorphicity, simple poles, and the closed-height pole-set
-identity for `(-ζ'/ζ) * Φ(-s)`.
+package. The remaining mathematical content is the package of analyticity,
+meromorphicity, and the closed-height pole-set identity for `(-ζ'/ζ) * Φ(-s)`.
 -/
 theorem kadiri_thm_3_1_q1_eq_12_of_closed_pole_package
     {φ : ℝ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
@@ -1259,10 +1413,6 @@ theorem kadiri_thm_3_1_q1_eq_12_of_closed_pole_package
     (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
       AnalyticAt ℂ Φ (-(ρ : ℂ)))
     (hmero : MeromorphicOn
-      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
-      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
-        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
-    (hsimple : CH2.HasSimplePolesOn
       (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
       (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
         (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
@@ -1294,7 +1444,7 @@ theorem kadiri_thm_3_1_q1_eq_12_of_closed_pole_package
     (ha := ha) (hT := hT) (Φ := Φ) hΦ
     (kadiri_eq12_rectangleIntegral_eq_residue_packet_of_closed_pole_set
       (ha := ha) (hT := hT) (hoff := hoff) (hΦ_one := hΦ_one)
-      (hΦ_zero := hΦ_zero) (hmero := hmero) (hsimple := hsimple)
+      (hΦ_zero := hΦ_zero) (hmero := hmero)
       (hpoles_eq_closed := hpoles_eq_closed))
 
 /--
