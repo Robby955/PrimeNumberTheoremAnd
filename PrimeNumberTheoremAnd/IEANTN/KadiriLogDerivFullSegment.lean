@@ -1837,6 +1837,86 @@ theorem eventually_kadiriLargeHorizontalZetaOffPoleHeight :
   exact hprincipal.filter_mono inf_le_right
 
 /--
+Pointwise logarithmic-derivative control on a selected horizontal line.
+
+This is the consumer shape supplied by a good-height/partial-fraction argument: the whole
+strip between `σ₁` and `σ₂` is controlled at both heights with absolute ordinate `T`.
+-/
+def kadiriHorizontalSegmentLogDerivBound (σ₁ σ₂ T C : ℝ) : Prop :=
+  ∀ σ ∈ Set.uIcc σ₁ σ₂, ∀ t : ℝ, |t| = T →
+    ‖deriv riemannZeta (((σ : ℂ) + (t : ℂ) * I)) /
+        riemannZeta (((σ : ℂ) + (t : ℂ) * I))‖
+      ≤ C * Real.log T ^ (2 : ℕ)
+
+theorem
+    kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
+    {A C T : ℝ} (hA : 0 ≤ A) (hC : 0 ≤ C) (hT : 3 < |T|)
+    (hleft : A / Real.log |T| ^ (9 : ℕ) ≤ 2)
+    (hseg : kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C) :
+    ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+      ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ C * Real.log |T| ^ (9 : ℕ) := by
+  intro σ hσ
+  let x : ℝ := 1 - A / Real.log |T| ^ (9 : ℕ)
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hT.le
+  have hlog_pow_pos : 0 < Real.log |T| ^ (9 : ℕ) := by
+    positivity
+  have hshift_nonneg : 0 ≤ A / Real.log |T| ^ (9 : ℕ) :=
+    div_nonneg hA hlog_pow_pos.le
+  have hx_upper : x ≤ 2 := by
+    dsimp [x]
+    linarith
+  have hx_lower : -1 ≤ x := by
+    dsimp [x]
+    linarith
+  have hσ_uIcc : σ ∈ Set.uIcc 0 x :=
+    Set.uIoc_subset_uIcc hσ
+  have hσ_strip : σ ∈ Set.uIcc (-1 : ℝ) 2 := by
+    rw [Set.mem_uIcc] at hσ_uIcc ⊢
+    rcases hσ_uIcc with hσ_uIcc | hσ_uIcc
+    · exact Or.inl ⟨by linarith [hσ_uIcc.1], le_trans hσ_uIcc.2 hx_upper⟩
+    · exact Or.inl ⟨le_trans hx_lower hσ_uIcc.1, by linarith [hσ_uIcc.2]⟩
+  have hraw :
+      ‖deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ C * Real.log |T| ^ (2 : ℕ) :=
+    hseg σ hσ_strip T rfl
+  have hpow : Real.log |T| ^ (2 : ℕ) ≤ Real.log |T| ^ (9 : ℕ) :=
+    pow_le_pow_right₀ hlog_one.le (by norm_num)
+  have hraw_log9 :
+      ‖deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ C * Real.log |T| ^ (9 : ℕ) :=
+    hraw.trans (mul_le_mul_of_nonneg_left hpow hC)
+  simpa [neg_div, norm_neg] using hraw_log9
+
+theorem
+    eventually_kadiri_neg_zeta_logDeriv_nonterminal_pointwise_log_bound_of_horizontalSegmentLogDerivBound_on_large_offPole_filter
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ) := by
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  intro A hA
+  refine ⟨C, hC, ?_⟩
+  have hsmall : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      A / Real.log |T| ^ (9 : ℕ) ≤ 2 :=
+    ((eventually_const_div_log_abs_pow_lt_atTop A 2 (by norm_num)).filter_mono
+      kadiriLargeHorizontalZetaOffPoleFilter_le_atTop).mono fun _ hT => le_of_lt hT
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large,
+    hseg_event, hsmall] with T hlarge hseg_T hsmall_T
+  exact
+    kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
+      (A := A) (C := C) (T := T) hA hC hlarge hsmall_T hseg_T
+
+/--
 Large off-pole specialization of the dyadic right-boundary selector: for fixed `k`, the
 finite truncated zero family is eventually strictly left of `1 - A / log |T|^9`.
 -/
@@ -4561,6 +4641,33 @@ theorem
       a ha k
       (eventually_kadiri_neg_zeta_logDeriv_nonterminal_integral_log_bound_of_pointwise_log_bound_on_large_offPole_filter
         a ha hlogDeriv_point)
+
+/--
+Endpoint adapter from a selected-line horizontal `log²` estimate.
+
+Once a good-height or partial-fraction argument supplies
+`kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C` eventually on the large off-pole
+filter, the current full-segment L2 handoff is discharged.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_horizontalSegmentLogDerivBound_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_nonterminal_logDeriv_pointwise_log_bound_on_large_offPole_filter
+      a ha k
+      (eventually_kadiri_neg_zeta_logDeriv_nonterminal_pointwise_log_bound_of_horizontalSegmentLogDerivBound_on_large_offPole_filter
+        hseg)
 
 /--
 Pointwise control of the sign-correct zeta PV remainder on a moving nonterminal
