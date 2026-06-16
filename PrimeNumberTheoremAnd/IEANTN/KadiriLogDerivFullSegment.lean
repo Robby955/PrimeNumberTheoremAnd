@@ -1993,6 +1993,32 @@ theorem kadiriHorizontalZetaOffPoleHeight_of_dyadic_gap {X η T : ℝ}
     simp at hgap_rho
     linarith
 
+/--
+Endpoint-facing selectable-radius form of the dyadic good-height selector.  Once the
+zero-count source is available, callers may choose any `η ≤ c / log(2^k)` and get a
+large off-pole height with both dyadic and local zero-window gaps.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_of_le_logRadius_offPole
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ η : ℝ, 0 ≤ η →
+        η ≤ c / Real.log ((2 : ℝ) ^ k) →
+          ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+            kadiriHorizontalZetaOffPoleHeight T ∧
+              (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+                η < |T - (rho : ℂ).im|) ∧
+              (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+                η < |T - (rho : ℂ).im|) := by
+  obtain ⟨c, hc, hsel⟩ := exists_kadiriDyadicGoodHeightSelector_of_le_logRadius hsrc
+  refine ⟨c, hc, ?_⟩
+  filter_upwards [hsel] with k hsel_k η hη hη_le
+  obtain ⟨T, hT, hgap⟩ := hsel_k η hη hη_le
+  refine ⟨T, hT, ?_, hgap, ?_⟩
+  · exact kadiriHorizontalZetaOffPoleHeight_of_dyadic_gap
+      (X := (2 : ℝ) ^ k) (η := η) (T := T) (pow_pos (by norm_num) k) hη hT hgap
+  · exact kadiriLocalZeroWindow_gap_of_dyadic_gap (X := (2 : ℝ) ^ k)
+      (η := η) (T := T) hT hgap
+
 /-- Endpoint-facing form of the dyadic good-height selector: the selected heights are
 large dyadic heights, quantitatively separated from the relevant zero ordinates, and
 already satisfy the off-pole predicate used by the full-segment layer. -/

@@ -175,6 +175,112 @@ theorem exists_kadiriDyadicZeroWindow_card_le_count_profile
   exact hcardR.trans hcount_succ_bound
 
 /--
+The concrete dyadic zero-count profile supplies a radius budget for every sufficiently
+large level.  Any requested radius bounded by `c / log(2^k)` satisfies the
+cardinality-radius smallness condition required by the bad-interval selector.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_logRadius_budget
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ η : ℝ, 0 ≤ η →
+        η ≤ c / Real.log ((2 : ℝ) ^ k) →
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) * (2 * η) <
+            (2 : ℝ) ^ k := by
+  obtain ⟨C, hC, hcount⟩ := exists_kadiriDyadicZeroWindow_card_le_count_profile hsrc
+  let c : ℝ := Real.log 2 / (64 * (C + 1))
+  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
+  have hC1 : 0 < C + 1 := by linarith
+  have hc_pos : 0 < c := by
+    dsimp [c]
+    positivity
+  refine ⟨c, hc_pos, ?_⟩
+  filter_upwards [Filter.eventually_ge_atTop (1 : ℕ)] with k hk η hη hη_le
+  let X : ℝ := (2 : ℝ) ^ k
+  let K : ℝ := ((k + 2 : ℕ) : ℝ)
+  let η0 : ℝ := (16 * (C + 1) * K)⁻¹
+  have hX_pos : 0 < X := by
+    dsimp [X]
+    exact pow_pos (by norm_num) k
+  have hK_pos : 0 < K := by
+    dsimp [K]
+    exact_mod_cast Nat.succ_pos (k + 1)
+  have hη0_nonneg : 0 ≤ η0 := by
+    dsimp [η0]
+    positivity
+  have hcard :
+      ((kadiriDyadicZeroWindow X).ncard : ℝ) ≤ C * K * (2 * X) := by
+    have hcountk := hcount k
+    have hpow_succ : (2 : ℝ) ^ (k + 1) = 2 * X := by
+      dsimp [X]
+      rw [pow_succ]
+      ring
+    simpa [X, K, hpow_succ] using hcountk
+  have hsmall0 :
+      ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η0) < X := by
+    have hmul_nonneg : 0 ≤ 2 * η0 := by positivity
+    have hle :
+        ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η0) ≤
+          (C * K * (2 * X)) * (2 * η0) :=
+      mul_le_mul_of_nonneg_right hcard hmul_nonneg
+    have hlt : (C * K * (2 * X)) * (2 * η0) < X := by
+      dsimp [η0]
+      rw [inv_eq_one_div]
+      have hden : 0 < 16 * (C + 1) * K := by positivity
+      field_simp [ne_of_gt hden]
+      nlinarith [mul_pos hC1 hX_pos]
+    exact hle.trans_lt hlt
+  have hk_pos : 0 < (k : ℝ) := by exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_one hk)
+  have hk_ne : k ≠ 0 := by omega
+  have hX_gt_one : 1 < X := by
+    dsimp [X]
+    exact one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+  have hlogX_pos : 0 < Real.log X := Real.log_pos hX_gt_one
+  have hlogX_eq : Real.log X = (k : ℝ) * Real.log 2 := by
+    dsimp [X]
+    rw [Real.log_pow]
+  have hK_le : K ≤ 4 * (k : ℝ) := by
+    dsimp [K]
+    have hk_nat : k + 2 ≤ 4 * k := by omega
+    exact_mod_cast hk_nat
+  have hlog_radius_le : c / Real.log X ≤ η0 := by
+    dsimp [c, η0]
+    rw [hlogX_eq]
+    have hden1 : 0 < 64 * (C + 1) := by positivity
+    have hden2 : 0 < (k : ℝ) * Real.log 2 := mul_pos hk_pos hlog2
+    have hden3 : 0 < 16 * (C + 1) * K := by positivity
+    rw [inv_eq_one_div]
+    field_simp [ne_of_gt hden1, ne_of_gt hden2, ne_of_gt hden3, ne_of_gt hlog2,
+      ne_of_gt hk_pos, ne_of_gt hC1]
+    nlinarith
+  have hη_le_η0 : η ≤ η0 := by
+    exact hη_le.trans hlog_radius_le
+  have htwo_le : 2 * η ≤ 2 * η0 := by linarith
+  have hleft_le :
+      ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η) ≤
+        ((kadiriDyadicZeroWindow X).ncard : ℝ) * (2 * η0) := by
+    exact mul_le_mul_of_nonneg_left htwo_le (by positivity)
+  exact hleft_le.trans_lt hsmall0
+
+/--
+Selectable-radius form of the dyadic good-height theorem.  Downstream arguments may pick
+any nonnegative `η ≤ c / log(2^k)` and obtain a good height without carrying the
+cardinality-radius smallness proof as an extra hypothesis.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_of_le_logRadius
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ η : ℝ, 0 ≤ η →
+        η ≤ c / Real.log ((2 : ℝ) ^ k) →
+          ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+            ∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+              η < |T - (rho : ℂ).im| := by
+  obtain ⟨c, hc, hbudget⟩ := exists_kadiriDyadicGoodHeightSelector_logRadius_budget hsrc
+  refine ⟨c, hc, ?_⟩
+  filter_upwards [hbudget] with k hbudget_k η hη hη_le
+  exact exists_kadiriDyadicGoodHeight_of_card_mul_radius_lt (X := (2 : ℝ) ^ k) (η := η)
+    (pow_pos (by norm_num) k) hη (hbudget_k η hη hη_le)
+
+/--
 Dyadic quantitative good-height selector with the radius chosen from the concrete
 zero-count/coarse-budget profile.
 
