@@ -1122,6 +1122,139 @@ theorem kadiri_eq12_zeta_ne_off_candidate_of_left_real_ne
     · exact riemannZeta_ne_zero_of_re_nonpos_im_ne_zero hre_nonpos him_zero
 
 /--
+The cosine factor in the zeta functional equation is nonzero when the real
+part lies strictly between `1` and `2`.
+-/
+private lemma kadiri_eq12_cos_pi_mul_div_two_ne_zero_of_re_mem_Ioo_one_two
+    {w : ℂ} (hwre1 : 1 < w.re) (hwre2 : w.re < 2) :
+    Complex.cos ((Real.pi : ℂ) * w / 2) ≠ 0 := by
+  rw [Complex.cos_ne_zero_iff]
+  intro k hk
+  have hre_eq : (((Real.pi : ℂ) * w / 2).re : ℝ) =
+      (((2 * (k : ℂ) + 1) * (Real.pi : ℂ) / 2).re : ℝ) := by
+    rw [hk]
+  have hleft : (((Real.pi : ℂ) * w / 2).re : ℝ) = Real.pi * w.re / 2 := by
+    simp [div_eq_mul_inv, mul_assoc]
+  have hright : ((((2 * (k : ℂ) + 1) * (Real.pi : ℂ) / 2).re : ℝ)) =
+      ((2 * k + 1 : ℤ) : ℝ) * Real.pi / 2 := by
+    simp [div_eq_mul_inv, mul_assoc]
+  have hwre_eq : w.re = ((2 * k + 1 : ℤ) : ℝ) := by
+    have hmul : Real.pi * w.re / 2 =
+        ((2 * k + 1 : ℤ) : ℝ) * Real.pi / 2 := by
+      simpa [hleft, hright] using hre_eq
+    have hmul2 : Real.pi * w.re =
+        ((2 * k + 1 : ℤ) : ℝ) * Real.pi := by
+      nlinarith
+    nlinarith [Real.pi_pos]
+  have hk_cases : k ≤ 0 ∨ 1 ≤ k := by omega
+  rcases hk_cases with hk_nonpos | hk_pos
+  · have hodd_le : ((2 * k + 1 : ℤ) : ℝ) ≤ 1 := by
+      exact_mod_cast (by omega : 2 * k + 1 ≤ 1)
+    linarith
+  · have hodd_ge : (3 : ℝ) ≤ ((2 * k + 1 : ℤ) : ℝ) := by
+      exact_mod_cast (by omega : 3 ≤ 2 * k + 1)
+    linarith
+
+/--
+There are no zeta zeros on the real segment `-1 < Re z ≤ 0`.
+The endpoint `0` is handled by `riemannZeta_zero`; the open segment follows
+from the functional equation and nonvanishing on `Re s ≥ 1`.
+-/
+theorem riemannZeta_ne_zero_of_neg_one_lt_re_nonpos_im_zero {z : ℂ}
+    (hneg : -1 < z.re) (hre : z.re ≤ 0) (him : z.im = 0) :
+    riemannZeta z ≠ 0 := by
+  by_cases hz0 : z = 0
+  · subst z
+    rw [riemannZeta_zero]
+    norm_num
+  · let w : ℂ := 1 - z
+    have hzre_ne_zero : z.re ≠ 0 := by
+      intro hzre
+      apply hz0
+      exact Complex.ext_iff.2 ⟨by simpa using hzre, by simpa using him⟩
+    have hzre_lt_zero : z.re < 0 := lt_of_le_of_ne hre hzre_ne_zero
+    have hw_re_gt : 1 < w.re := by
+      change 1 < ((1 : ℂ) - z).re
+      simp
+      linarith
+    have hw_re_lt : w.re < 2 := by
+      change (((1 : ℂ) - z).re : ℝ) < 2
+      simp
+      linarith
+    have hzeta_w : riemannZeta w ≠ 0 :=
+      riemannZeta_ne_zero_of_one_le_re hw_re_gt.le
+    have hw_neg_nat : ∀ n : ℕ, w ≠ -↑n := by
+      intro n hn
+      have hrew : w.re = (-↑n : ℂ).re := congrArg Complex.re hn
+      have hn_nonpos : ((-↑n : ℂ).re : ℝ) ≤ 0 := by simp
+      linarith
+    have hw_ne_one : w ≠ 1 := by
+      intro h
+      have hrew : w.re = (1 : ℂ).re := congrArg Complex.re h
+      change (((1 : ℂ) - z).re : ℝ) = 1 at hrew
+      simp at hrew
+      linarith
+    have hpow : (2 * ↑Real.pi : ℂ) ^ (-w) ≠ 0 := by
+      rw [Complex.cpow_ne_zero_iff]
+      left
+      norm_num [Complex.ofReal_ne_zero, Real.pi_ne_zero]
+    have hGamma : Complex.Gamma w ≠ 0 :=
+      Complex.Gamma_ne_zero hw_neg_nat
+    have hcos : Complex.cos (↑Real.pi * w / 2) ≠ 0 :=
+      kadiri_eq12_cos_pi_mul_div_two_ne_zero_of_re_mem_Ioo_one_two hw_re_gt hw_re_lt
+    have hfactor : 2 * (2 * ↑Real.pi : ℂ) ^ (-w) * Complex.Gamma w *
+        Complex.cos (↑Real.pi * w / 2) * riemannZeta w ≠ 0 := by
+      exact mul_ne_zero
+        (mul_ne_zero (mul_ne_zero (mul_ne_zero (by norm_num) hpow) hGamma) hcos)
+        hzeta_w
+    have hfe := riemannZeta_one_sub (s := w) hw_neg_nat hw_ne_one
+    have hone : 1 - w = z := by
+      dsimp [w]
+      ring
+    rw [hone] at hfe
+    rw [hfe]
+    exact hfactor
+
+/--
+The real left part of the eq-12 rectangle contains no zeta zeros. Since
+`a < 1`, points with `Re z ≤ 0` in the rectangle have `-1 < Re z`.
+-/
+theorem kadiri_eq12_left_real_zeta_ne_of_rectangle
+    {a T : ℝ} (ha : 0 < a) (ha1 : a < 1) (hT : 0 < T) :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        z.re ≤ 0 → z.im = 0 → riemannZeta z ≠ 0 := by
+  intro z hzrect hzre_nonpos hzim
+  have hzre_le : (((-a : ℝ) : ℂ) - (T : ℂ) * I).re ≤
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).re := by
+    simp
+    linarith
+  have hzim_le : (((-a : ℝ) : ℂ) - (T : ℂ) * I).im ≤
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).im := by
+    simp
+    linarith
+  have hzcoords := (mem_Rect hzre_le hzim_le z).mp hzrect
+  rcases hzcoords with ⟨hre_low, _hre_high, _him_low, _him_high⟩
+  have hzneg : -1 < z.re := by
+    have hre_low' : -a ≤ z.re := by
+      simpa using hre_low
+    linarith
+  exact riemannZeta_ne_zero_of_neg_one_lt_re_nonpos_im_zero hzneg hzre_nonpos hzim
+
+/--
+Inside the eq-12 rectangle with `a < 1`, zeta is nonzero away from the closed
+candidate support `{1} ∪ zeroes_rect`.
+-/
+theorem kadiri_eq12_zeta_ne_off_candidate
+    {a T : ℝ} (ha : 0 < a) (hT : 0 < T) (ha1 : a < 1) :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        z ∉ ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) →
+          z ≠ 1 ∧ riemannZeta z ≠ 0 :=
+  kadiri_eq12_zeta_ne_off_candidate_of_left_real_ne ha hT
+    (kadiri_eq12_left_real_zeta_ne_of_rectangle ha ha1 hT)
+
+/--
 At a closed-height zero, the Kadiri eq-12 integrand is meromorphic once the
 height avoids zero ordinates and `Φ` is analytic on the corresponding open
 height strip.
@@ -1918,6 +2051,42 @@ theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_zeta_ne_off_candidate
         (Φ := Φ) (a := a) (T := T) hΦ_rect hzeta_ne_off_candidate)
 
 /--
+Closed-height residue bridge from full rectangle analyticity of `Φ`, rectangle
+meromorphicity of the integrand, and the eq-12 strip condition `a < 1`.
+-/
+theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T) (ha1 : a < 1)
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_rect :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z))
+    (hmero : MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))) :
+    RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+        (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+      Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+        (fun ρ ↦ Φ (-ρ)) := by
+  have hΦ_one : AnalyticAt ℂ Φ (-1) := by
+    exact hΦ_rect (1 : ℂ)
+      (kadiri_eq12_candidate_residue_set_subset_rectangle
+        (a := a) (T := T) ha hT (by left; simp))
+  have hΦ_zero :
+      ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+        AnalyticAt ℂ Φ (-(ρ : ℂ)) := by
+    intro ρ
+    exact hΦ_rect (ρ : ℂ)
+      (kadiri_eq12_candidate_residue_set_subset_rectangle
+        (a := a) (T := T) ha hT (by right; exact ρ.property))
+  exact kadiri_eq12_rectangleIntegral_eq_residue_packet_of_zeta_ne_off_candidate
+    (ha := ha) (hT := hT) (hoff := hoff) (hΦ_one := hΦ_one)
+    (hΦ_zero := hΦ_zero) (hΦ_rect := hΦ_rect) (hmero := hmero)
+    (hzeta_ne_off_candidate := kadiri_eq12_zeta_ne_off_candidate ha hT ha1)
+
+/--
 Pure assembly form of Kadiri equation (12): once the rectangle integral has
 been evaluated as the residue packet, the four side terms give the displayed
 formula.
@@ -2185,6 +2354,64 @@ theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition_of_regular_off
     (ha := ha) (hT := hT) (hoff := hoff.zero_ordinate_ne)
     (hΦ_one := hΦ_one) (hΦ_zero := hΦ_zero) (hmero := hmero)
     (hregular_off_candidate := hregular_off_candidate)
+
+/--
+Target-shaped reduction for the rectangle decomposition from rectangle
+analyticity of `Φ` and rectangle meromorphicity of the Kadiri integrand.
+-/
+theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition_of_phi_rect
+    {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (_hb : 0 < b)
+    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (_hab : a < b) (ha1 : a < 1)
+    {T : ℝ} (hT : 0 < T)
+    (hoff : kadiriEq12HorizontalZetaOffPoleHeight T)
+    (Φ : ℂ → ℂ) (hΦ : Φ = fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (hΦ_rect :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z))
+    (hmero : MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
+    (_hzero_residue :
+      ∀ (rho : NontrivialZeros) {z w : ℂ},
+        z.re ≤ w.re →
+        z.im ≤ w.im →
+        Rectangle z w ∈ 𝓝 (rho : ℂ) →
+        AnalyticAt ℂ Φ (-(rho : ℂ)) →
+        HolomorphicOn
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+          (Rectangle z w \ {(rho : ℂ)}) →
+        RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z w =
+          -((riemannZeta.order (rho : ℂ) : ℂ) * Φ (-(rho : ℂ)))) :
+    kadiri_thm_3_1_q1_I φ a T =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      + Φ (-1)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  refine kadiri_thm_3_1_q1_eq_12_from_rectangleIntegral
+    (ha := ha) (hT := hT) (Φ := Φ) hΦ ?_
+  exact kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect
+    (ha := ha) (hT := hT) (ha1 := ha1) (hoff := hoff.zero_ordinate_ne)
+    (hΦ_rect := hΦ_rect) (hmero := hmero)
 
 /--
 Remaining rectangle and residue-sum decomposition for Kadiri equation (12).
