@@ -453,6 +453,16 @@ theorem kadiri_laplace_exp_differentiableOn_full_strip {φ : ℝ → ℂ}
   exact DifferentiableAt.differentiableWithinAt
     ((kadiri_laplace_exp_hasDerivAt_of_full_strip hφ hs.1 hs.2 hφ_decay).differentiableAt)
 
+theorem kadiri_laplace_exp_analyticAt_of_full_strip {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ} {s0 : ℂ}
+    (hs0lo : -b < s0.re) (hs0hi : s0.re < 1 + b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    AnalyticAt ℂ
+      (fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume) s0 := by
+  exact (kadiri_laplace_exp_differentiableOn_full_strip hφ hφ_decay).analyticAt
+    (kadiri_laplace_full_strip_isOpen.mem_nhds ⟨hs0lo, hs0hi⟩)
+
 theorem kadiri_laplace_exp_meromorphicOn_full_strip {φ : ℝ → ℂ}
     (hφ : ContDiff ℝ 1 φ) {b : ℝ}
     (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
@@ -1171,6 +1181,84 @@ theorem kadiri_rectangle_neg_zeta_logDeriv_mul_poles_finite
   rcases hz with ⟨hzRect, hpole⟩
   exact kadiri_rectangle_neg_zeta_logDeriv_mul_pole_candidate
     ha ha1 hT hzRect (hΨ_mero z hzRect) (hΨ_nonneg z hzRect) hpole
+
+theorem kadiri_rectangle_zeta_zero_candidate
+    {a T : ℝ} {z : ℂ}
+    (ha : 0 < a) (ha1 : a < 1) (hT : 0 ≤ T)
+    (hzRect : z ∈ Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))
+    (hzeta_zero : riemannZeta z = 0) :
+    ∃ rho : NontrivialZeros, (rho : ℂ) = z ∧ |(rho : ℂ).im| ≤ T := by
+  have hre :
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).re ≤
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).re := by
+    simp
+    linarith
+  have him :
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).im ≤
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).im := by
+    simp
+    linarith
+  rcases (mem_Rect hre him z).1 hzRect with ⟨hz_re_left, _hz_re_right, hz_im_low, hz_im_high⟩
+  have hz_re_gt_neg_one : -1 < z.re := by
+    have hleft : -a ≤ z.re := by simpa using hz_re_left
+    linarith
+  by_cases hz_re_nonpos : z.re ≤ 0
+  · exact False.elim
+      ((riemannZeta_ne_zero_of_neg_one_lt_re_nonpos hz_re_gt_neg_one hz_re_nonpos)
+        hzeta_zero)
+  · have hz_re_pos : 0 < z.re := lt_of_not_ge hz_re_nonpos
+    by_cases hz_re_one_le : 1 ≤ z.re
+    · exact False.elim ((riemannZeta_ne_zero_of_one_le_re hz_re_one_le) hzeta_zero)
+    · have hz_re_lt_one : z.re < 1 := lt_of_not_ge hz_re_one_le
+      let rho : NontrivialZeros :=
+        ⟨z, ⟨hz_re_pos, hz_re_lt_one⟩, Set.mem_univ _, by
+          simpa [riemannZeta.zeroes] using hzeta_zero⟩
+      refine ⟨rho, rfl, ?_⟩
+      have him_abs : |z.im| ≤ T := by
+        exact abs_le.mpr ⟨by simpa using hz_im_low, by simpa using hz_im_high⟩
+      simpa [rho] using him_abs
+
+theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_hasSimplePolesOn
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
+    (ha : 0 < a) (ha1 : a < 1) (hab : a < b) (hT : 0 ≤ T)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    CH2.HasSimplePolesOn
+      (fun s : ℂ =>
+        (-deriv riemannZeta s / riemannZeta s) *
+          (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+      (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)) := by
+  refine kadiri_neg_zeta_logDeriv_mul_hasSimplePolesOn_of_analyticAt ?_ ?_
+  · intro z hzRect
+    have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT hzRect
+    exact kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay
+  · intro z hzRect
+    by_cases hzeta_zero : riemannZeta z = 0
+    · rcases kadiri_rectangle_zeta_zero_candidate ha ha1 hT hzRect hzeta_zero with
+        ⟨rho, hρz, _hρT⟩
+      exact Or.inr (Or.inl ⟨rho, hρz⟩)
+    · exact Or.inr (Or.inr hzeta_zero)
+
+theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_poles_finite
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
+    (ha : 0 < a) (ha1 : a < 1) (hab : a < b) (hT : 0 ≤ T)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s : ℂ =>
+            (-deriv riemannZeta s / riemannZeta s) *
+              (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)) z < 0}).Finite := by
+  refine kadiri_rectangle_neg_zeta_logDeriv_mul_poles_finite ha ha1 hT ?_ ?_
+  · intro z hzRect
+    have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT hzRect
+    exact (kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay).meromorphicAt
+  · intro z hzRect
+    have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT hzRect
+    exact (kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay).meromorphicOrderAt_nonneg
 
 /--
 After multiplication by a continuous test factor, the residue at the zeta pole
