@@ -1,6 +1,7 @@
 import Architect
 import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.LaplaceInversion
+import PrimeNumberTheoremAnd.IEANTN.KadiriLaplaceInversionBridge
 import PrimeNumberTheoremAnd.IEANTN.KadiriEq11Core
 import PrimeNumberTheoremAnd.PerronFormula
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
@@ -657,10 +658,10 @@ theorem kadiri_thm_3_1_q1_laplace_inversion {φ : ℝ → ℂ} (hφ : ContDiff �
       (fun T : ℝ =>
         (1 / (2 * (Real.pi : ℂ))) *
           ∫ t in (-T)..T,
-          Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
-            ((n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I)))
+          Φ (((-(1 + a) : ℝ) : ℂ) + (t : ℂ) * I) *
+            ((n : ℂ) ^ (((-(1 + a) : ℝ) : ℂ) + (t : ℂ) * I)))
       atTop (𝓝 (φ (Real.log n))) := by
-  exact kadiri_thm_3_1_q1_laplace_inversion_pv
+  exact kadiri_laplace_inversion_bridge
     (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
     (a := a) ha hab ha1 (n := n) hn
 
