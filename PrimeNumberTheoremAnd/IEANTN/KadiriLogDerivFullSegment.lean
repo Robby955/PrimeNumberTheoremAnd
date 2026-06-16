@@ -2204,6 +2204,48 @@ noncomputable def kadiriDyadicGoodHeightFilter
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) : Filter ℝ :=
   Filter.map (kadiriDyadicGoodHeightSequence hsrc) atTop
 
+/--
+Filter-level form of the selected dyadic good-height budget.
+
+Every eventual height in `kadiriDyadicGoodHeightFilter` comes from a dyadic level whose
+chosen radius satisfies the concrete finite-union budget and separates the selected
+height from both the dyadic and local zero windows.
+-/
+theorem eventually_kadiriDyadicGoodHeightFilter_spec_with_budget
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      ∃ k : ℕ,
+        T = kadiriDyadicGoodHeightSequence hsrc k ∧
+        let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+        0 ≤ η ∧
+        ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+            (2 * η) < (2 : ℝ) ^ k ∧
+        T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+        kadiriHorizontalZetaOffPoleHeight T ∧
+        (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+          η < |T - (rho : ℂ).im|) ∧
+        (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+          η < |T - (rho : ℂ).im|) := by
+  rw [kadiriDyadicGoodHeightFilter]
+  change ∀ᶠ n : ℕ in atTop,
+    ∃ k : ℕ,
+      kadiriDyadicGoodHeightSequence hsrc n = kadiriDyadicGoodHeightSequence hsrc k ∧
+      let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+      0 ≤ η ∧
+      ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+          (2 * η) < (2 : ℝ) ^ k ∧
+      kadiriDyadicGoodHeightSequence hsrc n ∈
+          Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+      kadiriHorizontalZetaOffPoleHeight (kadiriDyadicGoodHeightSequence hsrc n) ∧
+      (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+        η < |kadiriDyadicGoodHeightSequence hsrc n - (rho : ℂ).im|) ∧
+      (∀ rho : NontrivialZeros,
+        rho ∈ kadiriLocalZeroWindow (kadiriDyadicGoodHeightSequence hsrc n) →
+          η < |kadiriDyadicGoodHeightSequence hsrc n - (rho : ℂ).im|)
+  filter_upwards [eventually_kadiriDyadicGoodHeightSequence_spec_with_budget hsrc]
+    with k hspec
+  exact ⟨k, rfl, hspec⟩
+
 theorem kadiriDyadicGoodHeightFilter_le_atTop
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
     kadiriDyadicGoodHeightFilter hsrc ≤ atTop := by
