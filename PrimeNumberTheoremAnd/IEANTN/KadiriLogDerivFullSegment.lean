@@ -3791,6 +3791,37 @@ theorem
   simpa [P, R] using hfinal
 
 /--
+Large off-pole full-segment assembly after discharging the digamma-pair logarithmic
+budget.
+
+The remaining analytic input is the right-segment sign-correct zeta PV integral bound
+with logarithmic growth.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_zeta_remainder_log_bound_on_large_offPole_filter
+    (a Z : ℝ) (ha : 0 ≤ a) (hZ : 0 ≤ Z) (k : ℕ)
+    (hzeta_rem_log_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z * Real.log |T| ^ 9) * (1 + a)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨G, hG, hdigamma_point⟩ :=
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_pointwise_log_bound_on_large_offPole_filter
+      a ha
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_log_bound_on_large_offPole_filter
+      a G Z ha hG hZ k
+      (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
+        a G ha kadiriLargeHorizontalZetaOffPoleFilter hdigamma_point)
+      hzeta_rem_log_bound
+
+/--
 Large off-pole full-segment assembly from pointwise control of the sign-correct
 right-segment zeta PV remainder.
 
