@@ -1260,6 +1260,126 @@ theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_poles_finite
     have hstrip := kadiri_rectangle_subset_full_laplace_strip ha hab hT hzRect
     exact (kadiri_laplace_exp_analyticAt_of_full_strip hφ hstrip.1 hstrip.2 hφ_decay).meromorphicOrderAt_nonneg
 
+theorem kadiri_zeroes_rect_Ioo_vertical_finite (T : ℝ) :
+    (riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)).Finite := by
+  refine Set.Finite.subset
+    ((nontrivialZeros_abs_im_le_finite T).image fun rho : NontrivialZeros => (rho : ℂ)) ?_
+  intro z hz
+  rcases hz with ⟨hre, him, hzeta⟩
+  let rho : NontrivialZeros :=
+    ⟨z, ⟨hre.1, hre.2⟩, Set.mem_univ _, by
+      simpa [riemannZeta.zeroes] using hzeta⟩
+  refine ⟨rho, ?_, rfl⟩
+  exact abs_le.mpr ⟨le_of_lt him.1, le_of_lt him.2⟩
+
+theorem kadiri_sumResiduesIn_eq_finset_of_finite {F : ℂ → ℂ} {S : Set ℂ}
+    (hS : S.Finite) :
+    CH2.sumResiduesIn F S = ∑ z ∈ hS.toFinset, CH2.residue F z := by
+  let Sfin : Finset ℂ := hS.toFinset
+  change CH2.sumResiduesIn F S = ∑ z ∈ Sfin, CH2.residue F z
+  rw [CH2.sumResiduesIn]
+  have hS_eq : S = (Sfin : Set ℂ) := hS.coe_toFinset.symm
+  rw [hS_eq, tsum_fintype, ← Finset.sum_coe_sort Sfin]
+  rfl
+
+/--
+After multiplication by a continuous test factor, the residue at the zeta pole
+`s = 1` is the test factor value.
+-/
+theorem kadiri_neg_zeta_logDeriv_mul_residue_at_one {Ψ : ℂ → ℂ}
+    (hΨ : ContinuousAt Ψ (1 : ℂ)) :
+    CH2.residue (fun s : ℂ => (-deriv riemannZeta s / riemannZeta s) * Ψ s)
+        (1 : ℂ) =
+      Ψ (1 : ℂ) := by
+  simpa using
+    (residue_mul_eq_of_sub_principal_isBigO_one
+      kadiri_neg_zeta_logDeriv_principal_part_at_one hΨ)
+
+theorem kadiri_laplace_candidate_residue_sum
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {b T : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    CH2.sumResiduesIn
+      (fun s : ℂ =>
+        (-deriv riemannZeta s / riemannZeta s) *
+          (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+      (insert (1 : ℂ) (riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T))) =
+      (∫ y : ℝ, φ y * exp ((1 : ℂ) * (y : ℂ)) ∂volume) -
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ : ℂ => ∫ y : ℝ, φ y * exp (ρ * (y : ℂ)) ∂volume) := by
+  classical
+  let Ψ : ℂ → ℂ := fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume
+  let F : ℂ → ℂ := fun s : ℂ => (-deriv riemannZeta s / riemannZeta s) * Ψ s
+  let Z : Set ℂ := riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+  let S : Set ℂ := insert (1 : ℂ) Z
+  have hZfin : Z.Finite := by
+    simpa [Z] using kadiri_zeroes_rect_Ioo_vertical_finite T
+  have hSfin : S.Finite := hZfin.insert (1 : ℂ)
+  have hS_toFinset : hSfin.toFinset = insert (1 : ℂ) hZfin.toFinset := by
+    ext z
+    simp [S, Z, hZfin.mem_toFinset]
+  have h1_not_Z : (1 : ℂ) ∉ hZfin.toFinset := by
+    rw [hZfin.mem_toFinset]
+    intro h
+    have hlt : (1 : ℂ).re < (1 : ℝ) := h.1.2
+    norm_num at hlt
+  have hΨ_one_cont : ContinuousAt Ψ (1 : ℂ) := by
+    have hlow : -b < (1 : ℂ).re := by
+      norm_num
+      linarith
+    have hhigh : (1 : ℂ).re < 1 + b := by
+      norm_num
+      linarith
+    exact kadiri_laplace_exp_continuousAt_of_full_strip hφ hlow hhigh hφ_decay
+  have hres_one : CH2.residue F (1 : ℂ) = Ψ (1 : ℂ) := by
+    simpa [F] using
+      (kadiri_neg_zeta_logDeriv_mul_residue_at_one (Ψ := Ψ) hΨ_one_cont)
+  have hres_zero_sum :
+      ∑ z ∈ hZfin.toFinset, CH2.residue F z =
+        -∑ z ∈ hZfin.toFinset, Ψ z * (riemannZeta.order z : ℂ) := by
+    rw [← Finset.sum_neg_distrib]
+    refine Finset.sum_congr rfl ?_
+    intro z hz
+    have hzZ : z ∈ Z := hZfin.mem_toFinset.mp hz
+    rcases hzZ with ⟨hre, _him, hzeta⟩
+    let rho : NontrivialZeros :=
+      ⟨z, ⟨hre.1, hre.2⟩, Set.mem_univ _, by
+        simpa [riemannZeta.zeroes] using hzeta⟩
+    have hΨ_cont : ContinuousAt Ψ z := by
+      have hlow : -b < z.re := by linarith [hre.1, hb]
+      have hhigh : z.re < 1 + b := by linarith [hre.2, hb]
+      exact kadiri_laplace_exp_continuousAt_of_full_strip hφ hlow hhigh hφ_decay
+    have hres := kadiri_neg_zeta_logDeriv_mul_residue_at_nontrivialZero
+      (rho := rho) (Ψ := Ψ) (by simpa [rho] using hΨ_cont)
+    calc
+      CH2.residue F z = -((riemannZeta.order z : ℂ)) * Ψ z := by
+        simpa [F, rho] using hres
+      _ = -(Ψ z * (riemannZeta.order z : ℂ)) := by ring
+  have hzeroes_sum :
+      riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) Ψ =
+        ∑ z ∈ hZfin.toFinset, Ψ z * (riemannZeta.order z : ℂ) := by
+    simpa [Ψ, Z] using
+      (riemannZeta.zeroes_sum_eq_finset_of_finite
+        (I := .Ioo (0 : ℝ) 1) (J := .Ioo (-T) T) (f := Ψ) hZfin)
+  calc
+    CH2.sumResiduesIn
+        (fun s : ℂ =>
+          (-deriv riemannZeta s / riemannZeta s) *
+            (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+        (insert (1 : ℂ) (riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)))
+        = CH2.sumResiduesIn F S := by rfl
+    _ = ∑ z ∈ hSfin.toFinset, CH2.residue F z :=
+        kadiri_sumResiduesIn_eq_finset_of_finite hSfin
+    _ = CH2.residue F (1 : ℂ) + ∑ z ∈ hZfin.toFinset, CH2.residue F z := by
+        rw [hS_toFinset, Finset.sum_insert h1_not_Z]
+    _ = Ψ (1 : ℂ) - riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) Ψ := by
+        rw [hres_one, hres_zero_sum, hzeroes_sum]
+        ring
+    _ = (∫ y : ℝ, φ y * exp ((1 : ℂ) * (y : ℂ)) ∂volume) -
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ : ℂ => ∫ y : ℝ, φ y * exp (ρ * (y : ℂ)) ∂volume) := by
+        rfl
+
 theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_no_poles_boundary
     {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
     (ha : 0 < a) (ha1 : a < 1) (hab : a < b) (hT_nonneg : 0 ≤ T)
@@ -1354,19 +1474,6 @@ theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_no_poles_boundary
         rw [hz_re]
         linarith
       exact hzeta_ne hzero
-
-/--
-After multiplication by a continuous test factor, the residue at the zeta pole
-`s = 1` is the test factor value.
--/
-theorem kadiri_neg_zeta_logDeriv_mul_residue_at_one {Ψ : ℂ → ℂ}
-    (hΨ : ContinuousAt Ψ (1 : ℂ)) :
-    CH2.residue (fun s : ℂ => (-deriv riemannZeta s / riemannZeta s) * Ψ s)
-        (1 : ℂ) =
-      Ψ (1 : ℂ) := by
-  simpa using
-    (residue_mul_eq_of_sub_principal_isBigO_one
-      kadiri_neg_zeta_logDeriv_principal_part_at_one hΨ)
 
 end
 
