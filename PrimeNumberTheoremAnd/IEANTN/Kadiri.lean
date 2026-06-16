@@ -2087,6 +2087,70 @@ theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect
     (hzeta_ne_off_candidate := kadiri_eq12_zeta_ne_off_candidate ha hT ha1)
 
 /--
+Rectangle meromorphicity follows from rectangle analyticity of `Φ`, the
+off-height conversion for closed-height zeros, and meromorphicity at `1`.
+-/
+theorem kadiri_eq12_integrand_meromorphicOn_of_phi_rect_and_one
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T) (ha1 : a < 1)
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_rect :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z))
+    (hmero_one :
+      MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ)) :
+    MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)) := by
+  have hΦ_zero :
+      ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+        AnalyticAt ℂ Φ (-(ρ : ℂ)) := by
+    intro ρ
+    exact hΦ_rect (ρ : ℂ)
+      (kadiri_eq12_candidate_residue_set_subset_rectangle
+        (a := a) (T := T) ha hT (by right; exact ρ.property))
+  intro z hzrect
+  by_cases hcandidate :
+      z ∈ ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T))
+  · rcases hcandidate with hz_one | hz_zero
+    · have hz_eq : z = 1 := by
+        simpa using hz_one
+      subst z
+      exact hmero_one
+    · exact kadiri_eq12_integrand_meromorphicAt_closed_height_zero_of_off_height
+        (Φ := Φ) (T := T) hoff hΦ_zero ⟨z, hz_zero⟩
+  · rcases kadiri_eq12_zeta_ne_off_candidate ha hT ha1 z hzrect hcandidate with
+      ⟨hz_one, hzeta⟩
+    exact kadiri_riemannZeta_negLogDeriv_mul_meromorphicAt_of_ne_one_ne_zero
+      (Phi := Φ) hz_one hzeta (hΦ_rect z hzrect)
+
+/--
+Closed-height residue bridge from rectangle analyticity of `Φ` and a local
+meromorphicity input at the pole `1`.
+-/
+theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect_and_one
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T) (ha1 : a < 1)
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_rect :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z))
+    (hmero_one :
+      MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ)) :
+    RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+        (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+      Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+        (fun ρ ↦ Φ (-ρ)) := by
+  exact kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect
+    (ha := ha) (hT := hT) (ha1 := ha1) (hoff := hoff)
+    (hΦ_rect := hΦ_rect)
+    (hmero := kadiri_eq12_integrand_meromorphicOn_of_phi_rect_and_one
+      (ha := ha) (hT := hT) (ha1 := ha1) (hoff := hoff)
+      (hΦ_rect := hΦ_rect) (hmero_one := hmero_one))
+
+/--
 Pure assembly form of Kadiri equation (12): once the rectangle integral has
 been evaluated as the residue packet, the four side terms give the displayed
 formula.
@@ -2412,6 +2476,62 @@ theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition_of_phi_rect
   exact kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect
     (ha := ha) (hT := hT) (ha1 := ha1) (hoff := hoff.zero_ordinate_ne)
     (hΦ_rect := hΦ_rect) (hmero := hmero)
+
+/--
+Target-shaped reduction for the rectangle decomposition from rectangle
+analyticity of `Φ` and meromorphicity at the pole `1`.
+-/
+theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition_of_phi_rect_and_one
+    {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (_hb : 0 < b)
+    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (_hab : a < b) (ha1 : a < 1)
+    {T : ℝ} (hT : 0 < T)
+    (hoff : kadiriEq12HorizontalZetaOffPoleHeight T)
+    (Φ : ℂ → ℂ) (hΦ : Φ = fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (hΦ_rect :
+      ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I),
+        AnalyticAt ℂ Φ (-z))
+    (hmero_one :
+      MeromorphicAt (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) (1 : ℂ))
+    (_hzero_residue :
+      ∀ (rho : NontrivialZeros) {z w : ℂ},
+        z.re ≤ w.re →
+        z.im ≤ w.im →
+        Rectangle z w ∈ 𝓝 (rho : ℂ) →
+        AnalyticAt ℂ Φ (-(rho : ℂ)) →
+        HolomorphicOn
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+          (Rectangle z w \ {(rho : ℂ)}) →
+        RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z w =
+          -((riemannZeta.order (rho : ℂ) : ℂ) * Φ (-(rho : ℂ)))) :
+    kadiri_thm_3_1_q1_I φ a T =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      + Φ (-1)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  refine kadiri_thm_3_1_q1_eq_12_from_rectangleIntegral
+    (ha := ha) (hT := hT) (Φ := Φ) hΦ ?_
+  exact kadiri_eq12_rectangleIntegral_eq_residue_packet_of_phi_rect_and_one
+    (ha := ha) (hT := hT) (ha1 := ha1) (hoff := hoff.zero_ordinate_ne)
+    (hΦ_rect := hΦ_rect) (hmero_one := hmero_one)
 
 /--
 Remaining rectangle and residue-sum decomposition for Kadiri equation (12).
