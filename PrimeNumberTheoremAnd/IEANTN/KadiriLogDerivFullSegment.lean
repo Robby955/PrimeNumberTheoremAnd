@@ -192,6 +192,78 @@ theorem kadiri_reflected_logDeriv_nonpositive_horizontal_integral_bound
           riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))) hpoint
   simpa [sub_eq_add_neg, abs_of_nonneg ha] using hnorm
 
+/-- The digamma function is analytic away from the real axis. -/
+theorem kadiri_digamma_analyticAt_of_im_ne_zero {z : ℂ} (hz : z.im ≠ 0) :
+    AnalyticAt ℂ digamma z := by
+  let U : Set ℂ := {w : ℂ | w.im ≠ 0}
+  have hUopen : IsOpen U := by
+    simpa [U] using (continuous_im.isOpen_preimage _ isOpen_ne)
+  have hdiff : DifferentiableOn ℂ Gamma U := by
+    intro w hw
+    exact (differentiableAt_Gamma w (fun m => by
+      intro hwm
+      have him : w.im = 0 := by
+        rw [hwm]
+        simp
+      exact hw him)).differentiableWithinAt
+  have hGamma_analyticOn : AnalyticOnNhd ℂ Gamma U :=
+    hdiff.analyticOnNhd hUopen
+  have hGamma_an : AnalyticAt ℂ Gamma z := hGamma_analyticOn z hz
+  have hderiv_an : AnalyticAt ℂ (deriv Gamma) z := hGamma_an.deriv
+  have hGamma_ne : Gamma z ≠ 0 := Gamma_ne_zero (s := z) (fun m => by
+    intro hzm
+    have him : z.im = 0 := by
+      rw [hzm]
+      simp
+    exact hz him)
+  have hquot : AnalyticAt ℂ (fun w => deriv Gamma w / Gamma w) z :=
+    hderiv_an.fun_div hGamma_an hGamma_ne
+  simpa [digamma_def, logDeriv_apply] using hquot
+
+/--
+The digamma pair in Kadiri's functional-equation transport is integrable on the
+nonpositive segment whenever the horizontal height is nonzero.
+-/
+theorem kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable
+    (a T : ℝ) (ha : 0 ≤ a) (hT : T ≠ 0) :
+    IntervalIntegrable
+      (fun σ : ℝ =>
+        (1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+            digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+      volume (-a) 0 := by
+  have hle : -a ≤ 0 := by linarith
+  refine ContinuousOn.intervalIntegrable_of_Icc hle ?_
+  refine continuousOn_of_forall_continuousAt ?_
+  intro σ hσ
+  have hz1_im_ne : ((((σ : ℂ) + (T : ℂ) * I) / 2).im) ≠ 0 := by
+    simp [hT]
+  have hz2_im_ne : (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2).im) ≠ 0 := by
+    simp [hT]
+  have harg1 :
+      ContinuousAt (fun x : ℝ => (((x : ℂ) + (T : ℂ) * I) / 2)) σ := by
+    fun_prop
+  have harg2 :
+      ContinuousAt (fun x : ℝ => ((1 - (((x : ℂ) + (T : ℂ) * I))) / 2)) σ := by
+    fun_prop
+  have hd1 :
+      ContinuousAt
+        (fun x : ℝ => digamma ((((x : ℂ) + (T : ℂ) * I) / 2))) σ := by
+    simpa [Function.comp_def] using
+      (ContinuousAt.comp
+        (f := fun x : ℝ => (((x : ℂ) + (T : ℂ) * I) / 2))
+        (g := digamma)
+        (kadiri_digamma_analyticAt_of_im_ne_zero hz1_im_ne).continuousAt harg1)
+  have hd2 :
+      ContinuousAt
+        (fun x : ℝ => digamma (((1 - (((x : ℂ) + (T : ℂ) * I))) / 2))) σ := by
+    simpa [Function.comp_def] using
+      (ContinuousAt.comp
+        (f := fun x : ℝ => ((1 - (((x : ℂ) + (T : ℂ) * I))) / 2))
+        (g := digamma)
+        (kadiri_digamma_analyticAt_of_im_ne_zero hz2_im_ne).continuousAt harg2)
+  exact continuousAt_const.mul (hd1.add hd2)
+
 /--
 Functional-equation assembly on the nonpositive part of the horizontal segment.
 
@@ -1591,6 +1663,23 @@ theorem eventually_kadiriLargeHorizontalZetaOffPoleHeight :
     Filter.mem_principal_self _
   exact hprincipal.filter_mono inf_le_right
 
+/--
+On the large off-pole filter, the digamma pair from the functional equation is eventually
+integrable on the nonpositive horizontal segment.
+-/
+theorem
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) :
+    ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0 := by
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleHeight] with T hT
+  exact kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable a T ha hT.1
+
 /-- Off-pole nonvanishing of `ζ` on the moving horizontal segment. -/
 theorem riemannZeta_ne_zero_on_horizontal_of_offPole
     {T σ : ℝ} (hT : kadiriHorizontalZetaOffPoleHeight T) :
@@ -2530,5 +2619,36 @@ theorem
       eventually_kadiriLargeHorizontalZetaOffPoleFilter_large
       eventually_kadiriLargeHorizontalZetaOffPoleHeight
       hdigamma_int hdigamma_bound hzeta_rem_bound
+
+/--
+Large off-pole full-segment assembly after discharging digamma-pair integrability.
+
+The remaining analytic inputs are now the digamma-pair norm budget and the right-segment
+zeta PV remainder budget on the large off-pole filter.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_bound_and_zeta_remainder_on_large_offPole_filter
+    (a D B : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hdigamma_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) +
+              (B + (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp) := by
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_selected_truncated_principal_on_large_offPole_filter
+      a D B ha k
+      (eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
+        a ha)
+      hdigamma_bound hzeta_rem_bound
 
 end Kadiri
