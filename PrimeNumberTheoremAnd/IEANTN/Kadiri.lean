@@ -763,6 +763,39 @@ lemma kadiri_eq12_candidate_residue_set_subset_rectangle {a T : ℝ} (ha : 0 < a
     linarith
 
 /--
+The closed-height candidate residue support for Kadiri equation (12) lies
+inside the contour rectangle.
+-/
+lemma kadiri_eq12_candidate_residue_set_closed_height_subset_rectangle
+    {a T : ℝ} (ha : 0 < a) (hT : 0 < T) :
+    ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) ⊆
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) := by
+  intro x hx
+  rw [mem_Rect]
+  · rcases hx with hxone | hxzero
+    · rw [Set.mem_singleton_iff] at hxone
+      subst x
+      simp only [Complex.one_re, Complex.one_im, Complex.ofReal_re, Complex.ofReal_im,
+        Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im, Complex.mul_re,
+        Complex.mul_im, Complex.I_re, Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub,
+        add_zero, zero_add]
+      exact ⟨by linarith, by linarith, by linarith, by linarith⟩
+    · rcases hxzero with ⟨hre, him, _hzeta⟩
+      rcases hre with ⟨hre0, hre1⟩
+      rcases him with ⟨him0, him1⟩
+      simp only [Complex.ofReal_re, Complex.ofReal_im, Complex.sub_re, Complex.sub_im,
+        Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im, Complex.I_re,
+        Complex.I_im, mul_zero, mul_one, sub_zero, zero_sub, add_zero, zero_add]
+      exact ⟨by linarith, by linarith, by linarith, by linarith⟩
+  · simp only [Complex.ofReal_re, Complex.sub_re, Complex.mul_re, Complex.I_re,
+      Complex.ofReal_im, mul_zero, Complex.add_re]
+    linarith
+  · simp only [Complex.ofReal_im, Complex.sub_im, Complex.mul_im, Complex.I_im,
+      Complex.ofReal_re, mul_one, zero_sub, Complex.add_im]
+    linarith
+
+/--
 The intended residue support for Kadiri equation (12) does not meet the contour
 border. The open height strip excludes zeros with imaginary part `±T`.
 -/
@@ -929,6 +962,33 @@ lemma kadiri_eq12_candidate_residue_set_closed_height_disjoint_rectangleBorder_o
       ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) :=
   kadiri_eq12_candidate_residue_set_closed_height_disjoint_rectangleBorder_of_off_height
     ha hT hoff.zero_ordinate_ne
+
+/--
+To prove the closed-height pole-support identity after intersecting with
+actual poles, it is enough to prove the one-sided inclusion of actual poles
+in the closed-height candidate support.
+-/
+theorem kadiri_eq12_closed_pole_inter_eq_of_poles_subset_candidate
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
+    (hpoles_subset_closed :
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} ⊆
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T))) :
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} =
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) ∩
+          {z | meromorphicOrderAt
+            (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} := by
+  apply Set.Subset.antisymm
+  · intro z hz
+    exact ⟨hpoles_subset_closed hz, hz.2⟩
+  · intro z hz
+    exact ⟨kadiri_eq12_candidate_residue_set_closed_height_subset_rectangle
+      (a := a) (T := T) ha hT hz.1, hz.2⟩
 
 /--
 At a closed-height zero, the Kadiri eq-12 integrand is meromorphic once the
@@ -1624,6 +1684,39 @@ theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_closed_pole_inter
         ha hT hoff) hz_border hz_candidate_pole.1
   · rw [hpoles_inter_eq_closed,
       kadiri_eq12_zeroes_rect_closed_height_eq_open_height_of_off_height hoff]
+
+/--
+Closed-height residue bridge using the one-sided pole support inclusion. This
+is the form needed after proving that actual rectangle poles are among `1`
+and the closed-height non-trivial zeros.
+-/
+theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_closed_pole_subset
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
+    (hoff : ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T)
+    (hΦ_one : AnalyticAt ℂ Φ (-1))
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (hmero : MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
+    (hpoles_subset_closed :
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} ⊆
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T))) :
+    RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+        (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+      Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+        (fun ρ ↦ Φ (-ρ)) := by
+  exact kadiri_eq12_rectangleIntegral_eq_residue_packet_of_closed_pole_inter
+    (ha := ha) (hT := hT) (hoff := hoff) (hΦ_one := hΦ_one)
+    (hΦ_zero := hΦ_zero) (hmero := hmero)
+    (hpoles_inter_eq_closed :=
+      kadiri_eq12_closed_pole_inter_eq_of_poles_subset_candidate
+        (Φ := Φ) (a := a) (T := T) ha hT hpoles_subset_closed)
 
 /--
 Pure assembly form of Kadiri equation (12): once the rectangle integral has
