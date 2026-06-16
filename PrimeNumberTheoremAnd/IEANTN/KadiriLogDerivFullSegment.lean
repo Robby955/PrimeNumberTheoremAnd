@@ -306,6 +306,175 @@ theorem kadiri_nonpositive_logDeriv_integral_bound_of_digamma_budget
           ring
 
 /--
+The nonpositive horizontal zeta logarithmic-derivative integrand is integrable once the
+digamma pair from the functional equation is integrable.
+-/
+theorem kadiri_nonpositive_logDeriv_intervalIntegrable_of_digamma
+    (a T : ℝ) (ha : 0 ≤ a) (hT : T ≠ 0)
+    (hdigamma_int :
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0) :
+    IntervalIntegrable
+      (fun σ : ℝ =>
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+      volume (-a) 0 := by
+  let lhs : ℝ → ℂ := fun σ =>
+    -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I))
+  let constTerm : ℝ → ℂ := fun _ => ((-Real.log Real.pi : ℝ) : ℂ)
+  let reflectedTerm : ℝ → ℂ := fun σ =>
+    deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
+      riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))
+  let digammaTerm : ℝ → ℂ := fun σ =>
+    (1 / 2 : ℂ) *
+      (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+        digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))
+  have hle : -a ≤ 0 := by linarith
+  have hcongr :
+      Set.EqOn lhs (fun σ => constTerm σ + reflectedTerm σ + digammaTerm σ)
+        (Set.uIoc (-a) 0) := by
+    intro σ hσ
+    have hσ_nonpos : σ ≤ 0 := by
+      rw [Set.uIoc_of_le hle] at hσ
+      exact hσ.2
+    simpa [lhs, constTerm, reflectedTerm, digammaTerm, add_assoc] using
+      (kadiri_logDeriv_zeta_nonpositive_horizontal_reflection
+        (sigma := σ) (T := T) hσ_nonpos hT)
+  have hconst_int :
+      IntervalIntegrable constTerm volume (-a) 0 :=
+    continuous_const.intervalIntegrable _ _
+  have href_int :
+      IntervalIntegrable reflectedTerm volume (-a) 0 := by
+    simpa [reflectedTerm] using
+      kadiri_reflected_logDeriv_nonpositive_horizontal_intervalIntegrable a T ha hT
+  have hsum_int :
+      IntervalIntegrable
+        (fun σ : ℝ => constTerm σ + reflectedTerm σ + digammaTerm σ)
+        volume (-a) 0 := by
+    exact (hconst_int.add href_int).add (by simpa [digammaTerm] using hdigamma_int)
+  exact IntervalIntegrable.congr hcongr.symm hsum_int
+
+/--
+Full-segment assembly from the reflected nonpositive budget and a supplied right-segment
+budget.
+
+This is the split point between the reflected functional-equation lane on `[-a, 0]` and
+the moving-pole PV lane on `[0, 1 + a]`.
+-/
+theorem kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget
+    (a : ℝ) (ha : 0 ≤ a) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ {T D R : ℝ}, 3 < |T| →
+        IntervalIntegrable
+          (fun σ : ℝ =>
+            (1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+          volume (-a) 0 →
+        ‖∫ σ in (-a)..0,
+            (1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D →
+        IntervalIntegrable
+          (fun σ : ℝ =>
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+          volume 0 (1 + a) →
+        ‖∫ σ in 0..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ R →
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) + R := by
+  obtain ⟨C, hC, hleft_bound⟩ :=
+    kadiri_nonpositive_logDeriv_integral_bound_of_digamma_budget a ha
+  refine ⟨C, hC, ?_⟩
+  intro T D R hT hdigamma_int hdigamma_bound hright_int hright_bound
+  let f : ℝ → ℂ := fun σ =>
+    -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I))
+  have hT_ne : T ≠ 0 := by
+    intro hzero
+    rw [hzero, abs_zero] at hT
+    norm_num at hT
+  have hleft_int : IntervalIntegrable f volume (-a) 0 := by
+    simpa [f] using
+      kadiri_nonpositive_logDeriv_intervalIntegrable_of_digamma
+        a T ha hT_ne hdigamma_int
+  have hleft :
+      ‖∫ σ in (-a)..0, f σ‖ ≤
+        (C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D := by
+    simpa [f] using hleft_bound hT hdigamma_int hdigamma_bound
+  have hsplit :
+      (∫ σ in (-a)..0, f σ) + (∫ σ in 0..(1 + a), f σ) =
+        ∫ σ in (-a)..(1 + a), f σ := by
+    exact intervalIntegral.integral_add_adjacent_intervals hleft_int (by simpa [f] using hright_int)
+  calc
+    ‖∫ σ in (-a)..(1 + a),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖∫ σ in (-a)..(1 + a), f σ‖ := by
+          simp [f]
+    _ = ‖(∫ σ in (-a)..0, f σ) + (∫ σ in 0..(1 + a), f σ)‖ := by
+          rw [hsplit]
+    _ ≤ ‖∫ σ in (-a)..0, f σ‖ + ‖∫ σ in 0..(1 + a), f σ‖ :=
+          norm_add_le _ _
+    _ ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) + R := by
+          exact add_le_add hleft (by simpa [f] using hright_bound)
+
+/--
+Filter-parametric full-segment assembly from reflected nonpositive control and an eventual
+right-segment budget.
+
+The large-height hypothesis is explicit because `3 < |T|` is not a cofinite condition on
+the real line.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget_on_filter
+    (a D R : ℝ) (ha : 0 ≤ a) (L : Filter ℝ)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hdigamma_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0)
+    (hdigamma_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hright_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        volume 0 (1 + a))
+    (hright_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ R) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) + R := by
+  obtain ⟨C, hC, hpoint⟩ :=
+    kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget a ha
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [hlarge, hdigamma_int, hdigamma_bound, hright_int, hright_bound]
+    with T hT hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  exact hpoint hT hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+
+/--
 Local principal-part control for the logarithmic derivative at an analytic zero.
 
 If `f` has order `n > 0` at `p`, then `f'/f - n/(s-p)` is bounded in a punctured
