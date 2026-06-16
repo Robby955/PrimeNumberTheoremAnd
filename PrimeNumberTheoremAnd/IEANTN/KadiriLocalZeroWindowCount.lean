@@ -158,8 +158,11 @@ theorem riemannZeta_zero_re_mem_Ioo_of_im_ne_zero' {ρ : ℂ}
     have hs1 : s ≠ 1 := by
       intro hc
       have him' := congrArg Complex.im hc
-      simp [hsdef] at him'
-      exact him (by simpa using him')
+      have hs_im_zero : s.im = 0 := by simpa using him'
+      have hrho_im_zero : ρ.im = 0 := by
+        have hs_im : s.im = -ρ.im := by simp [hsdef]
+        linarith
+      exact him hrho_im_zero
     have hs0 : s ≠ 0 := by
       intro hc
       have him' := congrArg Complex.im hc
@@ -587,15 +590,17 @@ theorem u6aCA_exists_norm_riemannZeta_le_left :
     intro n hc
     have hre := congrArg Complex.re hc
     rw [hsre] at hre
-    simp at hre
+    have hre' : 1 - w.re = -(n : ℝ) := by simpa using hre
     nlinarith [Nat.cast_nonneg (α := ℝ) n]
   have hs1 : s ≠ 1 := by
     intro hc
     have him' := congrArg Complex.im hc
     have : s.im = -w.im := by simp [hsdef]
     rw [this] at him'
-    simp at him'
-    rw [him'] at him
+    have hw_im_zero : w.im = 0 := by
+      have hneg_zero : -w.im = 0 := by simpa using him'
+      linarith
+    rw [hw_im_zero] at him
     norm_num at him
   have hFE := riemannZeta_one_sub (s := s) hpoles hs1
   have hw_eq : (1 : ℂ) - s = w := by rw [hsdef]; ring
@@ -932,10 +937,9 @@ theorem exists_u6aLocalZeroCountLogHypothesis :
     have hwne1 : s₀ + z ≠ 1 := by
       intro hc
       have := congrArg Complex.im hc
-      rw [hwim] at this
-      simp at this
+      have him_zero : t + z.im = 0 := by simpa [hwim] using this
       rw [hwim] at hwim_ge
-      rw [this] at hwim_ge
+      rw [him_zero] at hwim_ge
       norm_num at hwim_ge
     have hFeq := u6aShiftedZetaPoleRemoved_eq_mul_riemannZeta (s := s₀) (z := z) hwne1
     have hζw : ‖riemannZeta (s₀ + z)‖ ≤ A * (|(s₀ + z).im| + 2) ^ B := by
