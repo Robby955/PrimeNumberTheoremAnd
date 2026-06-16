@@ -311,6 +311,43 @@ theorem
       hsrc hrem)
 
 /--
+Selected-filter budget package and horizontal `log^2` bound in one eventual statement.
+
+This is the endpoint-facing selected-height handoff: the concrete radius budget and
+zero-gap facts travel with the horizontal segment bound obtained from the local
+Hadamard/PV remainder estimate.
+-/
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_budget_and_abs_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        (∃ k : ℕ,
+          T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+          0 ≤ η ∧
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+              (2 * η) < (2 : ℝ) ^ k ∧
+          T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+          kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|)) ∧
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C := by
+  obtain ⟨C, hC, hseg⟩ :=
+    eventually_kadiriDyadicGoodHeightFilter_abs_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder
+      hsrc hrem
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [eventually_kadiriDyadicGoodHeightFilter_spec_with_budget hsrc, hseg]
+    with T hbudget hseg_T
+  exact ⟨hbudget, hseg_T⟩
+
+/--
 Endpoint handoff from a selected-sequence local Hadamard/PV remainder bound.
 
 This is the narrow selected-height route: the selector provides the off-pole/gap data and
@@ -337,5 +374,45 @@ theorem
     hsrc a ha k
     (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_sequence
       hsrc hrem)
+
+/--
+Endpoint handoff retaining the selected-filter budget certificate alongside the
+full-segment estimate.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_with_budget_of_sequence_localPVRemainder_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ n : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc n) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc n| ^ (2 : ℕ)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        (∃ n : ℕ,
+          T = kadiriDyadicGoodHeightSequence hsrc n ∧
+          let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ n)
+          0 ≤ η ∧
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ n)).ncard : ℝ) *
+              (2 * η) < (2 : ℝ) ^ n ∧
+          T ∈ Set.Ioc ((2 : ℝ) ^ n) (2 * ((2 : ℝ) ^ n)) ∧
+          kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ n) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|)) ∧
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨e, M, C, Cp, he, hM, hC, hCp, hendpoint⟩ :=
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_sequence_localPVRemainder_on_dyadicGoodHeightFilter
+      hsrc a ha k hrem
+  refine ⟨e, M, C, Cp, he, hM, hC, hCp, ?_⟩
+  filter_upwards [eventually_kadiriDyadicGoodHeightFilter_spec_with_budget hsrc, hendpoint]
+    with T hbudget hendpoint_T
+  exact ⟨hbudget, hendpoint_T⟩
 
 end Kadiri
