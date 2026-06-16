@@ -2789,6 +2789,25 @@ theorem eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_
       (eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localPVRemainder
         hsrc hrem)
 
+theorem eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_candidate_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ) :=
+  eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_localPVRemainder
+    hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
+      hsrc hrem)
+
 theorem
     kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
     {A C T : ℝ} (hA : 0 ≤ A) (hC : 0 ≤ C) (hT : 3 < |T|)
@@ -6191,6 +6210,24 @@ theorem
       hsrc a ha k
       (eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_pointwise_log_bound_on_dyadicGoodHeightFilter
         hsrc a ha k hlogDeriv_point)
+
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_candidate_localPVRemainder_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ n : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ n) (2 * ((2 : ℝ) ^ n)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ Z : ℝ, 0 ≤ Z ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+          ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) :=
+  eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_logDeriv_pointwise_on_dyadicGoodHeightFilter
+    hsrc a ha k
+    (eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_candidate_localPVRemainder
+      hsrc hrem)
 
 theorem
     eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_log_bound_on_filter
