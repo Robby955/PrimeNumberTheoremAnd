@@ -3180,6 +3180,301 @@ theorem
   exact hcard T M hT hM
 
 /--
+Nonterminal right-subsegment principal-part bound for a truncated zero family.
+
+The retained zeros may lie inside `[0, x]`; the transversal crossing kernel gives a
+uniform integral bound as long as they stay a fixed distance from both endpoints.
+-/
+theorem
+    kadiri_moving_pole_zeta_principal_part_truncated_nonterminal_right_integral_card_bound
+    (a e d R : ℝ) (ha : 0 ≤ a) (he : 0 < e) (hd : 0 < d) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (x T M : ℝ), 0 ≤ x → x ≤ 1 + a →
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R →
+            e ≤ (rho : ℂ).re ∧ (rho : ℂ).re + d ≤ x ∧ (rho : ℂ).im ≠ T) →
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R →
+            ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) →
+          ‖∫ σ in 0..x, (
+              ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * C := by
+  classical
+  obtain ⟨C, hC, hcross⟩ :=
+    transversal_pole_crossing_zero_to_norm_le a e d ha he hd
+  refine ⟨C, hC, ?_⟩
+  intro x T M hx0 hxle hmargin_off hM
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros R
+  let p : NontrivialZeros → ℝ → ℂ := fun rho σ =>
+    ((riemannZeta.order (rho : ℂ) : ℂ) /
+      (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  have hp_int : ∀ rho ∈ S, IntervalIntegrable (p rho) volume 0 x := by
+    intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      simpa [S] using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+    have hheight : (rho : ℂ).im ≠ T := (hmargin_off rho him).2.2
+    simpa [p, sub_eq_add_neg] using
+      (kadiri_moving_pole_principal_part_right_intervalIntegrable
+        (a := x - 1) ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) hheight)
+  have hintegral_sum :
+      (∫ σ in 0..x, ∑ rho ∈ S, p rho σ) =
+        ∑ rho ∈ S, ∫ σ in 0..x, p rho σ := by
+    exact intervalIntegral.integral_finsetSum hp_int
+  have hsingle : ∀ rho ∈ S,
+      ‖∫ σ in 0..x, p rho σ‖ ≤
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * C := by
+    intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      simpa [S] using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+    let β : ℝ := (rho : ℂ).re
+    let δ : ℝ := T - (rho : ℂ).im
+    have hδ : δ ≠ 0 := by
+      intro hδ0
+      exact (hmargin_off rho him).2.2 (sub_eq_zero.mp hδ0).symm
+    have hline (σ : ℝ) :
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)) =
+          (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I) := by
+      rw [Complex.ext_iff]
+      constructor <;> simp [β, δ]
+    have hfun :
+        (fun σ : ℝ => p rho σ) =
+          fun σ : ℝ =>
+            (riemannZeta.order (rho : ℂ) : ℂ) *
+              ((((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹) := by
+      funext σ
+      simp [p, hline σ, div_eq_mul_inv]
+    rw [hfun, intervalIntegral.integral_const_mul, norm_mul]
+    exact mul_le_mul_of_nonneg_left
+      (hcross x δ β hx0 hxle hδ (by simpa [β] using (hmargin_off rho him).1)
+        (by simpa [β] using (hmargin_off rho him).2.1))
+      (norm_nonneg _)
+  calc
+    ‖∫ σ in 0..x, (
+        ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        = ‖∫ σ in 0..x, ∑ rho ∈ S, p rho σ‖ := by
+          simp [S, p]
+    _ = ‖∑ rho ∈ S, ∫ σ in 0..x, p rho σ‖ := by
+          rw [hintegral_sum]
+    _ ≤ ∑ rho ∈ S, ‖∫ σ in 0..x, p rho σ‖ :=
+          norm_sum_le _ _
+    _ ≤ ∑ rho ∈ S, M * C := by
+          refine Finset.sum_le_sum fun rho hrho => ?_
+          have him : |(rho : ℂ).im| < R := by
+            simpa [S] using
+              (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+          exact (hsingle rho hrho).trans
+            (mul_le_mul_of_nonneg_right (hM rho him) hC)
+    _ = (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * C := by
+          simp [S, Finset.sum_const, nsmul_eq_mul]
+          ring
+
+/--
+Large off-pole nonterminal principal-part budget with all finite selectors instantiated.
+
+This is the crossing counterpart to the terminal no-crossing estimate: retained zeros may
+lie inside the nonterminal interval, so the proof uses the transversal crossing kernel and
+the off-height deletion.
+-/
+theorem
+    eventually_kadiri_moving_pole_zeta_principal_part_dyadic_nonterminal_right_integral_card_bound_on_large_offPole_filter
+    (a A : ℝ) (ha : 0 ≤ a) (hA : 0 ≤ A) (k : ℕ) :
+    ∃ e d M C : ℝ, 0 < e ∧ 0 < d ∧ 0 ≤ M ∧ 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)), (
+            ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+          ≤ (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C := by
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨e, he, hmargin⟩ := kadiriTruncatedNontrivialZeros_endpoint_margin_exists a R ha
+  obtain ⟨d, hd, hgap⟩ :=
+    eventually_kadiri_truncated_zero_family_gap_left_of_log_terminal_on_filter
+      A k kadiriLargeHorizontalZetaOffPoleFilter kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
+  obtain ⟨M, hM_nonneg, hM⟩ := kadiriTruncatedNontrivialZeros_order_norm_bound_exists R
+  obtain ⟨C, hC, hcard⟩ :=
+    kadiri_moving_pole_zeta_principal_part_truncated_nonterminal_right_integral_card_bound
+      a e d R ha he hd
+  refine ⟨e, d, M, C, he, hd, hM_nonneg, hC, ?_⟩
+  have hsmall_one : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      A / Real.log |T| ^ (9 : ℕ) < 1 :=
+    (eventually_const_div_log_abs_pow_lt_atTop A 1 zero_lt_one).filter_mono
+      kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
+  filter_upwards [hgap, eventually_kadiriLargeHorizontalZetaOffPoleFilter_large,
+    eventually_kadiriLargeHorizontalZetaOffPoleHeight, hsmall_one]
+    with T hgap_T hlarge hT hsmall_one_T
+  let x : ℝ := 1 - A / Real.log |T| ^ (9 : ℕ)
+  have hlog_pos : 0 < Real.log |T| ^ (9 : ℕ) := by
+    have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+    positivity
+  have hshift_nonneg : 0 ≤ A / Real.log |T| ^ (9 : ℕ) :=
+    div_nonneg hA hlog_pos.le
+  have hx0 : 0 ≤ x := by
+    dsimp [x]
+    linarith [le_of_lt hsmall_one_T]
+  have hxle : x ≤ 1 + a := by
+    dsimp [x]
+    linarith
+  have hmargin_off_T :
+      ∀ rho : NontrivialZeros,
+        |(rho : ℂ).im| < R →
+          e ≤ (rho : ℂ).re ∧ (rho : ℂ).re + d ≤ x ∧ (rho : ℂ).im ≠ T := by
+    intro rho hrho
+    exact ⟨(hmargin rho hrho).1, by simpa [x, R] using hgap_T rho (by simpa [R] using hrho),
+      hT.2 rho⟩
+  simpa [x, R] using
+    hcard x T M hx0 hxle hmargin_off_T (by simpa [R] using hM)
+
+/--
+Nonterminal-subsegment version of the sign-correct zeta PV remainder bound.
+
+It is the same algebra as the terminal handoff, but on `[0, x]`: a direct
+actual-log-derivative integral estimate plus the finite moving-pole principal budget
+control the sign-correct zeta remainder on the nonterminal interval.
+-/
+theorem
+    kadiriDyadicZetaLogDerivPVRemainder_nonterminal_right_integral_bound_of_logDeriv_and_principal
+    (a x T : ℝ) (ha : 0 ≤ a) (hx0 : 0 ≤ x) (hx_right : x ≤ 1 + a)
+    (k : ℕ) (Q P : ℝ)
+    (hT : kadiriHorizontalZetaOffPoleHeight T)
+    (hlogDeriv_bound :
+      ‖∫ σ in 0..x,
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ Q)
+    (hprincipal_bound :
+      ‖∫ σ in 0..x,
+          ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤ P) :
+    ‖∫ σ in 0..x, kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ Q + P := by
+  let actual : ℝ → ℂ := fun σ =>
+    -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I))
+  let principal : ℝ → ℂ := fun σ =>
+    ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  let zetaRem : ℝ → ℂ := fun σ => kadiriDyadicZetaLogDerivPVRemainder k T σ
+  have hfull_interval : -a ≤ 1 + a := by linarith
+  have hsubset : Set.uIcc 0 x ⊆ Set.uIcc (-a) (1 + a) := by
+    intro σ hσ
+    rw [Set.uIcc_of_le hx0] at hσ
+    rw [Set.uIcc_of_le hfull_interval]
+    exact ⟨by linarith [ha, hσ.1], le_trans hσ.2 hx_right⟩
+  have hactual_int :
+      IntervalIntegrable actual volume 0 x := by
+    have hactual_full :
+        IntervalIntegrable actual volume (-a) (1 + a) := by
+      simpa [actual] using
+        kadiri_neg_zeta_logDeriv_horizontal_intervalIntegrable_of_offPole a T ha hT
+    exact hactual_full.mono_set hsubset
+  have hprincipal_int :
+      IntervalIntegrable principal volume 0 x := by
+    have hprincipal_full :
+        IntervalIntegrable principal volume (-a) (1 + a) := by
+      simpa [principal] using
+        kadiriDyadicPrincipalPart_intervalIntegrable_of_offPole a T k hT
+    exact hprincipal_full.mono_set hsubset
+  have hEq :
+      Set.EqOn zetaRem (fun σ : ℝ => -actual σ - principal σ) [[0, x]] := by
+    intro σ _hσ
+    simp [kadiriDyadicZetaLogDerivPVRemainder, zetaRem, actual, principal]
+    ring
+  have hsplit :
+      (∫ σ in 0..x, zetaRem σ) =
+        -(∫ σ in 0..x, actual σ) - ∫ σ in 0..x, principal σ := by
+    calc
+      (∫ σ in 0..x, zetaRem σ)
+          = ∫ σ in 0..x, -actual σ - principal σ := by
+            rw [intervalIntegral.integral_congr hEq]
+      _ = ∫ σ in 0..x, ((-actual) - principal) σ := by
+            rfl
+      _ = (∫ σ in 0..x, (-actual) σ) - ∫ σ in 0..x, principal σ := by
+            exact intervalIntegral.integral_sub hactual_int.neg hprincipal_int
+      _ = -(∫ σ in 0..x, actual σ) - ∫ σ in 0..x, principal σ := by
+            simp
+  have hactual' :
+      ‖∫ σ in 0..x, actual σ‖ ≤ Q := by
+    simpa [actual] using hlogDeriv_bound
+  have hprincipal' :
+      ‖∫ σ in 0..x, principal σ‖ ≤ P := by
+    simpa [principal] using hprincipal_bound
+  calc
+    ‖∫ σ in 0..x, kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        = ‖-(∫ σ in 0..x, actual σ) - ∫ σ in 0..x, principal σ‖ := by
+          simp [zetaRem, hsplit]
+    _ ≤ ‖∫ σ in 0..x, actual σ‖ + ‖∫ σ in 0..x, principal σ‖ := by
+          simpa [sub_eq_add_neg, norm_neg, add_comm, add_left_comm, add_assoc] using
+            norm_add_le (-(∫ σ in 0..x, actual σ))
+              (-(∫ σ in 0..x, principal σ))
+    _ ≤ Q + P := add_le_add hactual' hprincipal'
+
+/--
+Large off-pole nonterminal zeta PV remainder bound after the finite principal block
+has been selected and bounded.
+
+The remaining analytic input is the actual `-ζ'/ζ` integral over the same moving
+nonterminal interval.
+-/
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_right_integral_bound_of_logDeriv_on_large_offPole_filter
+    (a A : ℝ) (ha : 0 ≤ a) (hA : 0 ≤ A) (k : ℕ) (Q : ℝ → ℝ)
+    (hlogDeriv_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ Q T) :
+    ∃ e d M C : ℝ, 0 < e ∧ 0 < d ∧ 0 ≤ M ∧ 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+            kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+          ≤ Q T +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C := by
+  obtain ⟨e, d, M, C, he, hd, hM, hC, hprincipal_bound⟩ :=
+    eventually_kadiri_moving_pole_zeta_principal_part_dyadic_nonterminal_right_integral_card_bound_on_large_offPole_filter
+      a A ha hA k
+  refine ⟨e, d, M, C, he, hd, hM, hC, ?_⟩
+  have hsmall_one : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      A / Real.log |T| ^ (9 : ℕ) < 1 :=
+    (eventually_const_div_log_abs_pow_lt_atTop A 1 zero_lt_one).filter_mono
+      kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large,
+    eventually_kadiriLargeHorizontalZetaOffPoleHeight, hlogDeriv_bound,
+    hprincipal_bound, hsmall_one]
+    with T hlarge hT hlog_T hprincipal_T hsmall_one_T
+  let x : ℝ := 1 - A / Real.log |T| ^ (9 : ℕ)
+  have hlog_pos : 0 < Real.log |T| ^ (9 : ℕ) := by
+    have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+    positivity
+  have hshift_nonneg : 0 ≤ A / Real.log |T| ^ (9 : ℕ) :=
+    div_nonneg hA hlog_pos.le
+  have hx0 : 0 ≤ x := by
+    dsimp [x]
+    linarith [le_of_lt hsmall_one_T]
+  have hx_right : x ≤ 1 + a := by
+    dsimp [x]
+    linarith
+  have hlog_T' :
+      ‖∫ σ in 0..x,
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ ≤ Q T := by
+    simpa [x] using hlog_T
+  have hprincipal_T' :
+      ‖∫ σ in 0..x, (
+          ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        ≤ (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C := by
+    simpa [x] using hprincipal_T
+  simpa [x] using
+    (kadiriDyadicZetaLogDerivPVRemainder_nonterminal_right_integral_bound_of_logDeriv_and_principal
+      a x T ha hx0 hx_right k (Q T)
+      ((((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C)
+      hT hlog_T' hprincipal_T')
+
+/--
 Terminal right-subsegment principal-part bound when the retained zeros are separated to the
 left of the moving terminal line.
 

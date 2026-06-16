@@ -214,3 +214,159 @@ lemma transversal_pole_crossing_norm_le (a e : ℝ) (he : 0 < e) :
           dsimp [B]
           positivity
         linarith)
+
+/-- Closed form for a simple-pole crossing on a variable right endpoint `[0, x]`. -/
+lemma transversal_pole_crossing_zero_to_eq (x β δ : ℝ) (hδ : δ ≠ 0) :
+    (∫ σ in 0..x, (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹)
+      = Complex.log (((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)
+        - Complex.log (((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I) := by
+  have hderiv :
+      ∀ σ ∈ Set.uIcc 0 x,
+        HasDerivAt
+          (fun τ : ℝ => Complex.log (((τ : ℂ) - (β : ℂ)) + (δ : ℂ) * I))
+          ((((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹) σ := by
+    intro σ _hσ
+    exact hasDerivAt_log_shifted_line hδ
+  have hcont :
+      ContinuousOn
+        (fun σ : ℝ => (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹)
+        (Set.uIcc 0 x) := by
+    have hline_cont :
+        Continuous fun σ : ℝ => ((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I := by
+      fun_prop
+    refine hline_cont.continuousOn.inv₀ ?_
+    intro σ _hσ hzero
+    apply hδ
+    simpa using congrArg Complex.im hzero
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hcont.intervalIntegrable]
+
+/--
+Uniform norm bound for a transversal crossing on `[0, x]` when the pole's real
+part stays at least `e` from `0` and at least `d` from the moving right endpoint.
+-/
+lemma transversal_pole_crossing_zero_to_norm_le (a e d : ℝ)
+    (ha : 0 ≤ a) (he : 0 < e) (hd : 0 < d) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ x δ β : ℝ, 0 ≤ x → x ≤ 1 + a → δ ≠ 0 → e ≤ β → β + d ≤ x →
+        ‖∫ σ in 0..x, (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹‖ ≤ C := by
+  let η : ℝ := min e d
+  have hη : 0 < η := lt_min he hd
+  let M : ℝ := 1 + |1 + a| + |e| + |d|
+  let B : ℝ := |Real.log η| + |Real.log M| + Real.pi
+  refine ⟨2 * B + (1 + a), ?_, ?_⟩
+  · have hB : 0 ≤ B := by
+      dsimp [B]
+      positivity
+    have htail : 0 ≤ 1 + a := by linarith
+    nlinarith
+  · intro x δ β hx0 hx_le hδ hβ_left hβ_right
+    by_cases hδ_small : |δ| ≤ 1
+    · have hright_lower :
+          η ≤ ‖(((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ := by
+        let z : ℂ := (((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)
+        have hz_re : z.re = x - β := by simp [z]
+        have hxβ_nonneg : 0 ≤ x - β := by linarith
+        have hd_le : d ≤ x - β := by linarith
+        have hηd : η ≤ d := by dsimp [η]; exact min_le_right _ _
+        calc
+          η ≤ d := hηd
+          _ ≤ |z.re| := by simpa [hz_re, abs_of_nonneg hxβ_nonneg] using hd_le
+          _ ≤ ‖z‖ := Complex.abs_re_le_norm z
+      have hright_upper :
+          ‖(((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ ≤ M := by
+        let z : ℂ := (((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)
+        have hz_re : z.re = x - β := by simp [z]
+        have hz_im : z.im = δ := by simp [z]
+        have hxβ_nonneg : 0 ≤ x - β := by linarith
+        have hxβ_upper : x - β ≤ 1 + a - e := by linarith
+        have hre_bound : |z.re| ≤ |1 + a| + |e| + |d| := by
+          have htail : 1 + a - e ≤ |1 + a| + |e| + |d| := by
+            have h₁ : 1 + a ≤ |1 + a| := le_abs_self (1 + a)
+            have h₂ : -e ≤ |e| := neg_le_abs e
+            have h₃ : 0 ≤ |d| := abs_nonneg d
+            linarith
+          simpa [hz_re, abs_of_nonneg hxβ_nonneg] using hxβ_upper.trans htail
+        calc
+          ‖z‖ ≤ |z.re| + |z.im| := Complex.norm_le_abs_re_add_abs_im z
+          _ ≤ (|1 + a| + |e| + |d|) + 1 :=
+            add_le_add hre_bound (by simpa [hz_im] using hδ_small)
+          _ = M := by ring
+      have hleft_lower :
+          η ≤ ‖(((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ := by
+        let z : ℂ := (((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)
+        have hz_re : z.re = -β := by simp [z]
+        have hβ_nonneg : 0 ≤ β := le_trans he.le hβ_left
+        have hηe : η ≤ e := by dsimp [η]; exact min_le_left _ _
+        calc
+          η ≤ e := hηe
+          _ ≤ |z.re| := by simpa [hz_re, abs_of_nonpos (by linarith : -β ≤ 0)] using hβ_left
+          _ ≤ ‖z‖ := Complex.abs_re_le_norm z
+      have hleft_upper :
+          ‖(((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ ≤ M := by
+        let z : ℂ := (((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)
+        have hz_re : z.re = -β := by simp [z]
+        have hz_im : z.im = δ := by simp [z]
+        have hβ_nonneg : 0 ≤ β := le_trans he.le hβ_left
+        have hβ_upper : β ≤ 1 + a - d := by linarith
+        have hre_bound : |z.re| ≤ |1 + a| + |e| + |d| := by
+          have htail : 1 + a - d ≤ |1 + a| + |e| + |d| := by
+            have h₁ : 1 + a ≤ |1 + a| := le_abs_self (1 + a)
+            have h₂ : -d ≤ |d| := neg_le_abs d
+            have h₃ : 0 ≤ |e| := abs_nonneg e
+            linarith
+          simpa [hz_re, abs_of_nonpos (by linarith : -β ≤ 0)] using hβ_upper.trans htail
+        calc
+          ‖z‖ ≤ |z.re| + |z.im| := Complex.norm_le_abs_re_add_abs_im z
+          _ ≤ (|1 + a| + |e| + |d|) + 1 :=
+            add_le_add hre_bound (by simpa [hz_im] using hδ_small)
+          _ = M := by ring
+      have hright_log :
+          ‖Complex.log (((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ ≤ B := by
+        dsimp [B]
+        exact norm_log_le_of_norm_bounds hη hright_lower hright_upper
+      have hleft_log :
+          ‖Complex.log (((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ ≤ B := by
+        dsimp [B]
+        exact norm_log_le_of_norm_bounds hη hleft_lower hleft_upper
+      rw [transversal_pole_crossing_zero_to_eq x β δ hδ]
+      calc
+        ‖Complex.log (((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I) -
+            Complex.log (((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖
+            ≤ ‖Complex.log (((x : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ +
+                ‖Complex.log (((0 : ℝ) : ℂ) - (β : ℂ) + (δ : ℂ) * I)‖ := norm_sub_le _ _
+        _ ≤ B + B := add_le_add hright_log hleft_log
+        _ ≤ 2 * B + (1 + a) := by
+          have htail : 0 ≤ 1 + a := by linarith
+          linarith
+    · have hδ_large : 1 ≤ |δ| := (lt_of_not_ge hδ_small).le
+      have hpoint :
+          ∀ σ ∈ Ι 0 x,
+            ‖(((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹‖ ≤ (1 : ℝ) := by
+        intro σ _hσ
+        let z : ℂ := ((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I
+        have him : z.im = δ := by simp [z]
+        have hz_norm : 1 ≤ ‖z‖ := by
+          calc
+            1 ≤ |δ| := hδ_large
+            _ = |z.im| := by rw [him]
+            _ ≤ ‖z‖ := Complex.abs_im_le_norm z
+        change ‖z⁻¹‖ ≤ (1 : ℝ)
+        rw [norm_inv]
+        exact inv_le_one_of_one_le₀ hz_norm
+      have hlarge :
+          ‖∫ σ in 0..x, (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹‖
+            ≤ 1 + a := by
+        have hnorm :=
+          intervalIntegral.norm_integral_le_of_norm_le_const
+            (a := 0) (b := x) (C := (1 : ℝ))
+            (f := fun σ : ℝ => (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹) hpoint
+        calc
+          ‖∫ σ in 0..x, (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹‖
+              ≤ (1 : ℝ) * |x - 0| := hnorm
+          _ = x := by rw [one_mul, sub_zero, abs_of_nonneg hx0]
+          _ ≤ 1 + a := hx_le
+      exact hlarge.trans (by
+        have hB : 0 ≤ B := by
+          dsimp [B]
+          positivity
+        linarith)
