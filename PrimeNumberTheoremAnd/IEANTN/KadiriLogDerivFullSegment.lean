@@ -2686,6 +2686,94 @@ theorem
     hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
       hsrc hrem)
 
+theorem kadiriHorizontalSegmentLogDerivBound_of_positiveHorizontalSegmentLogDerivBound
+    {C T : ℝ}
+    (hseg : kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C) :
+    kadiriHorizontalSegmentLogDerivBound (-1) 2 T C := by
+  intro σ hσ t ht
+  have hT_nonneg : 0 ≤ T := by
+    rw [← ht]
+    exact abs_nonneg t
+  have hlog_absT : Real.log |T| = Real.log T := by
+    rw [abs_of_nonneg hT_nonneg]
+  by_cases ht_nonneg : 0 ≤ t
+  · have ht_eq : t = T := by
+      rw [← ht]
+      exact (abs_of_nonneg ht_nonneg).symm
+    subst t
+    simpa [hlog_absT] using hseg σ hσ
+  · have ht_neg : t < 0 := lt_of_not_ge ht_nonneg
+    have ht_eq : t = -T := by
+      have habs : |t| = -t := abs_of_neg ht_neg
+      linarith
+    let sT : ℂ := (σ : ℂ) + (T : ℂ) * I
+    let st : ℂ := (σ : ℂ) + (t : ℂ) * I
+    have hst_conj : st = (starRingEnd ℂ) sT := by
+      apply Complex.ext <;> simp [st, sT, ht_eq]
+    have hlogderiv_conj :
+        deriv riemannZeta st / riemannZeta st =
+          (starRingEnd ℂ) (deriv riemannZeta sT / riemannZeta sT) := by
+      have h := logDerivZeta_conj sT
+      change (deriv riemannZeta / riemannZeta) st =
+        (starRingEnd ℂ) ((deriv riemannZeta / riemannZeta) sT)
+      simpa [hst_conj] using h
+    calc
+      ‖deriv riemannZeta (((σ : ℂ) + (t : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (t : ℂ) * I))‖
+          = ‖deriv riemannZeta st / riemannZeta st‖ := by rfl
+      _ = ‖(starRingEnd ℂ) (deriv riemannZeta sT / riemannZeta sT)‖ := by
+            rw [hlogderiv_conj]
+      _ = ‖deriv riemannZeta sT / riemannZeta sT‖ := by rw [RCLike.norm_conj]
+      _ ≤ C * Real.log |T| ^ (2 : ℕ) := by
+            simpa [sT] using hseg σ hσ
+      _ = C * Real.log T ^ (2 : ℕ) := by rw [hlog_absT]
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_positiveHorizontalSegmentLogDerivBound
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 T C := by
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [hseg_event] with T hseg_T
+  exact kadiriHorizontalSegmentLogDerivBound_of_positiveHorizontalSegmentLogDerivBound hseg_T
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_positiveHorizontalSegmentLogDerivBound
+    hsrc
+    (eventually_kadiriDyadicGoodHeightFilter_positiveHorizontalSegmentLogDerivBound_of_localPVRemainder
+      hsrc hrem)
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_candidate_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_localPVRemainder
+    hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
+      hsrc hrem)
+
 /-- Along the selected dyadic good-height filter, the height tends to infinity. -/
 theorem eventually_kadiriDyadicGoodHeightFilter_large
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
