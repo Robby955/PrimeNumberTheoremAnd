@@ -2147,6 +2147,55 @@ def kadiriHorizontalSegmentLogDerivBound (σ₁ σ₂ T C : ℝ) : Prop :=
         riemannZeta (((σ : ℂ) + (t : ℂ) * I))‖
       ≤ C * Real.log T ^ (2 : ℕ)
 
+/--
+Local-window zeta Hadamard/PV remainder after subtracting the zeros with ordinate within
+distance one of the selected horizontal line.
+-/
+noncomputable def kadiriLocalZetaLogDerivPVRemainder (T σ : ℝ) : ℂ :=
+  deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I)) -
+    ∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+
+/--
+Algebraic handoff from a bounded local zero-principal block and a bounded local
+Hadamard/PV remainder to the endpoint segment-bound shape.
+-/
+theorem kadiriHorizontalSegmentLogDerivBound_of_localPrincipal_and_localPVRemainder
+    {Cprincipal Cremainder T : ℝ}
+    (hprincipal : ∀ σ ∈ Set.uIcc (-1 : ℝ) 2, ∀ t : ℝ, |t| = T →
+      ‖∑ rho ∈ (kadiriLocalZeroWindow_finite t).toFinset,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (t : ℂ) * I) - (rho : ℂ)))‖ ≤
+        Cprincipal * Real.log T ^ (2 : ℕ))
+    (hremainder : ∀ σ ∈ Set.uIcc (-1 : ℝ) 2, ∀ t : ℝ, |t| = T →
+      ‖kadiriLocalZetaLogDerivPVRemainder t σ‖ ≤
+        Cremainder * Real.log T ^ (2 : ℕ)) :
+    kadiriHorizontalSegmentLogDerivBound (-1) 2 T (Cprincipal + Cremainder) := by
+  intro σ hσ t ht
+  let principal : ℂ :=
+    ∑ rho ∈ (kadiriLocalZeroWindow_finite t).toFinset,
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (t : ℂ) * I) - (rho : ℂ)))
+  let remainder : ℂ := kadiriLocalZetaLogDerivPVRemainder t σ
+  have hdecomp :
+      deriv riemannZeta (((σ : ℂ) + (t : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (t : ℂ) * I)) =
+        principal + remainder := by
+    dsimp [principal, remainder, kadiriLocalZetaLogDerivPVRemainder]
+    ring
+  calc
+    ‖deriv riemannZeta (((σ : ℂ) + (t : ℂ) * I)) /
+        riemannZeta (((σ : ℂ) + (t : ℂ) * I))‖
+        = ‖principal + remainder‖ := by rw [hdecomp]
+    _ ≤ ‖principal‖ + ‖remainder‖ := norm_add_le principal remainder
+    _ ≤ Cprincipal * Real.log T ^ (2 : ℕ) +
+          Cremainder * Real.log T ^ (2 : ℕ) := by
+        exact add_le_add (by simpa [principal] using hprincipal σ hσ t ht)
+          (by simpa [remainder] using hremainder σ hσ t ht)
+    _ = (Cprincipal + Cremainder) * Real.log T ^ (2 : ℕ) := by ring
+
 theorem
     kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
     {A C T : ℝ} (hA : 0 ≤ A) (hC : 0 ≤ C) (hT : 3 < |T|)
