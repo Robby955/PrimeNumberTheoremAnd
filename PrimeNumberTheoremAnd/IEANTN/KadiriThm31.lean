@@ -170,6 +170,102 @@ private lemma kadiri_neg_zeta_logDeriv_sub_one_principal_eventually :
   rw [neg_div, hlog_quot]
   ring
 
+private lemma kadiri_one_div_sub_one_meromorphicAt_one :
+    MeromorphicAt (fun s : ℂ => (1 : ℂ) / (s - 1)) (1 : ℂ) := by
+  have hnum : MeromorphicAt (fun _ : ℂ => (1 : ℂ)) (1 : ℂ) :=
+    MeromorphicAt.const (1 : ℂ) (1 : ℂ)
+  have hden : MeromorphicAt (fun s : ℂ => s - 1) (1 : ℂ) := by
+    exact (show AnalyticAt ℂ (fun s : ℂ => s - 1) (1 : ℂ) from by fun_prop).meromorphicAt
+  change MeromorphicAt ((fun _ : ℂ => (1 : ℂ)) / fun s : ℂ => s - 1) (1 : ℂ)
+  exact hnum.div hden
+
+private lemma kadiri_neg_logDeriv_zetaTimesSMinusOne_meromorphicAt_one :
+    MeromorphicAt (fun s : ℂ => -logDeriv Complex.zetaTimesSMinusOne_entire s) (1 : ℂ) := by
+  have hH_an :
+      AnalyticAt ℂ Complex.zetaTimesSMinusOne_entire (1 : ℂ) :=
+    Complex.zetaTimesSMinusOne_entire_differentiable.analyticAt (1 : ℂ)
+  have hder : MeromorphicAt (deriv Complex.zetaTimesSMinusOne_entire) (1 : ℂ) :=
+    hH_an.deriv.meromorphicAt
+  have hden : MeromorphicAt Complex.zetaTimesSMinusOne_entire (1 : ℂ) :=
+    hH_an.meromorphicAt
+  have hquot :
+      MeromorphicAt (deriv Complex.zetaTimesSMinusOne_entire /
+        Complex.zetaTimesSMinusOne_entire) (1 : ℂ) :=
+    hder.div hden
+  change MeromorphicAt (-(deriv Complex.zetaTimesSMinusOne_entire /
+    Complex.zetaTimesSMinusOne_entire)) (1 : ℂ)
+  simpa [logDeriv_apply, Pi.div_apply] using hquot.neg
+
+/--
+The negative logarithmic derivative `-ζ'/ζ` is meromorphic at the zeta pole.
+The value at the pole itself is irrelevant; the proof uses the punctured
+identity with `(s - 1)ζ(s)`.
+-/
+theorem kadiri_neg_zeta_logDeriv_meromorphicAt_one :
+    MeromorphicAt (fun s : ℂ => -deriv riemannZeta s / riemannZeta s) (1 : ℂ) := by
+  have hsum :
+      MeromorphicAt
+        ((fun s : ℂ => (1 : ℂ) / (s - 1)) +
+          fun s : ℂ => -logDeriv Complex.zetaTimesSMinusOne_entire s)
+        (1 : ℂ) :=
+    kadiri_one_div_sub_one_meromorphicAt_one.add
+      kadiri_neg_logDeriv_zetaTimesSMinusOne_meromorphicAt_one
+  refine hsum.congr ?_
+  filter_upwards [kadiri_neg_zeta_logDeriv_sub_one_principal_eventually] with s hs
+  dsimp [Pi.sub_apply] at hs ⊢
+  rw [← hs]
+  ring
+
+/-- `-ζ'/ζ` is meromorphic at every complex point. -/
+theorem kadiri_neg_zeta_logDeriv_meromorphicAt (s : ℂ) :
+    MeromorphicAt (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) s := by
+  by_cases hs : s = 1
+  · subst hs
+    exact kadiri_neg_zeta_logDeriv_meromorphicAt_one
+  · have han : AnalyticAt ℂ riemannZeta s :=
+      riemannZeta_analyticOn_compl_one s (by simpa [Set.mem_compl_iff] using hs)
+    have hquot : MeromorphicAt (deriv riemannZeta / riemannZeta) s :=
+      han.deriv.meromorphicAt.div han.meromorphicAt
+    refine hquot.neg.congr ?_
+    filter_upwards with z
+    dsimp [Pi.div_apply]
+    rw [neg_div]
+
+/-- `-ζ'/ζ` is meromorphic on every set. -/
+theorem kadiri_neg_zeta_logDeriv_meromorphicOn (U : Set ℂ) :
+    MeromorphicOn (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) U := by
+  intro z _hz
+  exact kadiri_neg_zeta_logDeriv_meromorphicAt z
+
+/--
+Multiplying `-ζ'/ζ` by any meromorphic test factor preserves meromorphy on the
+same set. This is the `hF_mero` input for the rectangle package.
+-/
+theorem kadiri_neg_zeta_logDeriv_mul_meromorphicOn {Ψ : ℂ → ℂ} {U : Set ℂ}
+    (hΨ : MeromorphicOn Ψ U) :
+    MeromorphicOn (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) U := by
+  exact (kadiri_neg_zeta_logDeriv_meromorphicOn U).mul hΨ
+
+/--
+An off-pole height excludes zeta zeros on both horizontal rectangle sides.
+The lower side is reduced to the upper side by conjugation symmetry.
+-/
+theorem riemannZeta_ne_zero_on_horizontal_border_of_offPole
+    {T σ t : ℝ} (hT : kadiriHorizontalZetaOffPoleHeight T)
+    (ht : t = T ∨ t = -T) :
+    riemannZeta (((σ : ℂ) + (t : ℂ) * I)) ≠ 0 := by
+  rcases ht with rfl | rfl
+  · exact riemannZeta_ne_zero_on_horizontal_of_offPole hT
+  · intro hzero
+    have hconj_zero :
+        riemannZeta ((starRingEnd ℂ) (((σ : ℂ) + ((-T : ℝ) : ℂ) * I))) = 0 := by
+      rw [riemannZeta_conj, hzero]
+      simp
+    have htop_zero : riemannZeta (((σ : ℂ) + (T : ℂ) * I)) = 0 := by
+      simpa using hconj_zero
+    exact (riemannZeta_ne_zero_on_horizontal_of_offPole (T := T) (σ := σ) hT)
+      htop_zero
+
 /--
 At the zeta pole `s = 1`, the negative logarithmic derivative has principal
 part `1/(s-1)` and bounded remainder on the punctured neighborhood.
