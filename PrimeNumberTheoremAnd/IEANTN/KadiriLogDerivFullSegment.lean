@@ -2634,6 +2634,58 @@ theorem eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localP
     (fun σ hσ => hprincipal_T σ)
     (fun σ hσ => hremainder_T σ hσ)
 
+theorem eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ) := by
+  obtain ⟨R, hR, hrem_event⟩ := hrem
+  refine ⟨R, hR, ?_⟩
+  rw [kadiriDyadicGoodHeightFilter]
+  change ∀ᶠ k : ℕ in atTop,
+    ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+      ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+        R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)
+  filter_upwards [eventually_kadiriDyadicGoodHeightSequence_spec hsrc, hrem_event]
+    with k hspec hrem_k
+  exact hrem_k (kadiriDyadicGoodHeightSequence hsrc k) hspec.1 hspec.2.1
+
+theorem eventually_kadiriDyadicGoodHeightFilter_positiveHorizontalSegmentLogDerivBound_of_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localPVRemainder hsrc hrem
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_positiveHorizontalSegmentLogDerivBound_of_candidate_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_positiveHorizontalSegmentLogDerivBound_of_localPVRemainder
+    hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
+      hsrc hrem)
+
 /-- Along the selected dyadic good-height filter, the height tends to infinity. -/
 theorem eventually_kadiriDyadicGoodHeightFilter_large
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
@@ -6288,5 +6340,27 @@ theorem
       (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
         a G ha (kadiriDyadicGoodHeightFilter hsrc) hdigamma_point)
       hzeta_rem_log_bound
+
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_candidate_localPVRemainder_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ n : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ n) (2 * ((2 : ℝ) ^ n)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp :=
+  eventually_kadiri_logDeriv_zeta_full_segment_bound_of_localPVRemainder_on_dyadicGoodHeightFilter
+    hsrc a ha k
+    (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate hsrc hrem)
 
 end Kadiri
