@@ -2774,6 +2774,25 @@ theorem
     hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
       hsrc hrem)
 
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_abs_horizontalSegmentLogDerivBound_of_horizontalSegmentLogDerivBound
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 T C) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C := by
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  refine ⟨C, hC, ?_⟩
+  have hpos : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc, 0 ≤ T := by
+    filter_upwards [eventually_kadiriDyadicGoodHeightFilter_scale hsrc] with T hscale
+    obtain ⟨k, _hEq, hT⟩ := hscale
+    have hpow_pos : 0 < (2 : ℝ) ^ k := pow_pos (by norm_num) k
+    exact (hpow_pos.trans hT.1).le
+  filter_upwards [hseg_event, hpos] with T hseg_T hT_nonneg
+  simpa [abs_of_nonneg hT_nonneg] using hseg_T
+
 /-- Along the selected dyadic good-height filter, the height tends to infinity. -/
 theorem eventually_kadiriDyadicGoodHeightFilter_large
     (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
@@ -2963,6 +2982,49 @@ theorem
   exact
     kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
       (A := A) (C := C) (T := T) hA hC hlarge hsmall_T hseg_T
+
+theorem
+    eventually_kadiri_neg_zeta_logDeriv_nonterminal_pointwise_log_bound_of_horizontalSegmentLogDerivBound_on_filter
+    (L : Filter ℝ) (hL : L ≤ atTop)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in L,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ) := by
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  intro A hA
+  refine ⟨C, hC, ?_⟩
+  have hsmall : ∀ᶠ T : ℝ in L, A / Real.log |T| ^ (9 : ℕ) ≤ 2 :=
+    ((eventually_const_div_log_abs_pow_lt_atTop A 2 (by norm_num)).filter_mono
+      hL).mono fun _ hT => le_of_lt hT
+  filter_upwards [hlarge, hseg_event, hsmall] with T hlarge_T hseg_T hsmall_T
+  exact
+    kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
+      (A := A) (C := C) (T := T) hA hC hlarge_T hsmall_T hseg_T
+
+theorem eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_horizontalSegmentLogDerivBound
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ) :=
+  eventually_kadiri_neg_zeta_logDeriv_nonterminal_pointwise_log_bound_of_horizontalSegmentLogDerivBound_on_filter
+    (L := kadiriDyadicGoodHeightFilter hsrc)
+    (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+    (eventually_kadiriDyadicGoodHeightFilter_large hsrc)
+    hseg
 
 /--
 Large off-pole specialization of the dyadic right-boundary selector: for fixed `k`, the
@@ -6465,6 +6527,76 @@ theorem
       (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
         a G ha (kadiriDyadicGoodHeightFilter hsrc) hdigamma_point)
       hzeta_rem_log_bound
+
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_horizontalSegmentLogDerivBound_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hseg : ∃ S : ℝ, 0 ≤ S ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| S) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨G, hG, hdigamma_point_large⟩ :=
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_pointwise_log_bound_on_large_offPole_filter
+      a ha
+  have hselected_le_large :=
+    kadiriDyadicGoodHeightFilter_le_kadiriLargeHorizontalZetaOffPoleFilter hsrc
+  have hdigamma_point :
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Ι (-a) 0,
+          ‖(1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+            ≤ G * Real.log |T| ^ 9 :=
+    hdigamma_point_large.filter_mono hselected_le_large
+  obtain ⟨Z, hZ, hzeta_rem_log_bound⟩ :=
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_logDeriv_pointwise_on_dyadicGoodHeightFilter
+      hsrc a ha k
+      (eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_horizontalSegmentLogDerivBound
+        hsrc hseg)
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_log_bound_on_filter
+      a G Z ha hG hZ k (kadiriDyadicGoodHeightFilter hsrc)
+      (kadiriDyadicGoodHeightFilter_le_cofinite hsrc)
+      (eventually_kadiriDyadicGoodHeightFilter_large hsrc)
+      (eventually_kadiriDyadicGoodHeightFilter_offPole hsrc)
+      ((eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
+        a ha).filter_mono hselected_le_large)
+      (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
+        a G ha (kadiriDyadicGoodHeightFilter hsrc) hdigamma_point)
+      hzeta_rem_log_bound
+
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_candidate_horizontalSegmentLogDerivBound_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ n : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ n) (2 * ((2 : ℝ) ^ n)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp :=
+  eventually_kadiri_logDeriv_zeta_full_segment_bound_of_horizontalSegmentLogDerivBound_on_dyadicGoodHeightFilter
+    hsrc a ha k
+    (eventually_kadiriDyadicGoodHeightFilter_abs_horizontalSegmentLogDerivBound_of_horizontalSegmentLogDerivBound
+      hsrc
+      (eventually_kadiriDyadicGoodHeightFilter_horizontalSegmentLogDerivBound_of_candidate_localPVRemainder
+        hsrc hrem))
 
 theorem
     eventually_kadiri_logDeriv_zeta_full_segment_bound_of_candidate_localPVRemainder_on_dyadicGoodHeightFilter
