@@ -5069,6 +5069,17 @@ theorem zeroes_sum_comp_one_sub {α : Type*} [RCLike α] (f : ℂ → α) :
           (fun σ : NontrivialZeros ↦ f (σ : ℂ) * (riemannZeta.order (σ : ℂ) : α))
     _ = riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) f := rfl
 
+theorem zeroes_sum_re {I J : Set ℝ} {f : ℂ → ℂ}
+    (hsum : Summable fun ρ : riemannZeta.zeroes_rect I J ↦
+      f ρ * (riemannZeta.order ρ : ℂ)) :
+    (riemannZeta.zeroes_sum I J f).re =
+      riemannZeta.zeroes_sum I J (fun ρ ↦ (f ρ).re) := by
+  unfold riemannZeta.zeroes_sum
+  rw [Complex.re_tsum hsum]
+  refine tsum_congr fun ρ ↦ ?_
+  rw [Complex.mul_re]
+  simp
+
 /-- Real part of `hadamardB` as a multiplicity-weighted non-trivial zero sum. -/
 theorem re_hadamardB_weighted_eq :
     hadamardB.re =
@@ -5609,12 +5620,166 @@ theorem summable_one_div_add_one_div_at_zeros (s : ℂ) :
     _ = ‖s‖ / 2 * (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ) + |(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) := by
         ring
 
+theorem summable_weighted_one_div_add_one_div_at_zeros (s : ℂ) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (1 / (ρ.val : ℂ) + 1 / (s - ρ.val)) * (riemannZeta.order ρ.val : ℂ)) := by
+  have htail0 : Summable (fun ρ : NontrivialZeros ↦
+      ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) * (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ))) := by
+    have h := weighted_zeroImagSquareTail_summable
+    simpa [zeroImagSquareTail] using h
+  have htails : Summable (fun ρ : NontrivialZeros ↦
+      ‖s‖ / 2 * (((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+        (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ)) +
+        ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+          (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)))) :=
+    (htail0.add (weighted_zeroImagSquareTail_shifted_summable s)).mul_left _
+  refine Summable.of_norm_bounded_eventually htails ?_
+  rw [Filter.eventually_cofinite]
+  apply Set.Finite.subset
+    (nontrivialZeros_abs_im_lt_one_finite.union
+      (nontrivialZeros_shifted_abs_im_lt_one_finite s))
+  intro ρ hbad
+  rw [Set.mem_setOf_eq] at hbad
+  rw [Set.mem_union, Set.mem_setOf_eq, Set.mem_setOf_eq]
+  by_contra hsmall
+  rw [not_or] at hsmall
+  obtain ⟨h1, h2⟩ := hsmall
+  have him1 : 1 ≤ |(ρ : ℂ).im| := not_lt.mp h1
+  have him2 : 1 ≤ |(s - (ρ : ℂ)).im| := not_lt.mp h2
+  apply hbad
+  have hρ0 : ((ρ : ℂ)) ≠ 0 := nontrivialZero_ne_zero ρ
+  have him2ne : (s - (ρ : ℂ)).im ≠ 0 := by
+    intro h
+    rw [h] at him2
+    norm_num at him2
+  have hsρ : s - (ρ : ℂ) ≠ 0 := by
+    intro h
+    apply him2ne
+    rw [h]
+    rfl
+  have him1pos : (0 : ℝ) < |(ρ : ℂ).im| := lt_of_lt_of_le one_pos him1
+  have him2pos : (0 : ℝ) < |(s - (ρ : ℂ)).im| := lt_of_lt_of_le one_pos him2
+  have hordZ : (0 : ℤ) ≤ riemannZeta.order (ρ : ℂ) :=
+    riemannZeta_order_nonneg (nontrivialZero_ne_one ρ)
+  have hord : (0 : ℝ) ≤ ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    exact_mod_cast hordZ
+  have hnormord : ‖(riemannZeta.order (ρ : ℂ) : ℂ)‖ =
+      ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    rw [Complex.norm_intCast]
+    exact_mod_cast abs_of_nonneg hordZ
+  have hpacket : 1 / ((ρ : ℂ)) + 1 / (s - (ρ : ℂ)) =
+      s / (((ρ : ℂ)) * (s - (ρ : ℂ))) := by
+    field_simp
+    ring
+  rw [norm_mul, hnormord]
+  have hstep1 : ‖1 / ((ρ : ℂ)) + 1 / (s - (ρ : ℂ))‖ ≤
+      ‖s‖ / 2 * (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ) +
+        |(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) := by
+    rw [hpacket, norm_div, norm_mul]
+    have hstepa : ‖s‖ / (‖(ρ : ℂ)‖ * ‖s - (ρ : ℂ)‖) ≤
+        ‖s‖ * (|(ρ : ℂ).im|⁻¹ * |(s - (ρ : ℂ)).im|⁻¹) := by
+      rw [div_eq_mul_inv, mul_inv]
+      have ha : ‖(ρ : ℂ)‖⁻¹ ≤ |(ρ : ℂ).im|⁻¹ :=
+        inv_anti₀ him1pos (Complex.abs_im_le_norm _)
+      have hb : ‖s - (ρ : ℂ)‖⁻¹ ≤ |(s - (ρ : ℂ)).im|⁻¹ :=
+        inv_anti₀ him2pos (Complex.abs_im_le_norm _)
+      have hb0 : (0 : ℝ) ≤ ‖s - (ρ : ℂ)‖⁻¹ := by positivity
+      have ha0 : (0 : ℝ) ≤ |(ρ : ℂ).im|⁻¹ := by positivity
+      refine mul_le_mul_of_nonneg_left ?_ (norm_nonneg s)
+      exact mul_le_mul ha hb hb0 ha0
+    have hstepb : |(ρ : ℂ).im|⁻¹ * |(s - (ρ : ℂ)).im|⁻¹ ≤
+        (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ) +
+          |(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) / 2 := by
+      nlinarith [two_mul_le_add_sq (|(ρ : ℂ).im|⁻¹)
+        (|(s - (ρ : ℂ)).im|⁻¹)]
+    calc ‖s‖ / (‖(ρ : ℂ)‖ * ‖s - (ρ : ℂ)‖)
+        ≤ ‖s‖ * (|(ρ : ℂ).im|⁻¹ * |(s - (ρ : ℂ)).im|⁻¹) := hstepa
+      _ ≤ ‖s‖ * ((|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ) +
+              |(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) / 2) :=
+          mul_le_mul_of_nonneg_left hstepb (norm_nonneg s)
+      _ = ‖s‖ / 2 * (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ) +
+              |(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) := by ring
+  calc ‖1 / ((ρ : ℂ)) + 1 / (s - (ρ : ℂ))‖ *
+        ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ)
+      ≤ (‖s‖ / 2 * (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ) +
+          |(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ))) *
+          ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) :=
+        mul_le_mul_of_nonneg_right hstep1 hord
+    _ = ‖s‖ / 2 * (((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+          (|(ρ : ℂ).im|⁻¹ ^ (2 : ℕ)) +
+          ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+            (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ))) := by ring
+
 /-- The reciprocal real-part sum, the `s`-free half of the packet. -/
 theorem summable_re_inv_at_zeros :
     Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
       (1 / (ρ.val : ℂ)).re) := by
   refine (summable_re_one_div_at_zeros 0).neg.congr fun ρ ↦ ?_
   rw [zero_sub, one_div, inv_neg, Complex.neg_re, neg_neg, one_div]
+
+theorem summable_weighted_re_one_div_at_zeros (s : ℂ) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (1 / (s - ρ.val)).re * ((riemannZeta.order ρ.val : ℤ) : ℝ)) := by
+  have htail : Summable (fun ρ : NontrivialZeros ↦
+      (|s.re| + 1) * (((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+        (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)))) :=
+    (weighted_zeroImagSquareTail_shifted_summable s).mul_left _
+  refine Summable.of_norm_bounded_eventually htail ?_
+  rw [Filter.eventually_cofinite]
+  apply Set.Finite.subset (nontrivialZeros_shifted_abs_im_lt_one_finite s)
+  intro ρ hbad
+  rw [Set.mem_setOf_eq] at hbad ⊢
+  by_contra hsmall
+  have him : 1 ≤ |(s - (ρ : ℂ)).im| := le_of_not_gt hsmall
+  have him0 : (s - (ρ : ℂ)).im ≠ 0 := by
+    intro h
+    rw [h] at him
+    norm_num at him
+  have hw0 : s - (ρ : ℂ) ≠ 0 := by
+    intro h
+    apply him0
+    rw [h]
+    rfl
+  have hre : (ρ : ℂ).re ∈ Set.Ioo (0 : ℝ) 1 := ρ.property.1
+  have hre_bound : |(s - (ρ : ℂ)).re| ≤ |s.re| + 1 := by
+    rw [Complex.sub_re]
+    calc |s.re - (ρ : ℂ).re| ≤ |s.re| + |(ρ : ℂ).re| := abs_sub _ _
+      _ ≤ |s.re| + 1 := by
+          rw [abs_of_pos hre.1]
+          linarith [hre.2]
+  have hdiv_re : (1 / (s - (ρ : ℂ))).re =
+      (s - (ρ : ℂ)).re / Complex.normSq (s - (ρ : ℂ)) := by
+    rw [Complex.div_re]
+    simp
+  have hns : (s - (ρ : ℂ)).im ^ 2 ≤ Complex.normSq (s - (ρ : ℂ)) := by
+    rw [Complex.normSq_apply]
+    nlinarith [mul_self_nonneg (s - (ρ : ℂ)).re]
+  have hnpos : (0 : ℝ) < Complex.normSq (s - (ρ : ℂ)) := Complex.normSq_pos.2 hw0
+  have hordZ : (0 : ℤ) ≤ riemannZeta.order (ρ : ℂ) :=
+    riemannZeta_order_nonneg (nontrivialZero_ne_one ρ)
+  have hord : (0 : ℝ) ≤ ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    exact_mod_cast hordZ
+  apply hbad
+  rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hord]
+  calc |(1 / (s - (ρ : ℂ))).re| * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ)
+      ≤ ((|s.re| + 1) * (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ))) *
+          ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+        refine mul_le_mul_of_nonneg_right ?_ hord
+        rw [hdiv_re, abs_div, abs_of_nonneg (Complex.normSq_nonneg _)]
+        calc |(s - (ρ : ℂ)).re| / Complex.normSq (s - (ρ : ℂ))
+            ≤ (|s.re| + 1) / Complex.normSq (s - (ρ : ℂ)) := by gcongr
+          _ ≤ (|s.re| + 1) / (s - (ρ : ℂ)).im ^ 2 := by gcongr
+          _ = (|s.re| + 1) * (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) := by
+              rw [inv_pow, sq_abs, div_eq_mul_inv]
+    _ = (|s.re| + 1) * (((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+          (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ))) := by ring
+
+theorem summable_weighted_re_inv_at_zeros :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (1 / (ρ.val : ℂ)).re * ((riemannZeta.order ρ.val : ℤ) : ℝ)) := by
+  refine (summable_weighted_re_one_div_at_zeros 0).neg.congr fun ρ ↦ ?_
+  rw [zero_sub, one_div, inv_neg, Complex.neg_re]
+  ring_nf
 
 /-- Distributing `Re` over the packet sum: the paired complex sum splits into the two
 absolutely summable real-part sums. -/
@@ -5646,6 +5811,30 @@ theorem re_shifted_sum_eq_paired_sub_re_inv (s : ℂ) :
       ∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
         (1 / (ρ.val : ℂ)).re := by
   rw [re_tsum_paired_eq_re_inv_add_re_shifted s]
+  ring
+
+theorem zeroes_sum_re_paired_eq_re_inv_add_re_shifted (s : ℂ) :
+    (riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ 1 / ρ + 1 / (s - ρ))).re =
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ (1 / ρ).re) +
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ (1 / (s - ρ)).re) := by
+  unfold riemannZeta.zeroes_sum
+  rw [Complex.re_tsum (summable_weighted_one_div_add_one_div_at_zeros s)]
+  rw [← summable_weighted_re_inv_at_zeros.tsum_add
+    (summable_weighted_re_one_div_at_zeros s)]
+  refine tsum_congr fun ρ ↦ ?_
+  rw [Complex.mul_re, Complex.add_re]
+  simp
+  ring
+
+theorem weighted_re_shifted_sum_eq_paired_sub_re_inv (s : ℂ) :
+    riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ (1 / (s - ρ)).re) =
+      (riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ 1 / ρ + 1 / (s - ρ))).re -
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ (1 / ρ).re) := by
+  rw [zeroes_sum_re_paired_eq_re_inv_add_re_shifted s]
   ring
 
 
@@ -5715,6 +5904,27 @@ theorem summable_kadiriTestFn_weighted_at_zeros {d : ℝ} (hd : 0 < d) {f : ℝ 
           rw [inv_pow, sq_abs, div_eq_mul_inv]
           ring
   exact hmain.congr fun ρ ↦ by rw [hpt ρ]
+
+theorem summable_lap_sub_pole_weighted_at_zeros {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      ((f 0 : ℂ) / (s - ρ.val) - laplaceTransform f (s - ρ.val)) *
+        (riemannZeta.order ρ.val : ℂ)) := by
+  have hΦ := summable_kadiriTestFn_weighted_at_zeros hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hs
+  refine hΦ.congr fun ρ ↦ ?_
+  have hre : (0 : ℝ) < (s + -ρ.val).re := by
+    have hlt : (ρ.val).re < 1 := ρ.property.1.2
+    simp only [Complex.add_re, Complex.neg_re]
+    linarith
+  have h := kadiriTestFn_laplaceTransform hd hf_C2 hf_supp s (-ρ.val) hre
+  simp only [neg_neg] at h
+  rw [h, show s + -ρ.val = s - ρ.val by ring]
 
 /-- The weighted complex form of equation (16) with the zero-sum hypothesis
 discharged: only the contour integrability and `kadiri_thm_3_1_q1` itself remain. -/
@@ -5799,6 +6009,125 @@ theorem summable_lap_re_at_zeros {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
       ≤ C / (s - (ρ : ℂ)).im ^ 2 := hdecay
     _ = C * (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)) := by
         rw [inv_pow, sq_abs, div_eq_mul_inv]
+
+theorem summable_weighted_lap_re_at_zeros {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d : derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    (s : ℂ) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (laplaceTransform f (s - ρ.val)).re * ((riemannZeta.order ρ.val : ℤ) : ℝ)) := by
+  obtain ⟨C, hC⟩ := laplaceTransform_re_decay hd hf_nonneg hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hf_deriv2_d (s.re - 1) s.re
+  have htail : Summable (fun ρ : NontrivialZeros ↦
+      C * (((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+        (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ)))) :=
+    (weighted_zeroImagSquareTail_shifted_summable s).mul_left C
+  refine Summable.of_norm_bounded_eventually htail ?_
+  rw [Filter.eventually_cofinite]
+  apply Set.Finite.subset (nontrivialZeros_shifted_abs_im_lt_one_finite s)
+  intro ρ hbad
+  rw [Set.mem_setOf_eq] at hbad ⊢
+  by_contra hsmall
+  have him : 1 ≤ |(s - (ρ : ℂ)).im| := le_of_not_gt hsmall
+  have hre : (ρ : ℂ).re ∈ Set.Ioo (0 : ℝ) 1 := ρ.property.1
+  have hre_lo : s.re - 1 ≤ (s - (ρ : ℂ)).re := by
+    rw [Complex.sub_re]
+    linarith [hre.2]
+  have hre_hi : (s - (ρ : ℂ)).re ≤ s.re := by
+    rw [Complex.sub_re]
+    linarith [hre.1]
+  have hdecay := hC (s - (ρ : ℂ)) hre_lo hre_hi him
+  have hordZ : (0 : ℤ) ≤ riemannZeta.order (ρ : ℂ) :=
+    riemannZeta_order_nonneg (nontrivialZero_ne_one ρ)
+  have hord : (0 : ℝ) ≤ ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    exact_mod_cast hordZ
+  apply hbad
+  rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hord]
+  calc |(laplaceTransform f (s - (ρ : ℂ))).re| *
+        ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ)
+      ≤ (C / (s - (ρ : ℂ)).im ^ 2) *
+          ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) :=
+        mul_le_mul_of_nonneg_right hdecay hord
+    _ = C * (((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) *
+          (|(s - (ρ : ℂ)).im|⁻¹ ^ (2 : ℕ))) := by
+        rw [inv_pow, sq_abs, div_eq_mul_inv]
+        ring
+
+theorem identity_16_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d : derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1) +
+                riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+                  (fun ρ ↦ 1 / ρ + 1 / (s - ρ))).re -
+              riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+                (fun ρ ↦ (1 / ρ).re))
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) .univ
+            (fun ρ ↦ (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re := by
+  have hcomplex := identity_16_complex_weighted_of_integrable hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hs hΓ_int
+  have hsub := summable_lap_sub_pole_weighted_at_zeros hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hs
+  have hzero_re :
+      (riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ ↦ (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ))).re =
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ ((f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)).re) :=
+    zeroes_sum_re hsub
+  have hpt : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+      ((f 0 : ℂ) / (s - ρ.val) - laplaceTransform f (s - ρ.val)).re =
+        f 0 * (1 / (s - ρ.val)).re - (laplaceTransform f (s - ρ.val)).re := by
+    intro ρ
+    have hmul : ((f 0 : ℝ) : ℂ) / (s - ρ.val) =
+        ((f 0 : ℝ) : ℂ) * (1 / (s - ρ.val)) := div_eq_mul_one_div _ _
+    rw [Complex.sub_re, hmul, Complex.re_ofReal_mul]
+  have hsplit :
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ ((f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)).re) =
+      f 0 * riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ ↦ (1 / (s - ρ)).re) -
+        riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ ↦ (laplaceTransform f (s - ρ)).re) := by
+    unfold riemannZeta.zeroes_sum
+    rw [← tsum_mul_left]
+    rw [← Summable.tsum_sub ((summable_weighted_re_one_div_at_zeros s).mul_left (f 0))
+      (summable_weighted_lap_re_at_zeros hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0
+        hf_deriv_d hf_deriv2_d s)]
+    refine tsum_congr fun ρ ↦ ?_
+    change ((f 0 : ℂ) / (s - ρ.val) - laplaceTransform f (s - ρ.val)).re *
+        ((riemannZeta.order ρ.val : ℤ) : ℝ) =
+      f 0 * ((1 / (s - ρ.val)).re * ((riemannZeta.order ρ.val : ℤ) : ℝ)) -
+        (laplaceTransform f (s - ρ.val)).re * ((riemannZeta.order ρ.val : ℤ) : ℝ)
+    rw [hpt ρ]
+    ring
+  rw [hcomplex]
+  simp only [Complex.add_re, Complex.sub_re, Complex.add_re]
+  rw [hzero_re, hsplit, Complex.re_ofReal_mul, Complex.sub_re,
+    weighted_re_shifted_sum_eq_paired_sub_re_inv s]
+  ring
 
 @[blueprint
   "kadiri-identity-16-complex"
@@ -5963,6 +6292,22 @@ lemma tsum_vonMangoldt_eq {s : ℂ} (hs : 1 < s.re) :
   · simp
   · rw [LSeries.term_of_ne_zero hn]
 
+theorem re_inner_weighted_eq {s : ℂ} (hs : 1 < s.re) :
+    ((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1) +
+       riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+         (fun ρ ↦ 1 / ρ + 1 / (s - ρ))).re -
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ ↦ (1 / ρ).re) =
+    -(1 / 2 : ℝ) * Real.log Real.pi +
+      (1 / 2 : ℝ) * (digamma (s / 2 + 1)).re := by
+  rw [tsum_vonMangoldt_eq hs, hadamard_identity_weighted hs]
+  ring_nf
+  simp only [Complex.add_re, Complex.neg_re, Complex.mul_re, Complex.ofReal_re,
+    Complex.ofReal_im, zero_mul, sub_zero]
+  rw [re_hadamardB_weighted_eq]
+  norm_num
+  ring_nf
+
 @[blueprint
   "kadiri-re-inner-eq"
   (title := "Inner real-part identity: collapsing to $T_1$")
@@ -6068,6 +6413,39 @@ theorem prop_2_1 {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
       hf_deriv2_d s, ?_⟩
   rw [identity_16 hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d hf_deriv2_d hs,
       re_inner_eq hs]
+
+theorem prop_2_1_weighted_of_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d : derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (laplaceTransform f (s - ρ.val)).re * ((riemannZeta.order ρ.val : ℤ) : ℝ)) ∧
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (-(1 / 2 : ℝ) * Real.log Real.pi
+              + (1 / 2 : ℝ) * (digamma (s / 2 + 1)).re)
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) .univ
+            (fun ρ ↦ (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re := by
+  refine ⟨summable_weighted_lap_re_at_zeros hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hf_deriv2_d s, ?_⟩
+  rw [identity_16_weighted_of_integrable hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hf_deriv2_d hs hΓ_int, re_inner_weighted_eq hs]
 
 /-! ## Definitions for equation (5) of `Kadiri2005`
 
