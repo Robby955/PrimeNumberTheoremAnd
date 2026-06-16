@@ -6416,24 +6416,9 @@ theorem identity_16_complex_weighted {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     norm_num at hs
   -- the explicit formula at the test function
   obtain ⟨b, hb, hdecay, hdecay'⟩ := kadiriTestFn_decay hf_supp hs
-  have hinv : ∀ {a : ℝ}, 0 < a → a < b → a < 1 → ∀ n : Nat, 1 ≤ n →
-      let Φ : ℂ → ℂ := fun z ↦
-        ∫ y, kadiriTestFn f s y * exp (-z * (y : ℂ)) ∂volume
-      Tendsto
-        (fun T : ℝ =>
-          (1 / (2 * (Real.pi : ℂ))) *
-            ∫ t in (-T)..T,
-              Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
-                (n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I))
-        atTop (𝓝 (kadiriTestFn f s (Real.log n))) := by
-    intro a ha hab ha1 n hn
-    exact kadiri_thm_3_1_q1_laplace_inversion_hinv
-      (φ := kadiriTestFn f s)
-      (kadiriTestFn_contDiff hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d s)
-      (b := b) hb hdecay hdecay' (a := a) ha hab ha1 (n := n) hn
   have hform := kadiri_thm_3_1_q1
     (kadiriTestFn_contDiff hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d s)
-    hb hdecay hdecay' hinv hΦ_sum hΓ_int
+    hb hdecay hdecay' hΦ_sum hΓ_int
   dsimp only at hform
   -- the pole value
   have hΦ1 : (∫ y, kadiriTestFn f s y *
