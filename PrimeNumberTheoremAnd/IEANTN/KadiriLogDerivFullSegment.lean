@@ -5782,4 +5782,511 @@ theorem
     eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_pointwise_and_zeta_remainder_pointwise_on_large_offPole_filter
       a G B ha hG k hdigamma_point hzeta_rem_point
 
+/-- The selected dyadic good-height filter is finer than the large off-pole filter. -/
+theorem kadiriDyadicGoodHeightFilter_le_kadiriLargeHorizontalZetaOffPoleFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    kadiriDyadicGoodHeightFilter hsrc ≤ kadiriLargeHorizontalZetaOffPoleFilter := by
+  rw [kadiriLargeHorizontalZetaOffPoleFilter]
+  refine le_inf (kadiriDyadicGoodHeightFilter_le_atTop hsrc) ?_
+  rw [Filter.le_principal_iff]
+  exact eventually_kadiriDyadicGoodHeightFilter_offPole hsrc
+
+theorem kadiriDyadicGoodHeightFilter_le_cofinite
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    kadiriDyadicGoodHeightFilter hsrc ≤ Filter.cofinite :=
+  (kadiriDyadicGoodHeightFilter_le_atTop hsrc).trans Filter.atTop_le_cofinite
+
+theorem
+    eventually_kadiri_neg_zeta_logDeriv_nonterminal_integral_log_bound_of_pointwise_log_bound_on_filter
+    (a : ℝ) (ha : 0 ≤ a) (L : Filter ℝ) (hL : L ≤ Filter.atTop)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hlogDeriv_point : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in L,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ)) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in L,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  intro A hA
+  obtain ⟨Z, hZ, hpoint⟩ := hlogDeriv_point A hA
+  refine ⟨Z, hZ, ?_⟩
+  have hsmall_one : ∀ᶠ T : ℝ in L,
+      A / Real.log |T| ^ (9 : ℕ) < 1 :=
+    (eventually_const_div_log_abs_pow_lt_atTop A 1 zero_lt_one).filter_mono hL
+  filter_upwards [hlarge, hpoint, hsmall_one] with T hlarge_T hpoint_T hsmall_one_T
+  let Lpow : ℝ := Real.log |T| ^ (9 : ℕ)
+  let x : ℝ := 1 - A / Lpow
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge_T.le
+  have hLpow_nonneg : 0 ≤ Lpow := by
+    dsimp [Lpow]
+    positivity
+  have hcoef_nonneg : 0 ≤ Z * Lpow := mul_nonneg hZ hLpow_nonneg
+  have hx_nonneg : 0 ≤ x := by
+    dsimp [x, Lpow]
+    linarith [le_of_lt hsmall_one_T]
+  have hx_le : x ≤ 1 + a := by
+    dsimp [x, Lpow]
+    have hshift_nonneg : 0 ≤ A / Real.log |T| ^ (9 : ℕ) :=
+      div_nonneg hA hLpow_nonneg
+    linarith
+  have hnorm :
+      ‖∫ σ in 0..x,
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ (Z * Lpow) * |x - 0| := by
+    simpa [x, Lpow] using
+      (intervalIntegral.norm_integral_le_of_norm_le_const
+        (a := 0) (b := x) (C := Z * Lpow)
+        (f := fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        (by simpa [x, Lpow] using hpoint_T))
+  have hlen : |x - 0| ≤ 1 + a := by
+    rw [sub_zero, abs_of_nonneg hx_nonneg]
+    exact hx_le
+  calc
+    ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖∫ σ in 0..x,
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖ := by
+          simp [x, Lpow]
+    _ ≤ (Z * Lpow) * |x - 0| := hnorm
+    _ ≤ (Z * Lpow) * (1 + a) :=
+        mul_le_mul_of_nonneg_left hlen hcoef_nonneg
+    _ = (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+        simp [Lpow]
+
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_log_bound_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hlogDeriv_nonterminal : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a)) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  intro A hA
+  obtain ⟨Z0, hZ0, hlogDeriv_bound⟩ := hlogDeriv_nonterminal A hA
+  obtain ⟨e, d, M, C, he, hd, hM, hC, hprincipal_bound_large⟩ :=
+    eventually_kadiri_moving_pole_zeta_principal_part_dyadic_nonterminal_right_integral_card_bound_on_large_offPole_filter
+      a A ha hA k
+  let K : ℝ :=
+    (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C
+  have hK_nonneg : 0 ≤ K := by
+    have hcard_nonneg :
+        0 ≤ ((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) := by
+      positivity
+    dsimp [K]
+    positivity
+  refine ⟨Z0 + K, add_nonneg hZ0 hK_nonneg, ?_⟩
+  have hprincipal_bound :
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)), (
+            ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+          ≤ (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C :=
+    hprincipal_bound_large.filter_mono
+      (kadiriDyadicGoodHeightFilter_le_kadiriLargeHorizontalZetaOffPoleFilter hsrc)
+  have hsmall_one : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      A / Real.log |T| ^ (9 : ℕ) < 1 :=
+    (eventually_const_div_log_abs_pow_lt_atTop A 1 zero_lt_one).filter_mono
+      (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+  filter_upwards [eventually_kadiriDyadicGoodHeightFilter_large hsrc,
+    eventually_kadiriDyadicGoodHeightFilter_offPole hsrc, hlogDeriv_bound,
+    hprincipal_bound, hsmall_one] with T hlarge hT hlog_T hprincipal_T hsmall_one_T
+  let Lpow : ℝ := Real.log |T| ^ (9 : ℕ)
+  let x : ℝ := 1 - A / Lpow
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+  have hLpow_pos : 0 < Lpow := by
+    dsimp [Lpow]
+    positivity
+  have hLpow_nonneg : 0 ≤ Lpow := hLpow_pos.le
+  have hLpow_one : 1 ≤ Lpow := by
+    dsimp [Lpow]
+    exact one_le_pow₀ hlog_one.le
+  have hshift_nonneg : 0 ≤ A / Lpow :=
+    div_nonneg hA hLpow_nonneg
+  have hx0 : 0 ≤ x := by
+    dsimp [x]
+    linarith [le_of_lt hsmall_one_T]
+  have hx_right : x ≤ 1 + a := by
+    dsimp [x]
+    linarith
+  have hlog_T' :
+      ‖∫ σ in 0..x,
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ (Z0 * Lpow) * (1 + a) := by
+    simpa [x, Lpow] using hlog_T
+  have hprincipal_T' :
+      ‖∫ σ in 0..x, (
+          ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        ≤ (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C := by
+    simpa [x, Lpow] using hprincipal_T
+  have hzeta_T :
+      ‖∫ σ in 0..x, kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * Lpow) * (1 + a) + K := by
+    simpa [K] using
+      (kadiriDyadicZetaLogDerivPVRemainder_nonterminal_right_integral_bound_of_logDeriv_and_principal
+        a x T ha hx0 hx_right k ((Z0 * Lpow) * (1 + a))
+        ((((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C)
+        hT hlog_T' hprincipal_T')
+  have honea_one : 1 ≤ 1 + a := by linarith
+  have honea_nonneg : 0 ≤ 1 + a := le_trans zero_le_one honea_one
+  have hKL_nonneg : 0 ≤ K * Lpow := mul_nonneg hK_nonneg hLpow_nonneg
+  have hK_absorb : K ≤ (K * Lpow) * (1 + a) := by
+    calc
+      K = K * 1 := by ring
+      _ ≤ K * Lpow := mul_le_mul_of_nonneg_left hLpow_one hK_nonneg
+      _ = (K * Lpow) * 1 := by ring
+      _ ≤ (K * Lpow) * (1 + a) :=
+          mul_le_mul_of_nonneg_left honea_one hKL_nonneg
+  calc
+    ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+        kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        = ‖∫ σ in 0..x, kadiriDyadicZetaLogDerivPVRemainder k T σ‖ := by
+          simp [x, Lpow]
+    _ ≤ (Z0 * Lpow) * (1 + a) + K := hzeta_T
+    _ ≤ (Z0 * Lpow) * (1 + a) + (K * Lpow) * (1 + a) := by
+          exact add_le_add_right hK_absorb _
+    _ = ((Z0 + K) * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+          simp [Lpow]
+          ring
+
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_pointwise_log_bound_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hlogDeriv_point : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ)) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  exact
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_log_bound_on_dyadicGoodHeightFilter
+      hsrc a ha k
+      (eventually_kadiri_neg_zeta_logDeriv_nonterminal_integral_log_bound_of_pointwise_log_bound_on_filter
+        a ha (kadiriDyadicGoodHeightFilter hsrc)
+        (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+        (eventually_kadiriDyadicGoodHeightFilter_large hsrc)
+        hlogDeriv_point)
+
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_nonterminal_log_bound_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hnonterminal : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a)) :
+    ∃ Z : ℝ, 0 ≤ Z ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+          ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  obtain ⟨A, C, d, M, hA, hC, hd, hM, hterminal_bound_large⟩ :=
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_terminal_right_integral_bound_on_large_offPole_filter
+      a ha k
+  obtain ⟨Z0, hZ0, hnonterminal_bound⟩ := hnonterminal A hA
+  let K : ℝ :=
+    ((((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) / d)
+  refine ⟨Z0 + C + K, ?_, ?_⟩
+  · have hcard_nonneg :
+        0 ≤ ((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) := by
+      positivity
+    have hK_nonneg : 0 ≤ K := by
+      dsimp [K]
+      exact div_nonneg (mul_nonneg hcard_nonneg hM) hd.le
+    positivity
+  have hterminal_bound :
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (1 - A / Real.log |T| ^ (9 : ℕ))..(1 + a),
+            kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+          ≤ (C * Real.log |T| ^ (9 : ℕ)) *
+                |1 + a - (1 - A / Real.log |T| ^ (9 : ℕ))| +
+              ((((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) /
+                d) * |1 + a - (1 - A / Real.log |T| ^ (9 : ℕ))| :=
+    hterminal_bound_large.filter_mono
+      (kadiriDyadicGoodHeightFilter_le_kadiriLargeHorizontalZetaOffPoleFilter hsrc)
+  have hsmall_one : ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      A / Real.log |T| ^ (9 : ℕ) < 1 :=
+    (eventually_const_div_log_abs_pow_lt_atTop A 1 zero_lt_one).filter_mono
+      (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+  filter_upwards [eventually_kadiriDyadicGoodHeightFilter_large hsrc,
+    eventually_kadiriDyadicGoodHeightFilter_offPole hsrc,
+    hnonterminal_bound, hterminal_bound, hsmall_one]
+    with T hlarge hT hnonterminal_T hterminal_T hsmall_one_T
+  let Lpow : ℝ := Real.log |T| ^ (9 : ℕ)
+  let x : ℝ := 1 - A / Lpow
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+  have hLpow_pos : 0 < Lpow := by
+    dsimp [Lpow]
+    positivity
+  have hLpow_nonneg : 0 ≤ Lpow := hLpow_pos.le
+  have hLpow_one : 1 ≤ Lpow := by
+    dsimp [Lpow]
+    exact one_le_pow₀ hlog_one.le
+  have hshift_nonneg : 0 ≤ A / Lpow :=
+    div_nonneg hA hLpow_nonneg
+  have honea_nonneg : 0 ≤ 1 + a := by linarith
+  have hx0 : 0 ≤ x := by
+    dsimp [x]
+    linarith [le_of_lt hsmall_one_T]
+  have hx_right : x ≤ 1 + a := by
+    dsimp [x]
+    linarith
+  have hlen_eq : |1 + a - x| = a + A / Lpow := by
+    dsimp [x]
+    rw [abs_of_nonneg]
+    · ring
+    · linarith
+  have hlen_le : |1 + a - x| ≤ 1 + a := by
+    rw [hlen_eq]
+    linarith [le_of_lt hsmall_one_T]
+  have hleft_T :
+      ‖∫ σ in 0..x, kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * Lpow) * (1 + a) := by
+    simpa [x, Lpow] using hnonterminal_T
+  have hterminal_T' :
+      ‖∫ σ in x..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (C * Lpow) * |1 + a - x| + K * |1 + a - x| := by
+    simpa [x, Lpow, K] using hterminal_T
+  have hright_split :
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * Lpow) * (1 + a) +
+            ((C * Lpow) * |1 + a - x| + K * |1 + a - x|) :=
+    kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_split
+      a x T ha hx0 hx_right k ((Z0 * Lpow) * (1 + a))
+      ((C * Lpow) * |1 + a - x| + K * |1 + a - x|)
+      hT hleft_T hterminal_T'
+  have hK_nonneg : 0 ≤ K := by
+    have hcard_nonneg :
+        0 ≤ ((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) := by
+      positivity
+    dsimp [K]
+    exact div_nonneg (mul_nonneg hcard_nonneg hM) hd.le
+  have hCL_nonneg : 0 ≤ C * Lpow := mul_nonneg hC.le hLpow_nonneg
+  have hterm_C :
+      (C * Lpow) * |1 + a - x| ≤ (C * Lpow) * (1 + a) :=
+    mul_le_mul_of_nonneg_left hlen_le hCL_nonneg
+  have hterm_K :
+      K * |1 + a - x| ≤ (K * Lpow) * (1 + a) := by
+    have hK_len : K * |1 + a - x| ≤ K * (1 + a) :=
+      mul_le_mul_of_nonneg_left hlen_le hK_nonneg
+    have hK_absorb : K * (1 + a) ≤ (K * Lpow) * (1 + a) := by
+      have hK_le : K ≤ K * Lpow := by
+        calc
+          K = K * 1 := by ring
+          _ ≤ K * Lpow := mul_le_mul_of_nonneg_left hLpow_one hK_nonneg
+      exact mul_le_mul_of_nonneg_right hK_le honea_nonneg
+    exact le_trans hK_len hK_absorb
+  have hterminal_absorb :
+      (C * Lpow) * |1 + a - x| + K * |1 + a - x|
+        ≤ (C * Lpow) * (1 + a) + (K * Lpow) * (1 + a) :=
+    add_le_add hterm_C hterm_K
+  calc
+    ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * Lpow) * (1 + a) +
+            ((C * Lpow) * |1 + a - x| + K * |1 + a - x|) := hright_split
+    _ ≤ (Z0 * Lpow) * (1 + a) +
+          ((C * Lpow) * (1 + a) + (K * Lpow) * (1 + a)) :=
+          add_le_add_right hterminal_absorb _
+    _ = ((Z0 + C + K) * Lpow) * (1 + a) := by
+          ring
+
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_logDeriv_pointwise_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hlogDeriv_point : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ)) :
+    ∃ Z : ℝ, 0 ≤ Z ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+          ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  exact
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_nonterminal_log_bound_on_dyadicGoodHeightFilter
+      hsrc a ha k
+      (eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_pointwise_log_bound_on_dyadicGoodHeightFilter
+        hsrc a ha k hlogDeriv_point)
+
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_log_bound_on_filter
+    (a G Z : ℝ) (ha : 0 ≤ a) (hG : 0 ≤ G) (hZ : 0 ≤ Z) (k : ℕ)
+    (L : Filter ℝ) (hL : L ≤ Filter.cofinite)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hoff : ∀ᶠ T : ℝ in L, kadiriHorizontalZetaOffPoleHeight T)
+    (hdigamma_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0)
+    (hdigamma_log_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+        ≤ (G * Real.log |T| ^ 9) * a)
+    (hzeta_rem_log_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z * Real.log |T| ^ 9) * (1 + a)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨e, M, he, hM_nonneg, hmargin_off, hM⟩ :=
+    kadiri_dyadic_truncated_zero_family_margin_and_multiplicity_selector_on_filter
+      a ha k L hL
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨Cp, hCp, hprincipal_bound⟩ :=
+    eventually_kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound_on_filter
+      a e R M he L (by simpa [R] using hmargin_off) (by simpa [R] using hM)
+  let P : ℝ := (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * Cp
+  have hright_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        volume 0 (1 + a) := by
+    filter_upwards [hoff] with T hT
+    exact kadiri_neg_zeta_logDeriv_right_intervalIntegrable_of_offPole a T ha hT
+  have hright_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ (Z * Real.log |T| ^ 9) * (1 + a) + P :=
+    by
+      filter_upwards [hoff, hprincipal_bound, hzeta_rem_log_bound] with T hT hprincipal_T hzeta_T
+      exact
+        kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal
+          a T ha k P ((Z * Real.log |T| ^ 9) * (1 + a)) hT
+          (by simpa [P, R] using hprincipal_T) hzeta_T
+  obtain ⟨C0, hC0, hfull_point⟩ :=
+    kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget a ha
+  refine ⟨e, M, C0 + G + Z, Cp, he, hM_nonneg,
+    add_nonneg (add_nonneg hC0 hG) hZ, hCp, ?_⟩
+  filter_upwards [hlarge, hdigamma_int, hdigamma_log_bound, hright_int, hright_bound]
+    with T hlarge_T hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  have hbase :
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ ((C0 * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a +
+              (G * Real.log |T| ^ 9) * a) +
+            ((Z * Real.log |T| ^ 9) * (1 + a) + P) :=
+    hfull_point (T := T) (D := (G * Real.log |T| ^ 9) * a)
+      (R := (Z * Real.log |T| ^ 9) * (1 + a) + P)
+      hlarge_T hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  have hlog_nonneg : 0 ≤ Real.log |T| ^ 9 := by
+    have hlog_pos : 0 < Real.log |T| ^ 9 := by
+      have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge_T.le
+      positivity
+    exact hlog_pos.le
+  have hshape :
+      ((C0 * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a +
+            (G * Real.log |T| ^ 9) * a) +
+          ((Z * Real.log |T| ^ 9) * (1 + a) + P)
+        ≤ ((C0 + G + Z) * Real.log |T| ^ 9) * (1 + 2 * a) +
+            |Real.log Real.pi| * a + P := by
+    have honea_nonneg : 0 ≤ 1 + a := by linarith
+    have hsurplus_coeff :
+        0 ≤ C0 * (1 + a) + G * (1 + a) + Z * a := by
+      nlinarith [hC0, hG, hZ, ha, honea_nonneg]
+    have hsurplus :
+        0 ≤ (C0 * (1 + a) + G * (1 + a) + Z * a) *
+          Real.log |T| ^ 9 :=
+      mul_nonneg hsurplus_coeff hlog_nonneg
+    nlinarith [hsurplus]
+  have hfinal :
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ ((C0 + G + Z) * Real.log |T| ^ 9) * (1 + 2 * a) +
+            |Real.log Real.pi| * a + P :=
+    le_trans hbase hshape
+  simpa [P, R] using hfinal
+
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_localPVRemainder_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨G, hG, hdigamma_point_large⟩ :=
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_pointwise_log_bound_on_large_offPole_filter
+      a ha
+  have hselected_le_large :=
+    kadiriDyadicGoodHeightFilter_le_kadiriLargeHorizontalZetaOffPoleFilter hsrc
+  have hdigamma_point :
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Ι (-a) 0,
+          ‖(1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+            ≤ G * Real.log |T| ^ 9 :=
+    hdigamma_point_large.filter_mono hselected_le_large
+  obtain ⟨Z, hZ, hzeta_rem_log_bound⟩ :=
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_logDeriv_pointwise_on_dyadicGoodHeightFilter
+      hsrc a ha k
+      (eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_localPVRemainder
+        hsrc hrem)
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_log_bound_on_filter
+      a G Z ha hG hZ k (kadiriDyadicGoodHeightFilter hsrc)
+      (kadiriDyadicGoodHeightFilter_le_cofinite hsrc)
+      (eventually_kadiriDyadicGoodHeightFilter_large hsrc)
+      (eventually_kadiriDyadicGoodHeightFilter_offPole hsrc)
+      ((eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
+        a ha).filter_mono hselected_le_large)
+      (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
+        a G ha (kadiriDyadicGoodHeightFilter hsrc) hdigamma_point)
+      hzeta_rem_log_bound
+
 end Kadiri
