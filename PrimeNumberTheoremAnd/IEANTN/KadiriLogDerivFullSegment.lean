@@ -2408,7 +2408,8 @@ theorem exists_kadiriDyadicGoodHeightSelector_localPrincipal_logSq
                 ((riemannZeta.order (rho : ℂ) : ℂ) /
                   (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
               C * Real.log |T| ^ (2 : ℕ) := by
-  obtain ⟨c, hc, hsel⟩ := exists_kadiriDyadicGoodHeightSelector_logRadius_offPole hsrc
+  obtain ⟨c, hc, hsel⟩ :=
+    exists_kadiriDyadicGoodHeightSelector_logRadius_offPole_with_budget hsrc
   obtain ⟨D, Tₘᵢₙ, hcnt⟩ := exists_u6aLocalZeroCountLogHypothesis
   rcases hcnt with ⟨hD, hcnt⟩
   refine ⟨D / c, div_nonneg hD.le hc.le, ?_⟩
@@ -2418,7 +2419,7 @@ theorem exists_kadiriDyadicGoodHeightSelector_localPrincipal_logSq
       (Filter.eventually_ge_atTop B)
   filter_upwards [hsel, hpow_large, Filter.eventually_ge_atTop (1 : ℕ)]
     with k hsel_k hk_large hk_one
-  obtain ⟨T, hT, hoff, _hgap_dyadic, hgap_local⟩ := hsel_k
+  obtain ⟨_hη_nonneg, _hsmall, T, hT, hoff, _hgap_dyadic, hgap_local⟩ := hsel_k
   refine ⟨T, hT, hoff, ?_⟩
   intro σ
   let X : ℝ := (2 : ℝ) ^ k
@@ -2501,17 +2502,18 @@ theorem exists_kadiriDyadicGoodHeightSequence_localPrincipal_logSq
   have hpow_large : ∀ᶠ k : ℕ in atTop, B ≤ (2 : ℝ) ^ k := by
     exact (tendsto_pow_atTop_atTop_of_one_lt (by norm_num : (1 : ℝ) < 2)).eventually
       (Filter.eventually_ge_atTop B)
-  filter_upwards [eventually_kadiriDyadicGoodHeightSequence_spec hsrc, hpow_large,
+  filter_upwards [eventually_kadiriDyadicGoodHeightSequence_spec_with_budget hsrc, hpow_large,
     Filter.eventually_ge_atTop (1 : ℕ)] with k hspec hk_large hk_one
   intro σ
   let T : ℝ := kadiriDyadicGoodHeightSequence hsrc k
   let X : ℝ := (2 : ℝ) ^ k
+  obtain ⟨_hη_nonneg, _hsmall, hTseq, _hoff, _hgap_dyadic, hgap_local_seq⟩ := hspec
   have hT : T ∈ Set.Ioc X (2 * X) := by
-    simpa [T, X] using hspec.1
+    simpa [T, X] using hTseq
   have hgap_local :
       ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
         c / Real.log X < |T - (rho : ℂ).im| := by
-    simpa [T, X, c] using hspec.2.2.2
+    simpa [T, X, c] using hgap_local_seq
   have hXpos : 0 < X := by
     dsimp [X]
     exact pow_pos (by norm_num) k
