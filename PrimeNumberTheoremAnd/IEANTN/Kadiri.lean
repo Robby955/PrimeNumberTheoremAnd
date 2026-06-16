@@ -986,6 +986,119 @@ theorem kadiri_thm_3_1_q1_eq_12_rectangle_side_decomposition
   exact congrArg F (by ring_nf)
 
 /--
+CH2 residue-sum bridge for the Kadiri equation (12) rectangle. The remaining
+analytic input is the actual pole-set identity for the integrand on this
+rectangle.
+-/
+theorem kadiri_eq12_rectangleIntegral_eq_residue_packet_of_pole_set
+    {Φ : ℂ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
+    (hΦ_one : AnalyticAt ℂ Φ (-1))
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (hmero : MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
+    (hno_boundary :
+      Disjoint
+        (RectangleBorder (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0})
+    (hsimple : CH2.HasSimplePolesOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
+    (hpoles_eq :
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} =
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T))) :
+    RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+        (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+      Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+        (fun ρ ↦ Φ (-ρ)) := by
+  let F : ℂ → ℂ := fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)
+  let z : ℂ := (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+  let w : ℂ := (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)
+  have hzle : z.re ≤ w.re := by
+    dsimp [z, w]
+    simp
+    linarith
+  have hwle : z.im ≤ w.im := by
+    dsimp [z, w]
+    simp
+    linarith
+  have hpoles_fin :
+      (Rectangle z w ∩ {u | meromorphicOrderAt F u < 0}).Finite := by
+    rw [show Rectangle z w ∩ {u | meromorphicOrderAt F u < 0} =
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) by
+      simpa [F, z, w] using hpoles_eq]
+    exact kadiri_eq12_candidate_residue_set_finite T
+  calc
+    RectangleIntegral' F z w =
+        CH2.sumResiduesIn F (Rectangle z w ∩ {u | meromorphicOrderAt F u < 0}) := by
+      exact CH2.RectangleIntegral'_eq_sumResiduesIn hzle hwle
+        (by simpa [F, z, w] using hmero)
+        (by simpa [F, z, w] using hno_boundary)
+        hpoles_fin
+        (by simpa [F, z, w] using hsimple)
+    _ = CH2.sumResiduesIn F
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) := by
+      rw [show Rectangle z w ∩ {u | meromorphicOrderAt F u < 0} =
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)) by
+        simpa [F, z, w] using hpoles_eq]
+    _ = Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+        (fun ρ ↦ Φ (-ρ)) := by
+      simpa [F] using kadiri_eq12_sumResiduesIn_candidate_eq_of_analytic
+        (Φ := Φ) (T := T) hΦ_one hΦ_zero
+
+/--
+Pure assembly form of Kadiri equation (12): once the rectangle integral has
+been evaluated as the residue packet, the four side terms give the displayed
+formula.
+-/
+theorem kadiri_thm_3_1_q1_eq_12_from_rectangleIntegral
+    {φ : ℝ → ℂ} {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
+    (Φ : ℂ → ℂ)
+    (hΦ : Φ = fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (hrect :
+      RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+          (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) =
+        Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+          (fun ρ ↦ Φ (-ρ))) :
+    kadiri_thm_3_1_q1_I φ a T =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      + Φ (-1)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  subst Φ
+  let F : ℂ → ℂ := fun s ↦
+    (-logDeriv riemannZeta s) *
+      (fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume) (-s)
+  have hside := kadiri_thm_3_1_q1_eq_12_rectangle_side_decomposition
+    (F := F) (a := a) (T := T) ha hT
+  rw [hrect] at hside
+  simpa [F, kadiri_thm_3_1_q1_I, logDeriv_apply, neg_div, sub_eq_add_neg, add_assoc]
+    using hside
+
+/--
 Remaining rectangle and residue-sum decomposition for Kadiri equation (12).
 
 This is the part not supplied by the single-zero residue bridge: it must identify
