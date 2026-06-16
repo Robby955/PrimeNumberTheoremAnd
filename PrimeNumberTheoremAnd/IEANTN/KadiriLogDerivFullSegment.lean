@@ -595,6 +595,86 @@ theorem kadiri_moving_pole_principal_part_horizontal_integral_bound
     (norm_nonneg A)
 
 /--
+Right-segment transversal kernel bound with an explicit lower endpoint margin.
+
+This is the translated form needed on `[0, 1 + a]`: it reuses the symmetric
+`[-a / 2, 1 + a / 2]` kernel after shifting the real axis by `a / 2`.
+-/
+theorem kadiri_right_segment_transversal_pole_crossing_norm_le
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ δ : ℝ, δ ≠ 0 → ∀ β : ℝ,
+        β ∈ Set.Icc e (1 + a - e) →
+          ‖∫ σ in 0..(1 + a), (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹‖ ≤ C := by
+  obtain ⟨C, hC, hbound⟩ := transversal_pole_crossing_norm_le (a / 2) e he
+  refine ⟨C, hC, ?_⟩
+  intro δ hδ β hβ
+  let β' : ℝ := β - a / 2
+  have hβ' : β' ∈ Set.Icc (-(a / 2) + e) (1 + a / 2 - e) := by
+    constructor
+    · dsimp [β']
+      linarith [hβ.1]
+    · dsimp [β']
+      linarith [hβ.2]
+  let g : ℝ → ℂ := fun τ => (((τ : ℂ) - (β' : ℂ)) + (δ : ℂ) * I)⁻¹
+  have hfun :
+      (fun σ : ℝ => (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹) =
+        fun σ : ℝ => g (σ - a / 2) := by
+    funext σ
+    simp [g, β']
+  calc
+    ‖∫ σ in 0..(1 + a), (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹‖
+        = ‖∫ σ in 0..(1 + a), g (σ - a / 2)‖ := by
+          rw [hfun]
+    _ = ‖∫ σ in (0 - a / 2)..(1 + a - a / 2), g σ‖ := by
+          rw [intervalIntegral.integral_comp_sub_right]
+    _ = ‖∫ σ in -(a / 2)..(1 + a / 2), g σ‖ := by
+          congr 3 <;> ring
+    _ ≤ C := by
+          simpa [g, β'] using hbound δ hδ β' hβ'
+
+/--
+Uniform right-segment integral bound for one moving simple pole away from the endpoints.
+
+The real-part hypothesis is stronger than the full-segment strip condition: it includes the
+lower margin `e <= rho.re` needed to keep the pole away from the right segment's left
+endpoint.
+-/
+theorem kadiri_moving_pole_principal_part_right_integral_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (A : ℂ) (T : ℝ) (rho : ℂ),
+        rho.re ∈ Set.Icc e (1 + a - e) →
+        rho.im ≠ T →
+          ‖∫ σ in 0..(1 + a),
+              A / (((σ : ℂ) + (T : ℂ) * I) - rho)‖
+            ≤ ‖A‖ * C := by
+  obtain ⟨C, hC, hbound⟩ :=
+    kadiri_right_segment_transversal_pole_crossing_norm_le a e he
+  refine ⟨C, hC, ?_⟩
+  intro A T rho hrho hT
+  let β : ℝ := rho.re
+  let δ : ℝ := T - rho.im
+  have hδ : δ ≠ 0 := by
+    intro hδ0
+    exact hT (sub_eq_zero.mp hδ0).symm
+  have hline (σ : ℝ) :
+      (((σ : ℂ) + (T : ℂ) * I) - rho) =
+        (((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I) := by
+    rw [Complex.ext_iff]
+    constructor <;> simp [β, δ]
+  have hfun :
+      (fun σ : ℝ => A / (((σ : ℂ) + (T : ℂ) * I) - rho)) =
+        fun σ : ℝ => A * ((((σ : ℂ) - (β : ℂ)) + (δ : ℂ) * I)⁻¹) := by
+    funext σ
+    rw [hline σ]
+    simp [div_eq_mul_inv]
+  rw [hfun, intervalIntegral.integral_const_mul, norm_mul]
+  exact mul_le_mul_of_nonneg_left
+    (hbound δ hδ β (by simpa [β] using hrho))
+    (norm_nonneg A)
+
+/--
 Kadiri-facing specialization of the moving-pole integral bound to a zeta zero principal
 part, with the coefficient equal to the zeta multiplicity at `rho`.
 -/
@@ -614,12 +694,49 @@ theorem kadiri_moving_pole_zeta_principal_part_horizontal_integral_bound
   intro T rho hrho hT
   exact hbound ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) hrho hT
 
+/--
+Right-segment specialization of the moving-pole integral bound to a zeta zero principal
+part, with the endpoint margin kept explicit.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_right_integral_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (T : ℝ) (rho : NontrivialZeros),
+        (rho : ℂ).re ∈ Set.Icc e (1 + a - e) →
+        (rho : ℂ).im ≠ T →
+          ‖∫ σ in 0..(1 + a),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+            ≤ ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * C := by
+  obtain ⟨C, hC, hbound⟩ :=
+    kadiri_moving_pole_principal_part_right_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro T rho hrho hT
+  exact hbound ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) hrho hT
+
 /-- The off-segment moving-pole integrand is interval-integrable on the horizontal segment. -/
 theorem kadiri_moving_pole_principal_part_intervalIntegrable
     (a : ℝ) (A : ℂ) (T : ℝ) (rho : ℂ) (hT : rho.im ≠ T) :
     IntervalIntegrable
       (fun σ : ℝ => A / (((σ : ℂ) + (T : ℂ) * I) - rho))
       volume (-a) (1 + a) := by
+  have hden_ne (σ : ℝ) : (((σ : ℂ) + (T : ℂ) * I) - rho) ≠ 0 := by
+    intro hzero
+    apply hT
+    have hzero_im : (((σ : ℂ) + (T : ℂ) * I) - rho).im = 0 := by
+      rw [hzero]
+      simp
+    have hdiff : T - rho.im = 0 := by
+      simpa using hzero_im
+    exact (sub_eq_zero.mp hdiff).symm
+  exact (continuous_const.div (by fun_prop) hden_ne).intervalIntegrable _ _
+
+/-- The off-segment moving-pole integrand is interval-integrable on the right segment. -/
+theorem kadiri_moving_pole_principal_part_right_intervalIntegrable
+    (a : ℝ) (A : ℂ) (T : ℝ) (rho : ℂ) (hT : rho.im ≠ T) :
+    IntervalIntegrable
+      (fun σ : ℝ => A / (((σ : ℂ) + (T : ℂ) * I) - rho))
+      volume 0 (1 + a) := by
   have hden_ne (σ : ℝ) : (((σ : ℂ) + (T : ℂ) * I) - rho) ≠ 0 := by
     intro hzero
     apply hT
@@ -682,6 +799,56 @@ theorem kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_bo
           rw [Finset.sum_mul]
 
 /--
+Right-segment finite-family version of the moving-pole zeta principal-part integral bound.
+
+The endpoint-margin hypothesis is carried memberwise; a later selector must supply it for
+the concrete truncated family used in the full-segment assembly.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_finite_sum_right_integral_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (S : Finset NontrivialZeros) (T : ℝ),
+        (∀ rho ∈ S,
+          (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T) →
+          ‖∫ σ in 0..(1 + a), (
+              ∑ rho ∈ S,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C := by
+  classical
+  obtain ⟨C, hC, hsingle⟩ :=
+    kadiri_moving_pole_zeta_principal_part_right_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro S T hS
+  let f : NontrivialZeros → ℝ → ℂ := fun rho σ =>
+    ((riemannZeta.order (rho : ℂ) : ℂ) /
+      (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  have hint : ∀ rho ∈ S, IntervalIntegrable (f rho) volume 0 (1 + a) := by
+    intro rho hrho
+    exact kadiri_moving_pole_principal_part_right_intervalIntegrable
+      a ((riemannZeta.order (rho : ℂ) : ℂ)) T (rho : ℂ) (hS rho hrho).2
+  have hintegral_sum :
+      (∫ σ in 0..(1 + a), ∑ rho ∈ S, f rho σ) =
+        ∑ rho ∈ S, ∫ σ in 0..(1 + a), f rho σ := by
+    exact intervalIntegral.integral_finsetSum hint
+  calc
+    ‖∫ σ in 0..(1 + a), (
+        ∑ rho ∈ S,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        = ‖∫ σ in 0..(1 + a), ∑ rho ∈ S, f rho σ‖ := by
+          simp [f]
+    _ = ‖∑ rho ∈ S, ∫ σ in 0..(1 + a), f rho σ‖ := by
+          rw [hintegral_sum]
+    _ ≤ ∑ rho ∈ S, ‖∫ σ in 0..(1 + a), f rho σ‖ :=
+          norm_sum_le _ _
+    _ ≤ ∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ * C := by
+          refine Finset.sum_le_sum fun rho hrho => ?_
+          simpa [f] using hsingle T rho (hS rho hrho).1 (hS rho hrho).2
+    _ = (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C := by
+          rw [Finset.sum_mul]
+
+/--
 Coarse cardinality-budget form of the finite-family moving-pole bound.
 
 It is ready for a later zero-counting lemma that supplies a family size and a uniform
@@ -706,6 +873,43 @@ theorem kadiri_moving_pole_zeta_principal_part_finite_sum_horizontal_integral_ca
   intro S T M hS hM
   calc
     ‖∫ σ in (-a)..(1 + a), (
+        ∑ rho ∈ S,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+        ≤ (∑ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖) * C :=
+          hsum S T hS
+    _ ≤ (∑ rho ∈ S, M) * C := by
+          exact mul_le_mul_of_nonneg_right
+            (Finset.sum_le_sum fun rho hrho => hM rho hrho)
+            hC
+    _ = ((S.card : ℝ) * M) * C := by
+          simp [Finset.sum_const, nsmul_eq_mul]
+
+/--
+Right-segment cardinality-budget form of the finite-family moving-pole bound.
+
+The lower endpoint margin remains an explicit hypothesis instead of being hidden inside
+the zero-counting budget.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_finite_sum_right_integral_card_bound
+    (a e : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (S : Finset NontrivialZeros) (T M : ℝ),
+        (∀ rho ∈ S,
+          (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T) →
+        (∀ rho ∈ S, ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) →
+          ‖∫ σ in 0..(1 + a), (
+              ∑ rho ∈ S,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ ((S.card : ℝ) * M) * C := by
+  classical
+  obtain ⟨C, hC, hsum⟩ :=
+    kadiri_moving_pole_zeta_principal_part_finite_sum_right_integral_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro S T M hS hM
+  calc
+    ‖∫ σ in 0..(1 + a), (
         ∑ rho ∈ S,
           ((riemannZeta.order (rho : ℂ) : ℂ) /
             (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
@@ -1963,5 +2167,126 @@ theorem kadiri_moving_pole_zeta_principal_part_truncated_horizontal_integral_car
           (by simpa [kadiriTruncatedNontrivialZeros] using hrho)
       simpa using hmem
     exact hM rho him
+
+/--
+Concrete truncated-zero right-segment version of the finite-family moving-pole bound.
+
+The endpoint margin is an explicit real hypothesis on the truncated family. This is the
+remaining selector obligation for plugging the right-segment pole budget into the
+full-segment assembly.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound
+    (a e R : ℝ) (he : 0 < e) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (T M : ℝ),
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R →
+            (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T) →
+        (∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < R →
+            ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) →
+          ‖∫ σ in 0..(1 + a), (
+              ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+                ((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+            ≤ (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * C := by
+  classical
+  obtain ⟨C, hC, hcard⟩ :=
+    kadiri_moving_pole_zeta_principal_part_finite_sum_right_integral_card_bound a e he
+  refine ⟨C, hC, ?_⟩
+  intro T M hmargin_off hM
+  refine hcard (kadiriTruncatedNontrivialZeros R) T M ?_ ?_
+  · intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      simpa using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+    exact hmargin_off rho him
+  · intro rho hrho
+    have him : |(rho : ℂ).im| < R := by
+      simpa using (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+    exact hM rho him
+
+/--
+Eventual concrete right-segment pole budget for a truncated zero family.
+
+This packages the moving-pole PV integral into the exact budget shape expected by the
+right-segment zeta remainder assembly; the real-part margin and multiplicity cap are still
+separate obligations.
+-/
+theorem
+    eventually_kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound_on_filter
+    (a e R M : ℝ) (he : 0 < e) (L : Filter ℝ)
+    (hmargin_off : ∀ᶠ T : ℝ in L,
+      ∀ rho : NontrivialZeros,
+        |(rho : ℂ).im| < R →
+          (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T)
+    (hM : ∀ rho : NontrivialZeros,
+      |(rho : ℂ).im| < R →
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in 0..(1 + a), (
+            ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+          ≤ (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * C := by
+  obtain ⟨C, hC, hcard⟩ :=
+    kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound a e R he
+  refine ⟨C, hC, ?_⟩
+  filter_upwards [hmargin_off] with T hT
+  exact hcard T M hT hM
+
+/--
+Full-segment off-pole assembly with the right-segment truncated pole budget instantiated.
+
+The hypotheses now isolate the still-open analytic obligations: reflected/digamma control,
+right-segment zeta remainder control, a real endpoint-margin selector for the truncated
+zeros, and a multiplicity cap.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_reflected_right_zeta_remainder_and_truncated_principal_card_on_filter
+    (a e D B M : ℝ) (ha : 0 ≤ a) (he : 0 < e) (k : ℕ) (L : Filter ℝ)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hoff : ∀ᶠ T : ℝ in L, kadiriHorizontalZetaOffPoleHeight T)
+    (hdigamma_int : ∀ᶠ T : ℝ in L,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+        volume (-a) 0)
+    (hdigamma_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D)
+    (hmargin_off : ∀ᶠ T : ℝ in L,
+      ∀ rho : NontrivialZeros,
+        |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+          (rho : ℂ).re ∈ Set.Icc e (1 + a - e) ∧ (rho : ℂ).im ≠ T)
+    (hM : ∀ rho : NontrivialZeros,
+      |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M)
+    (hzeta_rem_bound : ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ B) :
+    ∃ C Cp : ℝ, 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in L,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ ((C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D) +
+              (B + (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp) := by
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨Cp, hCp, hprincipal_bound⟩ :=
+    eventually_kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound_on_filter
+      a e R M he L (by simpa [R] using hmargin_off) (by simpa [R] using hM)
+  let P : ℝ := (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * Cp
+  obtain ⟨C, hC, hfull⟩ :=
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_reflected_and_right_zeta_remainder_on_filter
+      a D P B ha k L hlarge hoff hdigamma_int hdigamma_bound
+      (by simpa [P, R] using hprincipal_bound)
+      hzeta_rem_bound
+  refine ⟨C, Cp, hC, hCp, ?_⟩
+  simpa [P, R] using hfull
 
 end Kadiri
