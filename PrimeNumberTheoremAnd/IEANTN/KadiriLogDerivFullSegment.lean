@@ -2787,6 +2787,41 @@ theorem eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localP
     (fun σ hσ => hprincipal_T σ)
     (fun σ hσ => hremainder_T σ hσ)
 
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_budget_and_positiveLogDeriv_logSq_of_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        (∃ k : ℕ,
+          T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+          0 ≤ η ∧
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+              (2 * η) < (2 : ℝ) ^ k ∧
+          T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+          kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|)) ∧
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C := by
+  obtain ⟨P, hP, hprincipal⟩ :=
+    eventually_kadiriDyadicGoodHeightFilter_budget_and_localPrincipal_logSq hsrc
+  obtain ⟨R, hR, hremainder⟩ := hrem
+  refine ⟨P + R, add_nonneg hP hR, ?_⟩
+  filter_upwards [hprincipal, hremainder] with T hprincipal_T hremainder_T
+  obtain ⟨hbudget_T, hprincipal_bound_T⟩ := hprincipal_T
+  exact ⟨hbudget_T,
+    kadiriPositiveHorizontalSegmentLogDerivBound_of_localPrincipal_and_localPVRemainder
+      (Cprincipal := P) (Cremainder := R) (T := T)
+      (fun σ _hσ => hprincipal_bound_T σ)
+      (fun σ hσ => hremainder_T σ hσ)⟩
+
 theorem eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_candidate
     (hsrc : zeroImagDyadicCumulativeCountBoundSource)
     (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,

@@ -367,6 +367,32 @@ theorem
   exact ⟨hbudget, hseg_T⟩
 
 theorem
+    eventually_kadiriDyadicGoodHeightFilter_budget_and_positiveLogDeriv_logSq_of_sequence_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+        ‖kadiriLocalZetaLogDerivPVRemainder (kadiriDyadicGoodHeightSequence hsrc k) σ‖ ≤
+          R * Real.log |kadiriDyadicGoodHeightSequence hsrc k| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        (∃ k : ℕ,
+          T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+          0 ≤ η ∧
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+              (2 * η) < (2 : ℝ) ^ k ∧
+          T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+          kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|)) ∧
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_budget_and_positiveLogDeriv_logSq_of_localPVRemainder
+    hsrc (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_sequence
+      hsrc hrem)
+
+theorem
     eventually_kadiriDyadicGoodHeightFilter_budget_and_abs_horizontalSegmentLogDerivBound_of_candidate_localPVRemainder
     (hsrc : zeroImagDyadicCumulativeCountBoundSource)
     (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
@@ -391,6 +417,34 @@ theorem
             η < |T - (rho : ℂ).im|)) ∧
         kadiriHorizontalSegmentLogDerivBound (-1) 2 |T| C :=
   eventually_kadiriDyadicGoodHeightFilter_budget_and_abs_horizontalSegmentLogDerivBound_of_sequence_localPVRemainder
+    hsrc
+    (eventually_kadiriDyadicGoodHeightSequence_localPVRemainder_logSq_of_candidate hsrc hrem)
+
+theorem
+    eventually_kadiriDyadicGoodHeightFilter_budget_and_positiveLogDeriv_logSq_of_candidate_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        (∃ k : ℕ,
+          T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          let η : ℝ := kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)
+          0 ≤ η ∧
+          ((kadiriDyadicZeroWindow ((2 : ℝ) ^ k)).ncard : ℝ) *
+              (2 * η) < (2 : ℝ) ^ k ∧
+          T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+          kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η < |T - (rho : ℂ).im|)) ∧
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C :=
+  eventually_kadiriDyadicGoodHeightFilter_budget_and_positiveLogDeriv_logSq_of_sequence_localPVRemainder
     hsrc
     (eventually_kadiriDyadicGoodHeightSequence_localPVRemainder_logSq_of_candidate hsrc hrem)
 
