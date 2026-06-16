@@ -1074,6 +1074,104 @@ theorem kadiri_neg_zeta_logDeriv_mul_meromorphicOrderAt_nonneg_on_horizontal_bor
     (riemannZeta_ne_zero_on_horizontal_border_of_offPole (T := T) (σ := σ) (t := t)
       hT ht)
 
+theorem kadiri_rectangle_neg_zeta_logDeriv_mul_pole_candidate
+    {Ψ : ℂ → ℂ} {a T : ℝ} {z : ℂ}
+    (ha : 0 < a) (ha1 : a < 1) (hT : 0 ≤ T)
+    (hzRect : z ∈ Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))
+    (hΨ_mero : MeromorphicAt Ψ z)
+    (hΨ_nonneg : 0 ≤ meromorphicOrderAt Ψ z)
+    (hpole : meromorphicOrderAt
+      (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) z < 0) :
+    z = (1 : ℂ) ∨
+      ∃ rho : NontrivialZeros, (rho : ℂ) = z ∧ |(rho : ℂ).im| ≤ T := by
+  by_cases hz_one : z = (1 : ℂ)
+  · exact Or.inl hz_one
+  · have hzeta_zero : riemannZeta z = 0 := by
+      by_contra hzeta_ne
+      exact not_lt_of_ge
+        (kadiri_neg_zeta_logDeriv_mul_meromorphicOrderAt_nonneg_of_zeta_ne_zero
+          hΨ_mero hΨ_nonneg hz_one hzeta_ne)
+        hpole
+    have hre :
+        (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).re ≤
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).re := by
+      simp
+      linarith
+    have him :
+        (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).im ≤
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).im := by
+      simp
+      linarith
+    rcases (mem_Rect hre him z).1 hzRect with ⟨hz_re_left, hz_re_right, hz_im_low, hz_im_high⟩
+    have hz_re_gt_neg_one : -1 < z.re := by
+      have hleft : -a ≤ z.re := by simpa using hz_re_left
+      linarith
+    by_cases hz_re_nonpos : z.re ≤ 0
+    · exact False.elim
+        ((riemannZeta_ne_zero_of_neg_one_lt_re_nonpos hz_re_gt_neg_one hz_re_nonpos)
+          hzeta_zero)
+    · have hz_re_pos : 0 < z.re := lt_of_not_ge hz_re_nonpos
+      by_cases hz_re_one_le : 1 ≤ z.re
+      · exact False.elim ((riemannZeta_ne_zero_of_one_le_re hz_re_one_le) hzeta_zero)
+      · have hz_re_lt_one : z.re < 1 := lt_of_not_ge hz_re_one_le
+        let rho : NontrivialZeros :=
+          ⟨z, ⟨hz_re_pos, hz_re_lt_one⟩, Set.mem_univ _, by
+            simpa [riemannZeta.zeroes] using hzeta_zero⟩
+        refine Or.inr ⟨rho, rfl, ?_⟩
+        have him_abs : |z.im| ≤ T := by
+          exact abs_le.mpr ⟨by simpa using hz_im_low, by simpa using hz_im_high⟩
+        simpa [rho] using him_abs
+
+theorem nontrivialZeros_abs_im_le_finite (T : ℝ) :
+    ({rho : NontrivialZeros | |(rho : ℂ).im| ≤ T} : Set NontrivialZeros).Finite := by
+  refine Set.Finite.subset (nontrivialZeros_abs_im_lt_finite (T + 1)) ?_
+  intro rho hrho
+  exact lt_of_le_of_lt hrho (lt_add_one T)
+
+theorem kadiri_one_union_nontrivialZeros_abs_im_le_finite (T : ℝ) :
+    ({z : ℂ | z = (1 : ℂ) ∨
+      ∃ rho : NontrivialZeros, (rho : ℂ) = z ∧ |(rho : ℂ).im| ≤ T}).Finite := by
+  let Z : Set ℂ :=
+    (fun rho : NontrivialZeros => (rho : ℂ)) ''
+      ({rho : NontrivialZeros | |(rho : ℂ).im| ≤ T} : Set NontrivialZeros)
+  have hZ : Z.Finite := (nontrivialZeros_abs_im_le_finite T).image
+    (fun rho : NontrivialZeros => (rho : ℂ))
+  have hset :
+      {z : ℂ | z = (1 : ℂ) ∨
+        ∃ rho : NontrivialZeros, (rho : ℂ) = z ∧ |(rho : ℂ).im| ≤ T} =
+        ({1} : Set ℂ) ∪ Z := by
+    ext z
+    constructor
+    · intro hz
+      rcases hz with hz_one | ⟨rho, hρz, hρT⟩
+      · exact Or.inl (by simpa using hz_one)
+      · exact Or.inr ⟨rho, hρT, hρz⟩
+    · intro hz
+      rcases hz with hz_one | ⟨rho, hρT, hρz⟩
+      · exact Or.inl (by simpa using hz_one)
+      · exact Or.inr ⟨rho, hρz, hρT⟩
+  rw [hset]
+  exact (Set.finite_singleton (1 : ℂ)).union hZ
+
+theorem kadiri_rectangle_neg_zeta_logDeriv_mul_poles_finite
+    {Ψ : ℂ → ℂ} {a T : ℝ}
+    (ha : 0 < a) (ha1 : a < 1) (hT : 0 ≤ T)
+    (hΨ_mero : ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I), MeromorphicAt Ψ z)
+    (hΨ_nonneg : ∀ z ∈ Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I), 0 ≤ meromorphicOrderAt Ψ z) :
+    (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+      (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) z < 0}).Finite := by
+  refine Set.Finite.subset
+    (kadiri_one_union_nontrivialZeros_abs_im_le_finite T) ?_
+  intro z hz
+  rcases hz with ⟨hzRect, hpole⟩
+  exact kadiri_rectangle_neg_zeta_logDeriv_mul_pole_candidate
+    ha ha1 hT hzRect (hΨ_mero z hzRect) (hΨ_nonneg z hzRect) hpole
+
 /--
 After multiplication by a continuous test factor, the residue at the zeta pole
 `s = 1` is the test factor value.
