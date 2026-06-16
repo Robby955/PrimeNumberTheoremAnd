@@ -112,6 +112,52 @@ theorem kadiri_reflected_logDeriv_bound_from_right_halfplane :
   have h := hbound (1 - sigma) (-T) hTneg hmem
   simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, abs_neg] using h
 
+/-- The reflected zeta logarithmic-derivative term is integrable on `[-a, 0]`. -/
+theorem kadiri_reflected_logDeriv_nonpositive_horizontal_intervalIntegrable
+    (a T : ℝ) (ha : 0 ≤ a) (hT : T ≠ 0) :
+    IntervalIntegrable
+      (fun σ : ℝ =>
+        deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
+          riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))))
+      volume (-a) 0 := by
+  have hle : -a ≤ 0 := by linarith
+  refine ContinuousOn.intervalIntegrable_of_Icc hle ?_
+  refine continuousOn_of_forall_continuousAt ?_
+  intro σ hσ
+  let z : ℂ := 1 - (((σ : ℂ) + (T : ℂ) * I))
+  have hz_ne_one : z ≠ 1 := by
+    intro hz
+    apply hT
+    have him : z.im = (1 : ℂ).im := congrArg Complex.im hz
+    simpa [z] using him
+  have hzeta_ne : riemannZeta z ≠ 0 := by
+    apply riemannZeta_ne_zero_of_one_le_re
+    have hσ_nonpos : σ ≤ 0 := hσ.2
+    simp [z]
+    linarith
+  have hz_cont :
+      ContinuousAt (fun σ : ℝ => 1 - (((σ : ℂ) + (T : ℂ) * I))) σ := by
+    exact (continuous_const.sub (Complex.continuous_ofReal.add continuous_const)).continuousAt
+  have hderiv_cont :
+      ContinuousAt (fun σ : ℝ =>
+        deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))) σ := by
+    exact ContinuousAt.comp
+      (f := fun σ : ℝ => 1 - (((σ : ℂ) + (T : ℂ) * I)))
+      (g := fun z : ℂ => deriv riemannZeta z)
+      (x := σ)
+      (differentiableAt_deriv_riemannZeta (by simpa [z] using hz_ne_one)).continuousAt
+      hz_cont
+  have hzeta_cont :
+      ContinuousAt (fun σ : ℝ =>
+        riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))) σ := by
+    exact ContinuousAt.comp
+      (f := fun σ : ℝ => 1 - (((σ : ℂ) + (T : ℂ) * I)))
+      (g := fun z : ℂ => riemannZeta z)
+      (x := σ)
+      (differentiableAt_riemannZeta (by simpa [z] using hz_ne_one)).continuousAt
+      hz_cont
+  exact hderiv_cont.div hzeta_cont hzeta_ne
+
 /--
 Integral wrapper for the reflected zeta term on the nonpositive part of the horizontal
 segment.
@@ -145,6 +191,119 @@ theorem kadiri_reflected_logDeriv_nonpositive_horizontal_integral_bound
         deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
           riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))) hpoint
   simpa [sub_eq_add_neg, abs_of_nonneg ha] using hnorm
+
+/--
+Functional-equation assembly on the nonpositive part of the horizontal segment.
+
+The reflected zeta term is controlled by the right-half-plane bound; this leaves the
+digamma-pair integral as the remaining analytic budget.
+-/
+theorem kadiri_nonpositive_logDeriv_integral_bound_of_digamma_budget
+    (a : ℝ) (ha : 0 ≤ a) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ {T D : ℝ}, 3 < |T| →
+        IntervalIntegrable
+          (fun σ : ℝ =>
+            (1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2))))
+          volume (-a) 0 →
+        ‖∫ σ in (-a)..0,
+            (1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+                digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖ ≤ D →
+        ‖∫ σ in (-a)..0,
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D := by
+  obtain ⟨C, hC, href_bound⟩ :=
+    kadiri_reflected_logDeriv_nonpositive_horizontal_integral_bound a ha
+  refine ⟨C, hC, ?_⟩
+  intro T D hT hdigamma_int hdigamma_bound
+  have hT_ne : T ≠ 0 := by
+    intro hzero
+    rw [hzero, abs_zero] at hT
+    norm_num at hT
+  let lhs : ℝ → ℂ := fun σ =>
+    -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+      riemannZeta (((σ : ℂ) + (T : ℂ) * I))
+  let constTerm : ℝ → ℂ := fun _ => ((-Real.log Real.pi : ℝ) : ℂ)
+  let reflectedTerm : ℝ → ℂ := fun σ =>
+    deriv riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I))) /
+      riemannZeta (1 - (((σ : ℂ) + (T : ℂ) * I)))
+  let digammaTerm : ℝ → ℂ := fun σ =>
+    (1 / 2 : ℂ) *
+      (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+        digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))
+  have hle : -a ≤ 0 := by linarith
+  have hcongr :
+      Set.EqOn lhs (fun σ => constTerm σ + reflectedTerm σ + digammaTerm σ) [[-a, 0]] := by
+    intro σ hσ
+    have hσ_nonpos : σ ≤ 0 := by
+      rw [Set.uIcc_of_le hle] at hσ
+      exact hσ.2
+    simpa [lhs, constTerm, reflectedTerm, digammaTerm, add_assoc] using
+      (kadiri_logDeriv_zeta_nonpositive_horizontal_reflection
+        (sigma := σ) (T := T) hσ_nonpos hT_ne)
+  have hconst_int :
+      IntervalIntegrable constTerm volume (-a) 0 :=
+    continuous_const.intervalIntegrable _ _
+  have href_int :
+      IntervalIntegrable reflectedTerm volume (-a) 0 := by
+    simpa [reflectedTerm] using
+      kadiri_reflected_logDeriv_nonpositive_horizontal_intervalIntegrable a T ha hT_ne
+  have hconst_reflected_int :
+      IntervalIntegrable (fun σ => constTerm σ + reflectedTerm σ) volume (-a) 0 :=
+    hconst_int.add href_int
+  have hsplit_main :
+      (∫ σ in (-a)..0, constTerm σ + reflectedTerm σ + digammaTerm σ) =
+        (∫ σ in (-a)..0, constTerm σ + reflectedTerm σ) +
+          ∫ σ in (-a)..0, digammaTerm σ := by
+    exact intervalIntegral.integral_add hconst_reflected_int hdigamma_int
+  have hsplit_reflected :
+      (∫ σ in (-a)..0, constTerm σ + reflectedTerm σ) =
+        (∫ σ in (-a)..0, constTerm σ) +
+          ∫ σ in (-a)..0, reflectedTerm σ := by
+    exact intervalIntegral.integral_add hconst_int href_int
+  have hconst_bound :
+      ‖∫ σ in (-a)..0, constTerm σ‖ ≤ |Real.log Real.pi| * a := by
+    have hpoint :
+        ∀ σ ∈ Ι (-a) 0, ‖constTerm σ‖ ≤ |Real.log Real.pi| := by
+      intro σ hσ
+      simp [constTerm]
+    have hnorm :=
+      intervalIntegral.norm_integral_le_of_norm_le_const
+        (a := -a) (b := 0) (C := |Real.log Real.pi|)
+        (f := constTerm) hpoint
+    simpa [sub_eq_add_neg, abs_of_nonneg ha] using hnorm
+  have hreflected_bound :
+      ‖∫ σ in (-a)..0, reflectedTerm σ‖ ≤ (C * Real.log |T| ^ 9) * a := by
+    simpa [reflectedTerm] using href_bound hT
+  have hsum_bound :
+      ‖(∫ σ in (-a)..0, constTerm σ) +
+          ∫ σ in (-a)..0, reflectedTerm σ‖
+        ≤ |Real.log Real.pi| * a + (C * Real.log |T| ^ 9) * a :=
+    (norm_add_le _ _).trans (add_le_add hconst_bound hreflected_bound)
+  calc
+    ‖∫ σ in (-a)..0,
+        -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖∫ σ in (-a)..0, lhs σ‖ := by
+          simp [lhs]
+    _ = ‖∫ σ in (-a)..0, constTerm σ + reflectedTerm σ + digammaTerm σ‖ := by
+          rw [intervalIntegral.integral_congr hcongr]
+    _ = ‖((∫ σ in (-a)..0, constTerm σ) +
+            ∫ σ in (-a)..0, reflectedTerm σ) +
+          ∫ σ in (-a)..0, digammaTerm σ‖ := by
+          rw [hsplit_main, hsplit_reflected]
+    _ ≤ ‖(∫ σ in (-a)..0, constTerm σ) +
+            ∫ σ in (-a)..0, reflectedTerm σ‖ +
+          ‖∫ σ in (-a)..0, digammaTerm σ‖ :=
+          norm_add_le _ _
+    _ ≤ (|Real.log Real.pi| * a + (C * Real.log |T| ^ 9) * a) + D :=
+          add_le_add hsum_bound (by simpa [digammaTerm] using hdigamma_bound)
+    _ = (C * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a + D := by
+          ring
 
 /--
 Local principal-part control for the logarithmic derivative at an analytic zero.
