@@ -1203,6 +1203,12 @@ private lemma kadiri_exp_neg_mul_hasDerivAt (sigma x : ℝ) :
   simpa [mul_assoc, mul_comm, mul_left_comm] using
     ((hasDerivAt_id x).ofReal_comp.const_mul (-(sigma : ℂ))).cexp
 
+private lemma kadiri_exp_mul_hasDerivAt (sigma x : ℝ) :
+    HasDerivAt (fun y : ℝ => exp ((sigma : ℂ) * (y : ℂ)))
+      ((sigma : ℂ) * exp ((sigma : ℂ) * (x : ℂ))) x := by
+  simpa [mul_assoc, mul_comm, mul_left_comm] using
+    ((hasDerivAt_id x).ofReal_comp.const_mul (sigma : ℂ)).cexp
+
 private lemma kadiri_laplace_line_weight_differentiable {φ : ℝ → ℂ}
     (hφ : ContDiff ℝ 1 φ) (sigma : ℝ) :
     Differentiable ℝ (fun z : ℝ => exp (-((sigma : ℂ) * (z : ℂ))) * φ z) := by
@@ -1284,6 +1290,170 @@ private lemma kadiri_laplace_line_weight_deriv_integrable
     ((hφ.differentiable (by norm_num)) y)]
   rw [HasDerivAt.deriv (kadiri_exp_neg_mul_hasDerivAt a y)]
   ring
+
+private lemma kadiri_laplace_strip_weight_differentiable {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) (sigma : ℝ) :
+    Differentiable ℝ (fun z : ℝ => exp ((sigma : ℂ) * (z : ℂ)) * φ z) := by
+  intro y
+  exact (kadiri_exp_mul_hasDerivAt sigma y).differentiableAt.mul
+    ((hφ.differentiable (by norm_num)) y)
+
+private lemma kadiri_laplace_strip_weight_deriv_integrable
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a σ : ℝ} (ha : 0 < a) (hab : a < b) (hσlo : -a ≤ σ) (hσhi : σ ≤ 1 / 2) :
+    Integrable (deriv (fun z : ℝ => exp ((σ : ℂ) * (z : ℂ)) * φ z)) := by
+  let F : ℝ → ℂ := fun y => exp ((σ : ℂ) * (y : ℂ)) * φ y
+  let G : ℝ → ℂ := fun y => exp ((σ : ℂ) * (y : ℂ)) * deriv φ y
+  have hF_int : Integrable F :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := φ) hφ.continuous hφ_decay ha hab hσlo hσhi
+  have hG_int : Integrable G :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := deriv φ) (hφ.continuous_deriv (by norm_num)) hφ'_decay ha hab hσlo hσhi
+  have hsum : Integrable (fun y : ℝ => (σ : ℂ) * F y + G y) :=
+    (hF_int.const_mul (σ : ℂ)).add hG_int
+  refine hsum.congr ?_
+  filter_upwards with y
+  dsimp [F, G]
+  symm
+  rw [deriv_fun_mul (kadiri_exp_mul_hasDerivAt σ y).differentiableAt
+    ((hφ.differentiable (by norm_num)) y)]
+  rw [HasDerivAt.deriv (kadiri_exp_mul_hasDerivAt σ y)]
+  ring
+
+private lemma kadiri_laplace_strip_weight_norm_le_endpoints
+    {ψ : ℝ → ℂ} {a σ x : ℝ} (hσlo : -a ≤ σ) (hσhi : σ ≤ 1 / 2) :
+    ‖exp ((σ : ℂ) * (x : ℂ)) * ψ x‖ ≤
+      ‖exp (((-a : ℝ) : ℂ) * (x : ℂ)) * ψ x‖ +
+        ‖exp (((1 / 2 : ℝ) : ℂ) * (x : ℂ)) * ψ x‖ := by
+  have hnorm (τ : ℝ) :
+      ‖exp ((τ : ℂ) * (x : ℂ)) * ψ x‖ = Real.exp (τ * x) * ‖ψ x‖ := by
+    rw [norm_mul, Complex.norm_exp]
+    have hτ : ((τ : ℂ) * (x : ℂ)).re = τ * x := by
+      norm_num [Complex.mul_re]
+    rw [hτ]
+  by_cases hx : 0 ≤ x
+  · have hcoeff : Real.exp (σ * x) ≤ Real.exp ((1 / 2 : ℝ) * x) := by
+      exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_right hσhi hx)
+    rw [hnorm σ, hnorm (-a), hnorm (1 / 2 : ℝ)]
+    calc
+      Real.exp (σ * x) * ‖ψ x‖
+          ≤ Real.exp ((1 / 2 : ℝ) * x) * ‖ψ x‖ := by
+            exact mul_le_mul_of_nonneg_right hcoeff (norm_nonneg _)
+      _ ≤ Real.exp ((-a) * x) * ‖ψ x‖ +
+          Real.exp ((1 / 2 : ℝ) * x) * ‖ψ x‖ :=
+            le_add_of_nonneg_left (mul_nonneg (Real.exp_nonneg _) (norm_nonneg _))
+  · have hxle : x ≤ 0 := le_of_not_ge hx
+    have hcoeff : Real.exp (σ * x) ≤ Real.exp ((-a) * x) := by
+      exact Real.exp_le_exp.mpr (mul_le_mul_of_nonpos_right hσlo hxle)
+    rw [hnorm σ, hnorm (-a), hnorm (1 / 2 : ℝ)]
+    calc
+      Real.exp (σ * x) * ‖ψ x‖
+          ≤ Real.exp ((-a) * x) * ‖ψ x‖ := by
+            exact mul_le_mul_of_nonneg_right hcoeff (norm_nonneg _)
+      _ ≤ Real.exp ((-a) * x) * ‖ψ x‖ +
+          Real.exp ((1 / 2 : ℝ) * x) * ‖ψ x‖ :=
+            le_add_of_nonneg_right (mul_nonneg (Real.exp_nonneg _) (norm_nonneg _))
+
+private lemma kadiri_laplace_strip_deriv_integral_bounded
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) :
+    ∃ D : ℝ, 0 ≤ D ∧ ∀ σ : ℝ, -a ≤ σ → σ ≤ 1 / 2 →
+      ∫ x, ‖deriv (fun z : ℝ => exp ((σ : ℂ) * (z : ℂ)) * φ z) x‖ ∂volume ≤ D := by
+  let Lφ : ℝ → ℂ := fun x => exp (((-a : ℝ) : ℂ) * (x : ℂ)) * φ x
+  let Rφ : ℝ → ℂ := fun x => exp (((1 / 2 : ℝ) : ℂ) * (x : ℂ)) * φ x
+  let Lφ' : ℝ → ℂ := fun x => exp (((-a : ℝ) : ℂ) * (x : ℂ)) * deriv φ x
+  let Rφ' : ℝ → ℂ := fun x => exp (((1 / 2 : ℝ) : ℂ) * (x : ℂ)) * deriv φ x
+  let K : ℝ := max a (1 / 2)
+  let M : ℝ → ℝ := fun x => K * (‖Lφ x‖ + ‖Rφ x‖) + (‖Lφ' x‖ + ‖Rφ' x‖)
+  have hK_nonneg : 0 ≤ K := by
+    exact ha.le.trans (le_max_left a (1 / 2))
+  have hleft_le_half : -a ≤ (1 / 2 : ℝ) := by linarith
+  have hLφ_int : Integrable Lφ :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := φ) hφ.continuous hφ_decay ha hab le_rfl hleft_le_half
+  have hRφ_int : Integrable Rφ :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := φ) hφ.continuous hφ_decay ha hab hleft_le_half le_rfl
+  have hLφ'_int : Integrable Lφ' :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := deriv φ) (hφ.continuous_deriv (by norm_num)) hφ'_decay ha hab
+      le_rfl hleft_le_half
+  have hRφ'_int : Integrable Rφ' :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := deriv φ) (hφ.continuous_deriv (by norm_num)) hφ'_decay ha hab
+      hleft_le_half le_rfl
+  have hM_int : Integrable M := by
+    have hφsum : Integrable (fun x => ‖Lφ x‖ + ‖Rφ x‖) :=
+      hLφ_int.norm.add hRφ_int.norm
+    have hφ'sum : Integrable (fun x => ‖Lφ' x‖ + ‖Rφ' x‖) :=
+      hLφ'_int.norm.add hRφ'_int.norm
+    exact (hφsum.const_mul K).add hφ'sum
+  have hM_nonneg : ∀ x, 0 ≤ M x := by
+    intro x
+    dsimp [M]
+    exact add_nonneg
+      (mul_nonneg hK_nonneg (add_nonneg (norm_nonneg _) (norm_nonneg _)))
+      (add_nonneg (norm_nonneg _) (norm_nonneg _))
+  refine ⟨∫ x, M x ∂volume, integral_nonneg hM_nonneg, ?_⟩
+  intro σ hσlo hσhi
+  have hσnorm : ‖(σ : ℂ)‖ ≤ K := by
+    rw [norm_real, Real.norm_eq_abs]
+    refine abs_le.mpr ⟨?_, ?_⟩
+    · have hKa : a ≤ K := le_max_left a (1 / 2)
+      linarith
+    · have hKh : (1 / 2 : ℝ) ≤ K := le_max_right a (1 / 2)
+      linarith
+  have hderiv_int : Integrable (deriv (fun z : ℝ => exp ((σ : ℂ) * (z : ℂ)) * φ z)) :=
+    kadiri_laplace_strip_weight_deriv_integrable
+      (φ := φ) hφ hφ_decay hφ'_decay ha hab hσlo hσhi
+  have hpoint : ∀ x,
+      ‖deriv (fun z : ℝ => exp ((σ : ℂ) * (z : ℂ)) * φ z) x‖ ≤ M x := by
+    intro x
+    have hderiv :
+        deriv (fun z : ℝ => exp ((σ : ℂ) * (z : ℂ)) * φ z) x =
+          (σ : ℂ) * (exp ((σ : ℂ) * (x : ℂ)) * φ x) +
+            exp ((σ : ℂ) * (x : ℂ)) * deriv φ x := by
+      rw [deriv_fun_mul (kadiri_exp_mul_hasDerivAt σ x).differentiableAt
+        ((hφ.differentiable (by norm_num)) x)]
+      rw [HasDerivAt.deriv (kadiri_exp_mul_hasDerivAt σ x)]
+      ring
+    have hφ_end := kadiri_laplace_strip_weight_norm_le_endpoints
+      (ψ := φ) (a := a) (σ := σ) (x := x) hσlo hσhi
+    have hφ'_end := kadiri_laplace_strip_weight_norm_le_endpoints
+      (ψ := deriv φ) (a := a) (σ := σ) (x := x) hσlo hσhi
+    rw [hderiv]
+    dsimp [M, Lφ, Rφ, Lφ', Rφ']
+    calc
+      ‖(σ : ℂ) * (exp ((σ : ℂ) * (x : ℂ)) * φ x) +
+          exp ((σ : ℂ) * (x : ℂ)) * deriv φ x‖
+          ≤ ‖(σ : ℂ) * (exp ((σ : ℂ) * (x : ℂ)) * φ x)‖ +
+              ‖exp ((σ : ℂ) * (x : ℂ)) * deriv φ x‖ := norm_add_le _ _
+      _ = ‖(σ : ℂ)‖ * ‖exp ((σ : ℂ) * (x : ℂ)) * φ x‖ +
+              ‖exp ((σ : ℂ) * (x : ℂ)) * deriv φ x‖ := by rw [norm_mul]
+      _ ≤ K *
+              (‖exp (((-a : ℝ) : ℂ) * (x : ℂ)) * φ x‖ +
+                ‖exp (((1 / 2 : ℝ) : ℂ) * (x : ℂ)) * φ x‖) +
+            (‖exp (((-a : ℝ) : ℂ) * (x : ℂ)) * deriv φ x‖ +
+              ‖exp (((1 / 2 : ℝ) : ℂ) * (x : ℂ)) * deriv φ x‖) := by
+          have hfirst :
+              ‖(σ : ℂ)‖ * ‖exp ((σ : ℂ) * (x : ℂ)) * φ x‖ ≤
+                K *
+                  (‖exp (((-a : ℝ) : ℂ) * (x : ℂ)) * φ x‖ +
+                    ‖exp (((1 / 2 : ℝ) : ℂ) * (x : ℂ)) * φ x‖) := by
+            exact mul_le_mul hσnorm hφ_end (norm_nonneg _) hK_nonneg
+          exact add_le_add hfirst hφ'_end
+  exact integral_mono hderiv_int.norm hM_int hpoint
 
 private lemma kadiri_laplace_line_local_quotient_integrable {φ : ℝ → ℂ}
     (hφ : ContDiff ℝ 1 φ) (sigma x : ℝ) {R : ℝ} (hR : 0 < R) :
@@ -2409,6 +2579,81 @@ theorem kadiri_thm_3_1_q1_gamma_symmetrization {s : ℂ} (_hs : s.re = 1 / 2) :
   push_cast
   ring
 
+private lemma kadiri_digamma_half_poles_near_zero {s : ℂ} (hsnorm : ‖s‖ < 1)
+    (hs0 : s ≠ 0) :
+    ∀ n : ℕ, s / 2 ≠ -(n : ℂ) := by
+  intro n hn
+  have hs_eq : s = -((2 * n : ℕ) : ℂ) := by
+    calc
+      s = (2 : ℂ) * (s / 2) := by ring
+      _ = (2 : ℂ) * (-(n : ℂ)) := by rw [hn]
+      _ = -((2 * n : ℕ) : ℂ) := by
+        norm_num [Nat.cast_mul]
+  have hge : (1 : ℝ) ≤ ‖s‖ := by
+    by_cases hn0 : n = 0
+    · subst hn0
+      have hszero : s = 0 := by simpa using hs_eq
+      exact False.elim (hs0 hszero)
+    · rw [hs_eq, norm_neg, Complex.norm_natCast]
+      have h2n : (1 : ℝ) ≤ (2 * n : ℕ) := by
+        exact_mod_cast
+          (Nat.succ_le_iff.mpr (Nat.mul_pos (by norm_num) (Nat.pos_iff_ne_zero.mpr hn0)))
+      exact h2n
+  linarith
+
+private lemma kadiri_digamma_half_poles_eventually_nhdsNE_zero :
+    ∀ᶠ s in 𝓝[≠] (0 : ℂ), ∀ n : ℕ, s / 2 ≠ -(n : ℂ) := by
+  have hball : {s : ℂ | ‖s‖ < 1} ∈ 𝓝 (0 : ℂ) := by
+    simpa [Metric.ball, dist_eq_norm] using
+      Metric.ball_mem_nhds (0 : ℂ) (by norm_num : (0 : ℝ) < 1)
+  filter_upwards [eventually_nhdsWithin_of_eventually_nhds hball, eventually_mem_nhdsWithin]
+    with s hsnorm hsne
+  exact kadiri_digamma_half_poles_near_zero hsnorm hsne
+
+private lemma kadiri_gamma_factor_punctured_eq_shifted :
+    (fun s : ℂ =>
+      (1 / 2 : ℂ) * (digamma (s / 2) + digamma ((1 - s) / 2)) + s⁻¹)
+      =ᶠ[𝓝[≠] (0 : ℂ)]
+    (fun s : ℂ =>
+      (1 / 2 : ℂ) * (digamma (s / 2 + 1) + digamma ((1 - s) / 2))) := by
+  filter_upwards [kadiri_digamma_half_poles_eventually_nhdsNE_zero, eventually_mem_nhdsWithin]
+    with s hpoles hsne
+  have hrec := Complex.digamma_apply_add_one (s / 2) hpoles
+  rw [hrec]
+  field_simp [hsne]
+  ring
+
+private lemma kadiri_gamma_factor_shifted_tendsto_zero :
+    Tendsto
+      (fun s : ℂ =>
+        (1 / 2 : ℂ) * (digamma (s / 2 + 1) + digamma ((1 - s) / 2)))
+      (𝓝 (0 : ℂ))
+      (𝓝 ((1 / 2 : ℂ) * (digamma 1 + digamma (1 / 2)))) := by
+  have h1arg : ContinuousAt (fun s : ℂ => s / 2 + 1) 0 := by fun_prop
+  have h1 : ContinuousAt (fun s : ℂ => digamma (s / 2 + 1)) 0 := by
+    simpa [Function.comp_def] using
+      ContinuousAt.comp (g := digamma) (f := fun s : ℂ => s / 2 + 1)
+        (Complex.continuousAt_digamma_of_re_pos
+          (by norm_num : (0 : ℝ) < ((fun s : ℂ => s / 2 + 1) 0).re)) h1arg
+  have h2arg : ContinuousAt (fun s : ℂ => (1 - s) / 2) 0 := by fun_prop
+  have h2 : ContinuousAt (fun s : ℂ => digamma ((1 - s) / 2)) 0 := by
+    simpa [Function.comp_def] using
+      ContinuousAt.comp (g := digamma) (f := fun s : ℂ => (1 - s) / 2)
+        (Complex.continuousAt_digamma_of_re_pos
+          (by norm_num : (0 : ℝ) < ((fun s : ℂ => (1 - s) / 2) 0).re)) h2arg
+  simpa using ((h1.add h2).const_mul (1 / 2 : ℂ)).tendsto
+
+lemma kadiri_gamma_factor_add_inv_isBigO_one :
+    (fun s : ℂ =>
+      (1 / 2 : ℂ) * (digamma (s / 2) + digamma ((1 - s) / 2)) + s⁻¹)
+      =O[𝓝[≠] (0 : ℂ)] (fun _ : ℂ => (1 : ℂ)) := by
+  have hO :
+      (fun s : ℂ =>
+        (1 / 2 : ℂ) * (digamma (s / 2 + 1) + digamma ((1 - s) / 2)))
+      =O[𝓝[≠] (0 : ℂ)] (fun _ : ℂ => (1 : ℂ)) :=
+    (kadiri_gamma_factor_shifted_tendsto_zero.mono_left nhdsWithin_le_nhds).isBigO_one ℂ
+  exact kadiri_gamma_factor_punctured_eq_shifted.trans_isBigO hO
+
 private lemma kadiri_digamma_half_poles {s : ℂ} {T : ℝ}
     (hsim : (s / 2).im = T / 2) (hT : 1 ≤ T) :
     ∀ n : ℕ, s / 2 ≠ -(n : ℂ) := by
@@ -2709,6 +2954,357 @@ private lemma kadiri_norm_oscillatory_integral_le_integral_deriv_div
     rw [abs_of_neg hneg]
     field_simp [Real.pi_ne_zero]
   rw [hden]
+
+private lemma kadiri_norm_oscillatory_integral_le_integral_deriv_div_abs
+    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
+    (hg' : Integrable (deriv g)) {T : ℝ} (hT : T ≠ 0) :
+    ‖∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume‖ ≤
+      (∫ x, ‖deriv g x‖ ∂volume) / |T| := by
+  have hw : -T / (2 * Real.pi) ≠ 0 := by
+    exact div_ne_zero (neg_ne_zero.mpr hT) (mul_ne_zero two_ne_zero Real.pi_ne_zero)
+  have hfourier := kadiri_norm_fourier_le_integral_deriv_div g hg hdiff hg' hw
+  have heq :
+      (∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume) =
+        𝓕 g (-T / (2 * Real.pi)) := by
+    rw [Real.fourier_real_eq_integral_exp_smul]
+    apply integral_congr_ae
+    filter_upwards with y
+    rw [smul_eq_mul]
+    rw [mul_comm (g y)]
+    congr 1
+    congr 1
+    push_cast
+    field_simp [Real.pi_ne_zero]
+  rw [heq]
+  refine hfourier.trans_eq ?_
+  congr 1
+  have hden : (2 * Real.pi) * |-T / (2 * Real.pi)| = |T| := by
+    have htwopi_pos : 0 < 2 * Real.pi := by positivity
+    rw [abs_div, abs_neg, abs_of_pos htwopi_pos]
+    field_simp [Real.pi_ne_zero]
+  rw [hden]
+
+private lemma kadiri_laplace_strip_integral_eq_oscillatory
+    (φ : ℝ → ℂ) (σ T : ℝ) :
+    (∫ y : ℝ, φ y * exp (((σ : ℂ) + (T : ℂ) * I) * (y : ℂ)) ∂volume) =
+      ∫ y : ℝ, (exp ((σ : ℂ) * (y : ℂ)) * φ y) *
+        exp ((T : ℂ) * I * (y : ℂ)) ∂volume := by
+  apply integral_congr_ae
+  filter_upwards with y
+  have hexp :
+      exp (((σ : ℂ) + (T : ℂ) * I) * (y : ℂ)) =
+        exp ((σ : ℂ) * (y : ℂ)) * exp ((T : ℂ) * I * (y : ℂ)) := by
+    rw [← Complex.exp_add]
+    congr 1
+    ring
+  rw [hexp]
+  ring
+
+private lemma kadiri_laplace_strip_decay
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) :
+    ∃ CΦ : ℝ, 0 ≤ CΦ ∧
+      ∀ᶠ T : ℝ in Filter.atTop, ∀ σ : ℝ, σ ∈ Set.uIoc (-a) (1 / 2) →
+        ‖∫ y : ℝ, φ y * exp (((σ : ℂ) + (T : ℂ) * I) * (y : ℂ)) ∂volume‖ ≤
+          CΦ / (T + 2) := by
+  obtain ⟨D, hD_nonneg, hD⟩ :=
+    kadiri_laplace_strip_deriv_integral_bounded
+      (φ := φ) hφ hφ_decay hφ'_decay ha hab
+  refine ⟨3 * D, mul_nonneg (by norm_num) hD_nonneg, ?_⟩
+  filter_upwards [Filter.eventually_ge_atTop (1 : ℝ)] with T hT σ hσ
+  have hstrip_nonempty : -a ≤ (1 / 2 : ℝ) := by linarith
+  have hσIoc : σ ∈ Set.Ioc (-a) (1 / 2) := by
+    rw [Set.uIoc_of_le hstrip_nonempty] at hσ
+    exact hσ
+  have hσlo : -a ≤ σ := hσIoc.1.le
+  have hσhi : σ ≤ 1 / 2 := hσIoc.2
+  let g : ℝ → ℂ := fun y => exp ((σ : ℂ) * (y : ℂ)) * φ y
+  have hg : Integrable g :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := φ) hφ.continuous hφ_decay ha hab hσlo hσhi
+  have hdiff : Differentiable ℝ g :=
+    kadiri_laplace_strip_weight_differentiable hφ σ
+  have hg' : Integrable (deriv g) :=
+    kadiri_laplace_strip_weight_deriv_integrable
+      (φ := φ) hφ hφ_decay hφ'_decay ha hab hσlo hσhi
+  have hT_pos : 0 < T := by linarith
+  have hosc := kadiri_norm_oscillatory_integral_le_integral_deriv_div
+    g hg hdiff hg' hT_pos
+  have hderiv_bound : (∫ x, ‖deriv g x‖ ∂volume) ≤ D := by
+    exact hD σ hσlo hσhi
+  have hD_over_T : (∫ x, ‖deriv g x‖ ∂volume) / T ≤ D / T := by
+    exact div_le_div_of_nonneg_right hderiv_bound hT_pos.le
+  have htail : D / T ≤ (3 * D) / (T + 2) := by
+    have hT2_pos : 0 < T + 2 := by linarith
+    rw [div_le_div_iff₀ hT_pos hT2_pos]
+    nlinarith
+  calc
+      ‖∫ y : ℝ, φ y * exp (((σ : ℂ) + (T : ℂ) * I) * (y : ℂ)) ∂volume‖
+          = ‖∫ y : ℝ, g y * exp ((T : ℂ) * I * (y : ℂ)) ∂volume‖ := by
+            rw [kadiri_laplace_strip_integral_eq_oscillatory φ σ T]
+      _ ≤ (∫ x, ‖deriv g x‖ ∂volume) / T := hosc
+      _ ≤ D / T := hD_over_T
+      _ ≤ (3 * D) / (T + 2) := htail
+
+private lemma kadiri_laplace_strip_decay_neg
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) :
+    ∃ CΦ : ℝ, 0 ≤ CΦ ∧
+      ∀ᶠ T : ℝ in Filter.atTop, ∀ σ : ℝ, σ ∈ Set.uIoc (-a) (1 / 2) →
+        ‖∫ y : ℝ, φ y * exp (((σ : ℂ) + (-(T : ℂ)) * I) * (y : ℂ)) ∂volume‖ ≤
+          CΦ / (T + 2) := by
+  obtain ⟨D, hD_nonneg, hD⟩ :=
+    kadiri_laplace_strip_deriv_integral_bounded
+      (φ := φ) hφ hφ_decay hφ'_decay ha hab
+  refine ⟨3 * D, mul_nonneg (by norm_num) hD_nonneg, ?_⟩
+  filter_upwards [Filter.eventually_ge_atTop (1 : ℝ)] with T hT σ hσ
+  have hstrip_nonempty : -a ≤ (1 / 2 : ℝ) := by linarith
+  have hσIoc : σ ∈ Set.Ioc (-a) (1 / 2) := by
+    rw [Set.uIoc_of_le hstrip_nonempty] at hσ
+    exact hσ
+  have hσlo : -a ≤ σ := hσIoc.1.le
+  have hσhi : σ ≤ 1 / 2 := hσIoc.2
+  let g : ℝ → ℂ := fun y => exp ((σ : ℂ) * (y : ℂ)) * φ y
+  have hg : Integrable g :=
+    kadiri_laplace_strip_weight_integrable_of_continuous
+      (ψ := φ) hφ.continuous hφ_decay ha hab hσlo hσhi
+  have hdiff : Differentiable ℝ g :=
+    kadiri_laplace_strip_weight_differentiable hφ σ
+  have hg' : Integrable (deriv g) :=
+    kadiri_laplace_strip_weight_deriv_integrable
+      (φ := φ) hφ hφ_decay hφ'_decay ha hab hσlo hσhi
+  have hT_pos : 0 < T := by linarith
+  have hT_ne : (-T) ≠ 0 := by linarith
+  have hosc := kadiri_norm_oscillatory_integral_le_integral_deriv_div_abs
+    g hg hdiff hg' (T := -T) hT_ne
+  have hderiv_bound : (∫ x, ‖deriv g x‖ ∂volume) ≤ D := by
+    exact hD σ hσlo hσhi
+  have hD_over_T : (∫ x, ‖deriv g x‖ ∂volume) / T ≤ D / T := by
+    exact div_le_div_of_nonneg_right hderiv_bound hT_pos.le
+  have htail : D / T ≤ (3 * D) / (T + 2) := by
+    have hT2_pos : 0 < T + 2 := by linarith
+    rw [div_le_div_iff₀ hT_pos hT2_pos]
+    nlinarith
+  calc
+    ‖∫ y : ℝ, φ y * exp (((σ : ℂ) + (-(T : ℂ)) * I) * (y : ℂ)) ∂volume‖
+        = ‖∫ y : ℝ, g y * exp ((-T : ℂ) * I * (y : ℂ)) ∂volume‖ := by
+          apply congrArg norm
+          apply integral_congr_ae
+          filter_upwards with y
+          have hexp :
+              exp (((σ : ℂ) + (-(T : ℂ)) * I) * (y : ℂ)) =
+                exp ((σ : ℂ) * (y : ℂ)) * exp ((-T : ℂ) * I * (y : ℂ)) := by
+            rw [← Complex.exp_add]
+            congr 1
+            ring
+          rw [hexp]
+          ring
+    _ ≤ (∫ x, ‖deriv g x‖ ∂volume) / |-T| := by simpa using hosc
+    _ = (∫ x, ‖deriv g x‖ ∂volume) / T := by rw [abs_neg, abs_of_nonneg hT_pos.le]
+    _ ≤ D / T := hD_over_T
+    _ ≤ (3 * D) / (T + 2) := htail
+
+private lemma kadiri_laplace_neg_horizontal_eq (φ : ℝ → ℂ) (σ T : ℝ) :
+    (∫ y : ℝ, φ y * exp (-(-((σ : ℂ) + (T : ℂ) * I)) * (y : ℂ)) ∂volume) =
+      ∫ y : ℝ, φ y * exp (((σ : ℂ) + (T : ℂ) * I) * (y : ℂ)) ∂volume := by
+  apply integral_congr_ae
+  filter_upwards with y
+  congr 1
+  ring_nf
+
+theorem kadiri_gamma_horizontal_vanishes
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ => ∫ σ in (-a)..(1 / 2),
+        ((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      Filter.atTop (nhds 0) := by
+  obtain ⟨CΦ, _hCΦ_nonneg, hΦ_strip⟩ :=
+    kadiri_laplace_strip_decay (φ := φ) hφ hφ_decay hφ'_decay ha hab
+  refine kadiri_gamma_horizontal_vanishes_of_laplace_strip_decay
+    (Φ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (a := a) (CΦ := CΦ) ha ha1 ?_
+  filter_upwards [hΦ_strip] with T hT σ hσ
+  have h := hT σ hσ
+  simpa [kadiri_laplace_neg_horizontal_eq φ σ T] using h
+
+private lemma kadiri_gamma_factor_neg_height_norm_eq_pos (σ T : ℝ) :
+    ‖(1 / 2 : ℂ) *
+        (digamma ((((σ : ℂ) + (-(T : ℂ)) * I) / 2)) +
+         digamma ((((1 : ℂ) - ((σ : ℂ) + (-(T : ℂ)) * I)) / 2)))‖ =
+      ‖(1 / 2 : ℂ) *
+        (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+         digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))‖ := by
+  set s : ℂ := (σ : ℂ) + (T : ℂ) * I
+  have hsconj : ((σ : ℂ) + (-(T : ℂ)) * I) = (starRingEnd ℂ) s := by
+    apply Complex.ext <;> simp [s]
+  have hfac :
+      (1 / 2 : ℂ) *
+          (digamma ((((starRingEnd ℂ) s) / 2)) +
+           digamma ((((1 : ℂ) - ((starRingEnd ℂ) s)) / 2))) =
+        (starRingEnd ℂ)
+          ((1 / 2 : ℂ) * (digamma (s / 2) + digamma ((1 - s) / 2))) := by
+    have hleft :
+        digamma ((((starRingEnd ℂ) s) / 2)) =
+          (starRingEnd ℂ) (digamma (s / 2)) := by
+      have harg : ((starRingEnd ℂ) s) / 2 = (starRingEnd ℂ) (s / 2) := by
+        rw [map_div₀, map_ofNat]
+      rw [harg, digamma_conj]
+    have hright :
+        digamma ((((1 : ℂ) - ((starRingEnd ℂ) s)) / 2)) =
+          (starRingEnd ℂ) (digamma ((1 - s) / 2)) := by
+      have harg :
+          (1 - (starRingEnd ℂ) s) / 2 = (starRingEnd ℂ) ((1 - s) / 2) := by
+        rw [map_div₀, map_sub, map_one, map_ofNat]
+      rw [harg, digamma_conj]
+    rw [hleft, hright, map_mul, map_add]
+    have hhalf : (starRingEnd ℂ) (1 / 2 : ℂ) = (1 / 2 : ℂ) := by
+      rw [map_div₀, map_one, map_ofNat]
+    rw [hhalf]
+  rw [hsconj, hfac, norm_conj]
+
+private lemma kadiri_gamma_horizontal_vanishes_neg_height
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ => ∫ σ in (-a)..(1 / 2),
+        ((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (-(T : ℂ)) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (-(T : ℂ)) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (-(T : ℂ)) * I)))
+      Filter.atTop (nhds 0) := by
+  let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+  change Filter.Tendsto
+      (fun T : ℝ => ∫ σ in (-a)..(1 / 2),
+        ((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (-(T : ℂ)) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (-(T : ℂ)) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (-(T : ℂ)) * I)))
+      Filter.atTop (nhds 0)
+  obtain ⟨CΦ, _hCΦ_nonneg, hΦ_strip⟩ :=
+    kadiri_laplace_strip_decay_neg (φ := φ) hφ hφ_decay hφ'_decay ha hab
+  obtain ⟨CΓ, hCΓ, hΓ⟩ := kadiri_gamma_factor_horizontal_norm_le_log ha ha1
+  refine tendsto_intervalIntegral_zero_of_uniform_norm_bound
+    (B := fun T : ℝ => (CΓ * CΦ) * (Real.log (T + 2) / (T + 2))) ?_ ?_
+  · have hbase :=
+      tendsto_const_mul_log_add_two_div_add_two_atTop
+        ((CΓ * CΦ) * |(1 / 2 : ℝ) - -a|)
+    convert hbase using 1
+    ext T
+    ring
+  · filter_upwards [hΦ_strip, Filter.eventually_atTop.2 ⟨1, fun T hT => hT⟩]
+      with T hΦT hT σ hσ
+    have hle : -a ≤ (1 / 2 : ℝ) := by linarith
+    have hσI : σ ∈ Set.Ioc (-a) (1 / 2) := by
+      rw [Set.uIoc_of_le hle] at hσ
+      exact hσ
+    have hΓTpos := hΓ T σ hT (le_of_lt hσI.1) hσI.2
+    have hΓT :
+        ‖(1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (-(T : ℂ)) * I) / 2)) +
+             digamma ((((1 : ℂ) - ((σ : ℂ) + (-(T : ℂ)) * I)) / 2)))‖
+          ≤ CΓ * Real.log (T + 2) := by
+      rw [kadiri_gamma_factor_neg_height_norm_eq_pos σ T]
+      exact hΓTpos
+    have hΦT' : ‖Φ (-((σ : ℂ) + (-(T : ℂ)) * I))‖ ≤ CΦ / (T + 2) := by
+      have hΦeq :
+          Φ (-((σ : ℂ) + (-(T : ℂ)) * I)) =
+            ∫ y : ℝ, φ y * exp (((σ : ℂ) + (-(T : ℂ)) * I) * (y : ℂ)) ∂volume := by
+        dsimp [Φ]
+        apply integral_congr_ae
+        filter_upwards with y
+        congr 1
+        ring_nf
+      rw [hΦeq]
+      exact hΦT σ hσ
+    have hden_pos : 0 < T + 2 := by linarith
+    have hlog_nonneg : 0 ≤ Real.log (T + 2) := Real.log_nonneg (by linarith)
+    have hΓrhs_nonneg : 0 ≤ CΓ * Real.log (T + 2) := mul_nonneg hCΓ.le hlog_nonneg
+    calc
+      ‖((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (-(T : ℂ)) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (-(T : ℂ)) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (-(T : ℂ)) * I))‖
+          = ‖(1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (-(T : ℂ)) * I) / 2)) +
+               digamma ((((1 : ℂ) - ((σ : ℂ) + (-(T : ℂ)) * I)) / 2)))‖ *
+            ‖Φ (-((σ : ℂ) + (-(T : ℂ)) * I))‖ := norm_mul _ _
+      _ ≤ (CΓ * Real.log (T + 2)) * (CΦ / (T + 2)) := by
+          exact mul_le_mul hΓT hΦT' (norm_nonneg _) hΓrhs_nonneg
+      _ = (CΓ * CΦ) * (Real.log (T + 2) / (T + 2)) := by field_simp [hden_pos.ne']
+
+theorem kadiri_gamma_horizontal_vanishes_atBot
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Filter.Tendsto
+      (fun T : ℝ => ∫ σ in (-a)..(1 / 2),
+        ((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      Filter.atBot (nhds 0) := by
+  have hneg :=
+    kadiri_gamma_horizontal_vanishes_neg_height
+      (φ := φ) hφ hφ_decay hφ'_decay ha hab ha1
+  simpa [Function.comp_def] using hneg.comp tendsto_neg_atBot_atTop
+
+private lemma kadiri_gamma_right_line_integrable
+    {φ : ℝ → ℂ}
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    MeasureTheory.Integrable (fun t : ℝ ↦
+      ((1 / 2 : ℂ) *
+        (digamma (((1 / 2 : ℂ) + (t : ℂ) * I) / 2) +
+          digamma ((1 - ((1 / 2 : ℂ) + (t : ℂ) * I)) / 2))) *
+        ∫ y, φ y * exp (-(-((1 / 2 : ℂ) + (t : ℂ) * I)) * (y : ℂ)) ∂volume) := by
+  refine hΓ_int.congr (Filter.Eventually.of_forall fun t => ?_)
+  set s : ℂ := (1 / 2 : ℂ) + (t : ℂ) * I
+  have hsre : s.re = 1 / 2 := by simp [s]
+  have hsym := kadiri_thm_3_1_q1_gamma_symmetrization (s := s) hsre
+  have hInt :
+      (∫ y, φ y * exp (-(-s) * (y : ℂ)) ∂volume) =
+        ∫ y, φ y * exp (s * (y : ℂ)) ∂volume := by
+    apply integral_congr_ae
+    filter_upwards with y
+    congr 1
+    ring_nf
+  change
+    ((digamma (s / 2)).re : ℂ) * (∫ y, φ y * exp (s * (y : ℂ)) ∂volume) =
+      ((1 / 2 : ℂ) * (digamma (s / 2) + digamma ((1 - s) / 2))) *
+        ∫ y, φ y * exp (-(-s) * (y : ℂ)) ∂volume
+  rw [hInt, hsym]
 
 @[blueprint
   "kadiri-thm-3-1-q1-eq-15"
