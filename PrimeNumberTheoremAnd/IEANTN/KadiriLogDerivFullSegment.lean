@@ -2395,6 +2395,23 @@ theorem
     a T ha k B hT_point
 
 /--
+Eventual pointwise logarithmic control of the sign-correct zeta Hadamard/PV remainder
+supplies a right-segment integral budget with the same logarithmic growth.
+-/
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_log_bound_on_filter
+    (a Z : ℝ) (ha : 0 ≤ a) (k : ℕ) (L : Filter ℝ)
+    (hpoint : ∀ᶠ T : ℝ in L,
+      ∀ σ ∈ Ι 0 (1 + a),
+        ‖kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤ Z * Real.log |T| ^ 9) :
+    ∀ᶠ T : ℝ in L,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖ ≤
+        (Z * Real.log |T| ^ 9) * (1 + a) := by
+  filter_upwards [hpoint] with T hT_point
+  exact kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_pointwise_bound
+    a T ha k (Z * Real.log |T| ^ 9) hT_point
+
+/--
 Full-segment assembly from reflected nonpositive control and right-segment zeta
 Hadamard/PV plus principal-part budgets.
 -/
@@ -2815,6 +2832,112 @@ theorem
                 (G * Real.log |T| ^ 9) * a) + (B + P) := hbase
       _ = (((C0 + G) * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a) +
             (B + P) := by ring
+  simpa [P, R] using hfinal
+
+/--
+Large off-pole full-segment assembly with both analytic remainder budgets allowed to grow
+like `log |T| ^ 9`.
+
+This is the logarithmic-growth handoff for the moving-pole PV lane: the digamma integral
+and the right-segment sign-correct zeta PV integral are both absorbed into one
+full-segment logarithmic envelope.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_digamma_log_bound_and_zeta_remainder_log_bound_on_large_offPole_filter
+    (a G Z : ℝ) (ha : 0 ≤ a) (hG : 0 ≤ G) (hZ : 0 ≤ Z) (k : ℕ)
+    (hdigamma_log_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in (-a)..0,
+          (1 / 2 : ℂ) *
+            (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+              digamma (((1 - (((σ : ℂ) + (T : ℂ) * I))) / 2)))‖
+        ≤ (G * Real.log |T| ^ 9) * a)
+    (hzeta_rem_log_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z * Real.log |T| ^ 9) * (1 + a)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨e, M, he, hM_nonneg, hmargin_off, hM⟩ :=
+    kadiri_dyadic_truncated_zero_family_margin_and_multiplicity_selector_on_filter
+      a ha k kadiriLargeHorizontalZetaOffPoleFilter
+      kadiriLargeHorizontalZetaOffPoleFilter_le_cofinite
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨Cp, hCp, hprincipal_bound⟩ :=
+    eventually_kadiri_moving_pole_zeta_principal_part_truncated_right_integral_card_bound_on_filter
+      a e R M he kadiriLargeHorizontalZetaOffPoleFilter
+      (by simpa [R] using hmargin_off) (by simpa [R] using hM)
+  let P : ℝ := (((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) * Cp
+  have hright_int : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      IntervalIntegrable
+        (fun σ : ℝ =>
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I)))
+        volume 0 (1 + a) := by
+    filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleHeight] with T hT
+    exact kadiri_neg_zeta_logDeriv_right_intervalIntegrable_of_offPole a T ha hT
+  have hright_bound : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ‖∫ σ in 0..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ (Z * Real.log |T| ^ 9) * (1 + a) + P :=
+    by
+      filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleHeight,
+        hprincipal_bound, hzeta_rem_log_bound] with T hT hprincipal_T hzeta_T
+      exact
+        kadiri_right_segment_logDeriv_integral_bound_of_zeta_remainder_and_principal
+          a T ha k P ((Z * Real.log |T| ^ 9) * (1 + a)) hT
+          (by simpa [P, R] using hprincipal_T) hzeta_T
+  obtain ⟨C0, hC0, hfull_point⟩ :=
+    kadiri_logDeriv_zeta_full_segment_bound_of_nonpositive_and_right_budget a ha
+  refine ⟨e, M, C0 + G + Z, Cp, he, hM_nonneg,
+    add_nonneg (add_nonneg hC0 hG) hZ, hCp, ?_⟩
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large,
+    eventually_kadiri_digamma_pair_nonpositive_horizontal_intervalIntegrable_on_large_offPole_filter
+      a ha,
+    hdigamma_log_bound, hright_int, hright_bound]
+    with T hlarge hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  have hbase :
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ ((C0 * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a +
+              (G * Real.log |T| ^ 9) * a) +
+            ((Z * Real.log |T| ^ 9) * (1 + a) + P) :=
+    hfull_point (T := T) (D := (G * Real.log |T| ^ 9) * a)
+      (R := (Z * Real.log |T| ^ 9) * (1 + a) + P)
+      hlarge hdigamma_int_T hdigamma_bound_T hright_int_T hright_bound_T
+  have hlog_nonneg : 0 ≤ Real.log |T| ^ 9 := by
+    have hlog_pos : 0 < Real.log |T| ^ 9 := by
+      have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+      positivity
+    exact hlog_pos.le
+  have hshape :
+      ((C0 * Real.log |T| ^ 9) * a + |Real.log Real.pi| * a +
+            (G * Real.log |T| ^ 9) * a) +
+          ((Z * Real.log |T| ^ 9) * (1 + a) + P)
+        ≤ ((C0 + G + Z) * Real.log |T| ^ 9) * (1 + 2 * a) +
+            |Real.log Real.pi| * a + P := by
+    have honea_nonneg : 0 ≤ 1 + a := by linarith
+    have hsurplus_coeff :
+        0 ≤ C0 * (1 + a) + G * (1 + a) + Z * a := by
+      nlinarith [hC0, hG, hZ, ha, honea_nonneg]
+    have hsurplus :
+        0 ≤ (C0 * (1 + a) + G * (1 + a) + Z * a) *
+          Real.log |T| ^ 9 :=
+      mul_nonneg hsurplus_coeff hlog_nonneg
+    nlinarith [hsurplus]
+  have hfinal :
+      ‖∫ σ in (-a)..(1 + a),
+          -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+            riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ ((C0 + G + Z) * Real.log |T| ^ 9) * (1 + 2 * a) +
+            |Real.log Real.pi| * a + P :=
+    le_trans hbase hshape
   simpa [P, R] using hfinal
 
 /--
