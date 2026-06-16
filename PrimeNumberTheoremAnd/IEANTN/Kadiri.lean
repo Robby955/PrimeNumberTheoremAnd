@@ -727,6 +727,29 @@ lemma zeroes_rect_Ioo_critical_bounded_height_finite (T : ℝ) :
   rcases hz with ⟨⟨hre, him⟩, hzeta⟩
   exact ⟨⟨Set.Ioo_subset_Icc_self hre, Set.Ioo_subset_Icc_self him⟩, hzeta⟩
 
+/-- The candidate residue support for Kadiri equation (12) is finite at bounded height. -/
+lemma kadiri_eq12_candidate_residue_set_finite (T : ℝ) :
+    ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T)).Finite :=
+  (Set.finite_singleton (1 : ℂ)).union (zeroes_rect_Ioo_critical_bounded_height_finite T)
+
+/--
+Sign-correct finite-sum form of the non-trivial-zero residue packet in
+Kadiri equation (12).
+-/
+theorem kadiri_eq12_residue_packet_eq_fintype_sum
+    (Φ : ℂ → ℂ) (T : ℝ)
+    [Fintype (riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T))] :
+    Φ (-1) - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) =
+      Φ (-1) + ∑ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+        -((riemannZeta.order (ρ : ℂ) : ℂ) * Φ (-(ρ : ℂ))) := by
+  classical
+  unfold riemannZeta.zeroes_sum
+  rw [tsum_fintype, Finset.sum_neg_distrib]
+  congr 1
+  refine Finset.sum_congr rfl ?_
+  intro ρ _hρ
+  ring
+
 /-- Mechanical border decomposition for the rectangle used in Kadiri equation (12). -/
 theorem kadiri_thm_3_1_q1_eq_12_rectangle_side_decomposition
     (F : ℂ → ℂ) {a T : ℝ} (ha : 0 < a) (hT : 0 < T) :
