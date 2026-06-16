@@ -810,6 +810,65 @@ lemma kadiri_eq12_conj_mem_nontrivialZeros (rho : NontrivialZeros) :
   · simpa [NontrivialZeros, riemannZeta.zeroes_rect, Complex.conj_re] using rho.property.1
   · exact riemannZetaConjZeroSource_of_riemannZeta_conj (rho : ℂ) rho.property.2.2
 
+/-- Heights whose horizontal line avoids the pole at `1` and all non-trivial zeta zeros. -/
+def kadiriEq12HorizontalZetaOffPoleHeight (T : ℝ) : Prop :=
+  T ≠ 0 ∧ ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T
+
+/-- The off-pole height predicate gives the zero-ordinate exclusion used in eq-12. -/
+theorem kadiriEq12HorizontalZetaOffPoleHeight.zero_ordinate_ne {T : ℝ}
+    (hT : kadiriEq12HorizontalZetaOffPoleHeight T) :
+    ∀ rho : NontrivialZeros, (rho : ℂ).im ≠ T :=
+  hT.2
+
+/--
+The eq-12 off-pole height filter: a cofinite height filter restricted to heights
+avoiding the pole at `1` and all non-trivial zero ordinates.
+-/
+noncomputable def kadiriEq12HorizontalZetaOffPoleFilter : Filter ℝ :=
+  Filter.cofinite ⊓ 𝓟 {T : ℝ | kadiriEq12HorizontalZetaOffPoleHeight T}
+
+/-- The eq-12 off-pole filter is finer than the cofinite filter. -/
+theorem kadiriEq12HorizontalZetaOffPoleFilter_le_cofinite :
+    kadiriEq12HorizontalZetaOffPoleFilter ≤ Filter.cofinite := by
+  exact inf_le_left
+
+/-- Along the eq-12 off-pole filter, the off-pole height condition holds eventually. -/
+theorem eventually_kadiriEq12HorizontalZetaOffPoleHeight :
+    ∀ᶠ T : ℝ in kadiriEq12HorizontalZetaOffPoleFilter,
+      kadiriEq12HorizontalZetaOffPoleHeight T := by
+  have hprincipal :
+      ∀ᶠ T : ℝ in 𝓟 {T : ℝ | kadiriEq12HorizontalZetaOffPoleHeight T},
+        kadiriEq12HorizontalZetaOffPoleHeight T :=
+    Filter.mem_principal_self _
+  exact hprincipal.filter_mono inf_le_right
+
+/--
+Large positive eq-12 heights restricted to horizontal lines that avoid the pole
+at `1` and all non-trivial zero ordinates.
+-/
+noncomputable def kadiriEq12LargeHorizontalZetaOffPoleFilter : Filter ℝ :=
+  Filter.atTop ⊓ 𝓟 {T : ℝ | kadiriEq12HorizontalZetaOffPoleHeight T}
+
+/-- The large eq-12 off-pole filter is finer than `atTop`. -/
+theorem kadiriEq12LargeHorizontalZetaOffPoleFilter_le_atTop :
+    kadiriEq12LargeHorizontalZetaOffPoleFilter ≤ Filter.atTop := by
+  exact inf_le_left
+
+/-- The large eq-12 off-pole filter is finer than the cofinite filter. -/
+theorem kadiriEq12LargeHorizontalZetaOffPoleFilter_le_cofinite :
+    kadiriEq12LargeHorizontalZetaOffPoleFilter ≤ Filter.cofinite := by
+  exact le_trans inf_le_left Filter.atTop_le_cofinite
+
+/-- Along the large eq-12 off-pole filter, the off-pole height condition holds eventually. -/
+theorem eventually_kadiriEq12LargeHorizontalZetaOffPoleHeight :
+    ∀ᶠ T : ℝ in kadiriEq12LargeHorizontalZetaOffPoleFilter,
+      kadiriEq12HorizontalZetaOffPoleHeight T := by
+  have hprincipal :
+      ∀ᶠ T : ℝ in 𝓟 {T : ℝ | kadiriEq12HorizontalZetaOffPoleHeight T},
+        kadiriEq12HorizontalZetaOffPoleHeight T :=
+    Filter.mem_principal_self _
+  exact hprincipal.filter_mono inf_le_right
+
 /--
 If the height `T` avoids every non-trivial zero ordinate, then the closed
 height strip contains the same non-trivial zeros as the open height strip.
@@ -856,6 +915,20 @@ lemma kadiri_eq12_candidate_residue_set_closed_height_disjoint_rectangleBorder_o
       ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) := by
   rw [kadiri_eq12_zeroes_rect_closed_height_eq_open_height_of_off_height hoff]
   exact kadiri_eq12_candidate_residue_set_disjoint_rectangleBorder ha hT
+
+/--
+Closed-height eq-12 candidate support misses the rectangle border along the
+off-pole height selector.
+-/
+lemma kadiri_eq12_candidate_residue_set_closed_height_disjoint_rectangleBorder_of_offPoleHeight
+    {a T : ℝ} (ha : 0 < a) (hT : 0 < T)
+    (hoff : kadiriEq12HorizontalZetaOffPoleHeight T) :
+    Disjoint
+      (RectangleBorder (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I))
+      ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) :=
+  kadiri_eq12_candidate_residue_set_closed_height_disjoint_rectangleBorder_of_off_height
+    ha hT hoff.zero_ordinate_ne
 
 /--
 At a closed-height zero, the Kadiri eq-12 integrand is meromorphic once the
@@ -1691,6 +1764,71 @@ theorem kadiri_thm_3_1_q1_eq_12_of_closed_pole_inter_package
       (ha := ha) (hT := hT) (hoff := hoff) (hΦ_one := hΦ_one)
       (hΦ_zero := hΦ_zero) (hmero := hmero)
       (hpoles_inter_eq_closed := hpoles_inter_eq_closed))
+
+/--
+Target-shaped reduction for the rectangle decomposition: once the eq-12
+off-pole height condition, `Φ` analyticity, rectangle meromorphicity, and
+closed-height pole support after intersection with actual poles are supplied,
+the original rectangular residue-decomposition conclusion follows.
+-/
+theorem kadiri_thm_3_1_q1_eq_12_rectangular_residue_decomposition_of_closed_pole_inter_package
+    {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (_hb : 0 < b)
+    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (_hab : a < b) (_ha1 : a < 1)
+    {T : ℝ} (hT : 0 < T)
+    (hoff : kadiriEq12HorizontalZetaOffPoleHeight T)
+    (Φ : ℂ → ℂ) (hΦ : Φ = fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume)
+    (hΦ_one : AnalyticAt ℂ Φ (-1))
+    (hΦ_zero : ∀ ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.Ioo (-T) T),
+      AnalyticAt ℂ Φ (-(ρ : ℂ)))
+    (hmero : MeromorphicOn
+      (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+      (Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)))
+    (hpoles_inter_eq_closed :
+      Rectangle (((-a : ℝ) : ℂ) - (T : ℂ) * I)
+          (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ∩
+        {z | meromorphicOrderAt
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0} =
+        ({(1 : ℂ)} ∪ riemannZeta.zeroes_rect (.Ioo 0 1) (.Icc (-T) T)) ∩
+          {z | meromorphicOrderAt
+            (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z < 0})
+    (_hzero_residue :
+      ∀ (rho : NontrivialZeros) {z w : ℂ},
+        z.re ≤ w.re →
+        z.im ≤ w.im →
+        Rectangle z w ∈ 𝓝 (rho : ℂ) →
+        AnalyticAt ℂ Φ (-(rho : ℂ)) →
+        HolomorphicOn
+          (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s))
+          (Rectangle z w \ {(rho : ℂ)}) →
+        RectangleIntegral' (fun s ↦ (-logDeriv riemannZeta s) * Φ (-s)) z w =
+          -((riemannZeta.order (rho : ℂ) : ℂ) * Φ (-(rho : ℂ)))) :
+    kadiri_thm_3_1_q1_I φ a T =
+      (1 / (2 * (Real.pi : ℂ))) *
+        (∫ t in Set.Ioo (-T) T,
+          (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+              riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+            Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+      + (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+            Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      - (1 / (2 * (Real.pi : ℂ) * I)) *
+        (∫ σ in Set.Ioo (-a) (1 + a),
+          (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+              riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+            Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+      + Φ (-1)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  exact kadiri_thm_3_1_q1_eq_12_of_closed_pole_inter_package
+    (ha := ha) (hT := hT) (hoff := hoff.zero_ordinate_ne)
+    (Φ := Φ) hΦ hΦ_one hΦ_zero hmero hpoles_inter_eq_closed
 
 /--
 Remaining rectangle and residue-sum decomposition for Kadiri equation (12).
