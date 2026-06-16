@@ -946,6 +946,52 @@ theorem kadiri_neg_zeta_logDeriv_mul_hasSimplePolesOn_of_analyticAt
     (fun z hz => (hΨ z hz).meromorphicOrderAt_nonneg)
     hpoles
 
+private lemma ofReal_add_mul_I_ne_one_of_im_ne_zero {σ t : ℝ} (ht : t ≠ 0) :
+    ((σ : ℂ) + (t : ℂ) * I) ≠ 1 := by
+  intro h
+  have him := congrArg Complex.im h
+  simp [ht] at him
+
+theorem kadiri_neg_zeta_logDeriv_mul_meromorphicOrderAt_nonneg_of_zeta_ne_zero
+    {Ψ : ℂ → ℂ} {s : ℂ}
+    (hΨ_mero : MeromorphicAt Ψ s)
+    (hΨ_nonneg : 0 ≤ meromorphicOrderAt Ψ s)
+    (hs1 : s ≠ 1) (hz : riemannZeta s ≠ 0) :
+    0 ≤ meromorphicOrderAt
+      (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) s := by
+  have hbase_mero : MeromorphicAt
+      (fun z : ℂ => -deriv riemannZeta z / riemannZeta z) s :=
+    kadiri_neg_zeta_logDeriv_meromorphicAt s
+  change 0 ≤ meromorphicOrderAt
+    ((fun z : ℂ => -deriv riemannZeta z / riemannZeta z) * Ψ) s
+  rw [meromorphicOrderAt_mul hbase_mero hΨ_mero]
+  exact add_nonneg
+    (kadiri_neg_zeta_logDeriv_meromorphicOrderAt_nonneg_of_zeta_ne_zero hs1 hz)
+    hΨ_nonneg
+
+/--
+On an off-pole horizontal side of the Kadiri rectangle, the weighted zeta
+logarithmic derivative has no pole when the test factor has no pole.
+-/
+theorem kadiri_neg_zeta_logDeriv_mul_meromorphicOrderAt_nonneg_on_horizontal_border_of_offPole
+    {Ψ : ℂ → ℂ} {T σ t : ℝ}
+    (hT : kadiriHorizontalZetaOffPoleHeight T) (ht : t = T ∨ t = -T)
+    (hΨ_mero : MeromorphicAt Ψ ((σ : ℂ) + (t : ℂ) * I))
+    (hΨ_nonneg : 0 ≤ meromorphicOrderAt Ψ ((σ : ℂ) + (t : ℂ) * I)) :
+    0 ≤ meromorphicOrderAt
+      (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z)
+      ((σ : ℂ) + (t : ℂ) * I) := by
+  have ht_ne_zero : t ≠ 0 := by
+    rcases ht with rfl | rfl
+    · exact hT.1
+    · intro hneg
+      exact hT.1 (neg_eq_zero.mp hneg)
+  exact kadiri_neg_zeta_logDeriv_mul_meromorphicOrderAt_nonneg_of_zeta_ne_zero
+    hΨ_mero hΨ_nonneg
+    (ofReal_add_mul_I_ne_one_of_im_ne_zero ht_ne_zero)
+    (riemannZeta_ne_zero_on_horizontal_border_of_offPole (T := T) (σ := σ) (t := t)
+      hT ht)
+
 /--
 After multiplication by a continuous test factor, the residue at the zeta pole
 `s = 1` is the test factor value.
