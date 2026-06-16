@@ -2196,6 +2196,85 @@ theorem kadiriHorizontalSegmentLogDerivBound_of_localPrincipal_and_localPVRemain
           (by simpa [remainder] using hremainder σ hσ t ht)
     _ = (Cprincipal + Cremainder) * Real.log T ^ (2 : ℕ) := by ring
 
+/--
+One signed horizontal line version of the endpoint logarithmic-derivative bound.
+
+The dyadic good-height selector chooses positive heights, so this is the honest
+intermediate shape before any later symmetry argument upgrades it to the two-sided
+absolute-height predicate.
+-/
+def kadiriPositiveHorizontalSegmentLogDerivBound (σ₁ σ₂ T C : ℝ) : Prop :=
+  ∀ σ ∈ Set.uIcc σ₁ σ₂,
+    ‖deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+        riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+      ≤ C * Real.log |T| ^ (2 : ℕ)
+
+/--
+One-sided algebraic handoff from the local principal block plus local Hadamard/PV
+remainder to the signed horizontal segment bound.
+-/
+theorem kadiriPositiveHorizontalSegmentLogDerivBound_of_localPrincipal_and_localPVRemainder
+    {Cprincipal Cremainder T : ℝ}
+    (hprincipal : ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+      ‖∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ ≤
+        Cprincipal * Real.log |T| ^ (2 : ℕ))
+    (hremainder : ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+      ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+        Cremainder * Real.log |T| ^ (2 : ℕ)) :
+    kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T (Cprincipal + Cremainder) := by
+  intro σ hσ
+  let principal : ℂ :=
+    ∑ rho ∈ (kadiriLocalZeroWindow_finite T).toFinset,
+      ((riemannZeta.order (rho : ℂ) : ℂ) /
+        (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))
+  let remainder : ℂ := kadiriLocalZetaLogDerivPVRemainder T σ
+  have hdecomp :
+      deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I)) =
+        principal + remainder := by
+    dsimp [principal, remainder, kadiriLocalZetaLogDerivPVRemainder]
+    ring
+  calc
+    ‖deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+        riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        = ‖principal + remainder‖ := by rw [hdecomp]
+    _ ≤ ‖principal‖ + ‖remainder‖ := norm_add_le principal remainder
+    _ ≤ Cprincipal * Real.log |T| ^ (2 : ℕ) +
+          Cremainder * Real.log |T| ^ (2 : ℕ) := by
+        exact add_le_add (by simpa [principal] using hprincipal σ hσ)
+          (by simpa [remainder] using hremainder σ hσ)
+    _ = (Cprincipal + Cremainder) * Real.log |T| ^ (2 : ℕ) := by ring
+
+/--
+Selected dyadic good heights give the signed horizontal `log^2` bound once the local
+Hadamard/PV remainder has the matching `log^2` bound on candidate heights.
+-/
+theorem exists_kadiriDyadicGoodHeightSelector_positiveLogDeriv_logSq_of_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧ ∀ᶠ k : ℕ in atTop,
+      ∀ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T →
+          ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+            ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+              R * Real.log |T| ^ (2 : ℕ)) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ᶠ k : ℕ in atTop,
+      ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T ∧
+          kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C := by
+  obtain ⟨P, hP, hprincipal⟩ :=
+    exists_kadiriDyadicGoodHeightSelector_localPrincipal_logSq hsrc
+  obtain ⟨R, hR, hremainder⟩ := hrem
+  refine ⟨P + R, add_nonneg hP hR, ?_⟩
+  filter_upwards [hprincipal, hremainder] with k hprincipal_k hremainder_k
+  obtain ⟨T, hT, hoff, hprincipal_T⟩ := hprincipal_k
+  refine ⟨T, hT, hoff, ?_⟩
+  exact kadiriPositiveHorizontalSegmentLogDerivBound_of_localPrincipal_and_localPVRemainder
+    (Cprincipal := P) (Cremainder := R) (T := T)
+    (fun σ hσ => hprincipal_T σ)
+    (fun σ hσ => hremainder_k T hT hoff σ hσ)
+
 theorem
     kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
     {A C T : ℝ} (hA : 0 ≤ A) (hC : 0 ≤ C) (hT : 3 < |T|)
