@@ -1094,6 +1094,71 @@ theorem kadiriTruncatedNontrivialZeros_endpoint_margin_exists
   intro rho hrho
   exact hS rho ((mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mpr hrho)
 
+/--
+The Kadiri terminal shift `A / log |T|^9` is eventually smaller than any positive
+fixed margin.
+-/
+theorem eventually_const_div_log_abs_pow_lt_atTop (A e : ℝ) (he : 0 < e) :
+    ∀ᶠ T : ℝ in Filter.atTop, A / Real.log |T| ^ (9 : ℕ) < e := by
+  have hlog_abs :
+      Filter.Tendsto (fun T : ℝ => Real.log |T|) Filter.atTop Filter.atTop := by
+    exact Real.tendsto_log_atTop.comp tendsto_norm_atTop_atTop
+  have hden :
+      Filter.Tendsto (fun T : ℝ => Real.log |T| ^ (9 : ℕ))
+        Filter.atTop Filter.atTop :=
+    (tendsto_pow_atTop (by norm_num : (9 : ℕ) ≠ 0)).comp hlog_abs
+  have hratio :
+      Filter.Tendsto (fun T : ℝ => A / Real.log |T| ^ (9 : ℕ))
+        Filter.atTop (𝓝 0) :=
+    tendsto_const_nhds.div_atTop hden
+  exact hratio.eventually (gt_mem_nhds he)
+
+/--
+For a fixed dyadic truncation, all retained non-trivial zeros eventually lie strictly
+to the left of Kadiri's moving terminal line `1 - A / log |T|^9`.
+
+This is the right-boundary selector needed before the terminal right-half-plane estimate
+can be combined with the finite moving-pole principal block.
+-/
+theorem eventually_kadiri_truncated_zero_family_left_of_log_terminal_on_filter
+    (A : ℝ) (k : ℕ) (L : Filter ℝ) (hL : L ≤ Filter.atTop) :
+    ∀ᶠ T : ℝ in L,
+      ∀ rho : NontrivialZeros,
+        |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+          (rho : ℂ).re < 1 - A / Real.log |T| ^ (9 : ℕ) := by
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨e, he, hmargin⟩ :=
+    kadiriTruncatedNontrivialZeros_endpoint_margin_exists 0 R (by norm_num)
+  filter_upwards [(eventually_const_div_log_abs_pow_lt_atTop A e he).filter_mono hL]
+    with T hshift rho hrho
+  have hright : (rho : ℂ).re ≤ 1 - e := by
+    have h := hmargin rho (by simpa [R] using hrho)
+    linarith [h.2]
+  linarith
+
+/--
+Quantitative form of the dyadic right-boundary selector.  For a fixed dyadic truncation,
+large heights eventually leave a positive real gap between every retained zero and the
+moving terminal line `1 - A / log |T|^9`.
+-/
+theorem eventually_kadiri_truncated_zero_family_gap_left_of_log_terminal_on_filter
+    (A : ℝ) (k : ℕ) (L : Filter ℝ) (hL : L ≤ Filter.atTop) :
+    ∃ d : ℝ, 0 < d ∧
+      ∀ᶠ T : ℝ in L,
+        ∀ rho : NontrivialZeros,
+          |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+            (rho : ℂ).re + d ≤ 1 - A / Real.log |T| ^ (9 : ℕ) := by
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨e, he, hmargin⟩ :=
+    kadiriTruncatedNontrivialZeros_endpoint_margin_exists 0 R (by norm_num)
+  refine ⟨e / 2, half_pos he, ?_⟩
+  filter_upwards [(eventually_const_div_log_abs_pow_lt_atTop A (e / 2) (half_pos he)).filter_mono hL]
+    with T hshift rho hrho
+  have hright : (rho : ℂ).re ≤ 1 - e := by
+    have h := hmargin rho (by simpa [R] using hrho)
+    linarith [h.2]
+  linarith
+
 /-- Any finite family of non-trivial zeros has a finite multiplicity-norm cap. -/
 theorem nontrivialZeros_finset_order_norm_bound_exists
     (S : Finset NontrivialZeros) :
@@ -1684,6 +1749,11 @@ theorem kadiriLargeHorizontalZetaOffPoleFilter_le_cofinite :
     kadiriLargeHorizontalZetaOffPoleFilter ≤ Filter.cofinite := by
   exact le_trans inf_le_left Filter.atTop_le_cofinite
 
+/-- The large off-pole filter is finer than `atTop`. -/
+theorem kadiriLargeHorizontalZetaOffPoleFilter_le_atTop :
+    kadiriLargeHorizontalZetaOffPoleFilter ≤ Filter.atTop := by
+  exact inf_le_left
+
 /-- Along the large off-pole filter, `3 < |T|` eventually holds. -/
 theorem eventually_kadiriLargeHorizontalZetaOffPoleFilter_large :
     ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter, 3 < |T| := by
@@ -1701,6 +1771,20 @@ theorem eventually_kadiriLargeHorizontalZetaOffPoleHeight :
         kadiriHorizontalZetaOffPoleHeight T :=
     Filter.mem_principal_self _
   exact hprincipal.filter_mono inf_le_right
+
+/--
+Large off-pole specialization of the dyadic right-boundary selector: for fixed `k`, the
+finite truncated zero family is eventually strictly left of `1 - A / log |T|^9`.
+-/
+theorem
+    eventually_kadiri_truncated_zero_family_left_of_log_terminal_on_large_offPole_filter
+    (A : ℝ) (k : ℕ) :
+    ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      ∀ rho : NontrivialZeros,
+        |(rho : ℂ).im| < (2 : ℝ) ^ (k + 1) →
+          (rho : ℂ).re < 1 - A / Real.log |T| ^ (9 : ℕ) :=
+  eventually_kadiri_truncated_zero_family_left_of_log_terminal_on_filter
+    A k kadiriLargeHorizontalZetaOffPoleFilter kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
 
 /--
 On the large off-pole filter, the digamma pair from the functional equation is eventually
@@ -2731,6 +2815,124 @@ theorem
   refine ⟨C, hC, ?_⟩
   filter_upwards [hmargin_off] with T hT
   exact hcard T M hT hM
+
+/--
+Terminal right-subsegment principal-part bound when the retained zeros are separated to the
+left of the moving terminal line.
+
+Unlike the crossing bound on `[0, 1 + a]`, this estimate has no off-height hypothesis:
+the real gap `d` keeps every retained pole away from the terminal segment.
+-/
+theorem kadiri_moving_pole_zeta_principal_part_truncated_terminal_right_integral_card_bound
+    (a x d R M T : ℝ) (hxd : x ≤ 1 + a) (hd : 0 < d)
+    (hleft : ∀ rho : NontrivialZeros,
+      |(rho : ℂ).im| < R → (rho : ℂ).re + d ≤ x)
+    (hM : ∀ rho : NontrivialZeros,
+      |(rho : ℂ).im| < R →
+        ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ ≤ M) :
+    ‖∫ σ in x..(1 + a), (
+        ∑ rho ∈ kadiriTruncatedNontrivialZeros R,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+      ≤ ((((kadiriTruncatedNontrivialZeros R).card : ℝ) * M) / d) *
+          |1 + a - x| := by
+  classical
+  let S : Finset NontrivialZeros := kadiriTruncatedNontrivialZeros R
+  have hpoint :
+      ∀ σ ∈ Ι x (1 + a),
+        ‖∑ rho ∈ S,
+            ((riemannZeta.order (rho : ℂ) : ℂ) /
+              (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+          ≤ (((S.card : ℝ) * M) / d) := by
+    intro σ hσ
+    have hσ_mem : σ ∈ Set.Ioc x (1 + a) := by
+      rw [Set.uIoc_of_le hxd] at hσ
+      exact hσ
+    calc
+      ‖∑ rho ∈ S,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+          ≤ ∑ rho ∈ S,
+              ‖((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖ :=
+            norm_sum_le _ _
+      _ ≤ ∑ rho ∈ S, M / d := by
+            refine Finset.sum_le_sum fun rho hrho => ?_
+            have him : |(rho : ℂ).im| < R := by
+              simpa [S] using
+                (mem_kadiriTruncatedNontrivialZeros (R := R) (rho := rho)).mp hrho
+            let z : ℂ := (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))
+            have hz_re : z.re = σ - (rho : ℂ).re := by
+              simp [z]
+            have hz_re_nonneg : 0 ≤ z.re := by
+              rw [hz_re]
+              linarith [hleft rho him, hσ_mem.1.le, hd]
+            have hz_norm_ge : d ≤ ‖z‖ := by
+              have hd_re : d ≤ z.re := by
+                rw [hz_re]
+                linarith [hleft rho him, hσ_mem.1.le]
+              calc
+                d ≤ |z.re| := by simpa [abs_of_nonneg hz_re_nonneg] using hd_re
+                _ ≤ ‖z‖ := Complex.abs_re_le_norm z
+            have hz_norm_pos : 0 < ‖z‖ := lt_of_lt_of_le hd hz_norm_ge
+            calc
+              ‖((riemannZeta.order (rho : ℂ) : ℂ) /
+                  (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))‖
+                  = ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ / ‖z‖ := by
+                    simp [z]
+              _ ≤ ‖(riemannZeta.order (rho : ℂ) : ℂ)‖ / d := by
+                    exact div_le_div_of_nonneg_left (norm_nonneg _) hd hz_norm_ge
+              _ ≤ M / d := by
+                    exact div_le_div_of_nonneg_right (hM rho him) hd.le
+      _ = (((S.card : ℝ) * M) / d) := by
+            simp [Finset.sum_const, nsmul_eq_mul]
+            ring
+  have hnorm :=
+    intervalIntegral.norm_integral_le_of_norm_le_const
+      (a := x) (b := 1 + a) (C := (((S.card : ℝ) * M) / d))
+      (f := fun σ : ℝ =>
+        ∑ rho ∈ S,
+          ((riemannZeta.order (rho : ℂ) : ℂ) /
+            (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ)))) hpoint
+  simpa [S] using hnorm
+
+/--
+Large off-pole terminal principal-part budget with both finite selectors instantiated: a
+positive right-boundary gap for the dyadic zero family and a finite multiplicity cap.
+-/
+theorem
+    eventually_kadiri_moving_pole_zeta_principal_part_dyadic_terminal_right_integral_card_bound_on_large_offPole_filter
+    (a A : ℝ) (ha : 0 ≤ a) (hA : 0 ≤ A) (k : ℕ) :
+    ∃ d M : ℝ, 0 < d ∧ 0 ≤ M ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (1 - A / Real.log |T| ^ (9 : ℕ))..(1 + a), (
+            ∑ rho ∈ kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1)),
+              ((riemannZeta.order (rho : ℂ) : ℂ) /
+                (((σ : ℂ) + (T : ℂ) * I) - (rho : ℂ))))‖
+          ≤ ((((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) / d) *
+              |1 + a - (1 - A / Real.log |T| ^ (9 : ℕ))| := by
+  let R : ℝ := (2 : ℝ) ^ (k + 1)
+  obtain ⟨d, hd, hgap⟩ :=
+    eventually_kadiri_truncated_zero_family_gap_left_of_log_terminal_on_filter
+      A k kadiriLargeHorizontalZetaOffPoleFilter kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
+  obtain ⟨M, hM_nonneg, hM⟩ := kadiriTruncatedNontrivialZeros_order_norm_bound_exists R
+  refine ⟨d, M, hd, hM_nonneg, ?_⟩
+  filter_upwards [hgap, eventually_kadiriLargeHorizontalZetaOffPoleFilter_large]
+    with T hgap_T hlarge
+  let x : ℝ := 1 - A / Real.log |T| ^ (9 : ℕ)
+  have hlog_pos : 0 < Real.log |T| ^ (9 : ℕ) := by
+    have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+    positivity
+  have hshift_nonneg : 0 ≤ A / Real.log |T| ^ (9 : ℕ) :=
+    div_nonneg hA hlog_pos.le
+  have hxd : x ≤ 1 + a := by
+    dsimp [x]
+    linarith
+  exact
+    kadiri_moving_pole_zeta_principal_part_truncated_terminal_right_integral_card_bound
+      a x d R M T hxd hd
+      (by simpa [x, R] using hgap_T)
+      (by simpa [R] using hM)
 
 /--
 Full-segment off-pole assembly with the right-segment truncated pole budget instantiated.
