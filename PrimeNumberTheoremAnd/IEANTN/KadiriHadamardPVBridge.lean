@@ -2,6 +2,7 @@ import PrimeNumberTheoremAnd.IEANTN.KadiriFarTail
 import PrimeNumberTheoremAnd.IEANTN.KadiriGammaStrip
 import PrimeNumberTheoremAnd.IEANTN.KadiriLogDerivFullSegment
 import PrimeNumberTheoremAnd.IEANTN.KadiriNearBand
+import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCountingLocalWindow
 
 /-!
 # Hadamard/PV bridge for the Kadiri full-segment endpoint
@@ -534,6 +535,14 @@ theorem kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_of_dyadicGoodHeight
           linarith
     _ = (RA + RG + RR + RF) * Real.log T := by ring
     _ = (RA + RG + RR + RF) * Real.log |T| := by rw [hTabs]
+
+/-- Unconditional selected-height Titchmarsh local partial-fraction bound. -/
+theorem kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_unconditional :
+    kadiriTitchmarshLocalPartialFractionLogBoundOnFilter
+      (kadiriDyadicGoodHeightFilter
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window) :=
+  kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_of_dyadicGoodHeight
+    zeroImagDyadicCumulativeCountBoundSource_of_local_window
 
 end
 

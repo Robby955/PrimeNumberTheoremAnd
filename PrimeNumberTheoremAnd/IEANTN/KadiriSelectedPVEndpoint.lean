@@ -590,4 +590,25 @@ theorem
     hsrc a ha k
     (kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_of_dyadicGoodHeight hsrc)
 
+/--
+Unconditional selected-height endpoint: the local-window zero-count producer
+supplies the dyadic good-height source.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_titchmarshPartialFraction_unconditional_on_dyadicGoodHeightFilter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in
+          kadiriDyadicGoodHeightFilter
+            zeroImagDyadicCumulativeCountBoundSource_of_local_window,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp :=
+  eventually_kadiri_logDeriv_zeta_full_segment_bound_of_titchmarshPartialFraction_on_dyadicGoodHeightFilter
+    zeroImagDyadicCumulativeCountBoundSource_of_local_window a ha k
+    kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_unconditional
+
 end Kadiri
