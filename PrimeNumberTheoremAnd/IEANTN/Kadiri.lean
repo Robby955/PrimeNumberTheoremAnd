@@ -8,6 +8,7 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
 import Mathlib.Analysis.Normed.Group.Tannery
 import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 import Mathlib.NumberTheory.LSeries.RiemannZeta
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 
 blueprint_comment /--
 \section{An explicit zero-free region for \texorpdfstring{$\zeta$}{zeta}}\label{kadiri-sec}
@@ -835,6 +836,99 @@ private lemma kadiri_laplace_positive_line_weight_integrable {φ : ℝ → ℂ}
     Integrable (fun y : ℝ => exp (-((a : ℂ) * (y : ℂ))) * φ y) :=
   kadiri_laplace_positive_line_weight_integrable_of_continuous hφ.continuous hφ_decay ha hab
 
+private lemma kadiri_laplace_strip_weight_integrable_of_continuous {ψ : ℝ → ℂ}
+    (hψ : Continuous ψ) {b : ℝ}
+    (hψ_decay : (fun x : ℝ ↦ ψ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a σ : ℝ} (ha : 0 < a) (hab : a < b) (hσlo : -a ≤ σ) (hσhi : σ ≤ 1 / 2) :
+    Integrable (fun y : ℝ => exp ((σ : ℂ) * (y : ℂ)) * ψ y) := by
+  let F : ℝ → ℂ := fun y => exp ((σ : ℂ) * (y : ℂ)) * ψ y
+  have hF_cont : Continuous F := by
+    dsimp [F]
+    fun_prop
+  have hF_loc : LocallyIntegrable F volume := hF_cont.locallyIntegrable
+  have hshape : ∀ x : ℝ,
+      ‖F x‖ = Real.exp ((σ - 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖ := by
+    intro x
+    dsimp [F]
+    rw [norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp]
+    have h1 : ((↑σ * ↑x) : ℂ).re = σ * x := by
+      norm_num [Complex.mul_re]
+    have h2 : ((x : ℂ) / 2).re = x / 2 := by
+      norm_num
+    rw [h1, h2]
+    calc
+      Real.exp (σ * x) * ‖ψ x‖
+          = (Real.exp ((σ - 1 / 2) * x) * Real.exp (x / 2)) * ‖ψ x‖ := by
+            rw [← Real.exp_add]
+            congr 1
+            ring_nf
+      _ = Real.exp ((σ - 1 / 2) * x) * (‖ψ x‖ * Real.exp (x / 2)) := by
+            ring_nf
+  have htop_decay := hψ_decay.mono (show Filter.atTop ≤ Filter.cocompact ℝ from
+    atTop_le_cocompact)
+  have hbot_decay := hψ_decay.mono (show Filter.atBot ≤ Filter.cocompact ℝ from
+    atBot_le_cocompact)
+  have htop : F =O[Filter.atTop] fun x : ℝ => Real.exp ((σ - 1 - b) * x) := by
+    rw [Asymptotics.isBigO_iff] at htop_decay ⊢
+    obtain ⟨C, hC⟩ := htop_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_gt_atTop (0 : ℝ)] with x hxC hxpos
+    rw [hshape]
+    calc
+      Real.exp ((σ - 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp ((σ - 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp ((σ - 1 - b) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_pos hxpos]
+            calc
+              Real.exp ((σ - 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * x))
+                  = C * (Real.exp ((σ - 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * x)) := by ring_nf
+              _ = C * Real.exp ((σ - 1 / 2) * x + (-(1 / 2 + b) * x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp ((σ - 1 - b) * x) := by ring_nf
+  have hbot : F =O[Filter.atBot] fun x : ℝ => Real.exp ((σ + b) * x) := by
+    rw [Asymptotics.isBigO_iff] at hbot_decay ⊢
+    obtain ⟨C, hC⟩ := hbot_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_lt_atBot (0 : ℝ)] with x hxC hxneg
+    rw [hshape]
+    calc
+      Real.exp ((σ - 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp ((σ - 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp ((σ + b) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_neg hxneg]
+            calc
+              Real.exp ((σ - 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * -x))
+                  = C * (Real.exp ((σ - 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * -x)) := by ring_nf
+              _ = C * Real.exp ((σ - 1 / 2) * x + (-(1 / 2 + b) * -x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp ((σ + b) * x) := by ring_nf
+  have htop_int : IntegrableAtFilter (fun x : ℝ => Real.exp ((σ - 1 - b) * x))
+      Filter.atTop volume := by
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 (show 0 < 1 + b - σ by linarith) using 1
+    ext x
+    ring_nf
+  have hbot_int : IntegrableAtFilter (fun x : ℝ => Real.exp ((σ + b) * x))
+      Filter.atBot volume := by
+    rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+    have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      simp
+    rw [hvol, Function.comp_def]
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 (show 0 < σ + b by linarith) using 1
+    ext x
+    ring_nf
+  exact hF_loc.integrable_of_isBigO_atBot_atTop hbot hbot_int htop htop_int
 
 private lemma kadiri_laplace_positive_line_weight_isBigO_atBot {φ : ℝ → ℂ} {b a : ℝ}
     (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
@@ -2314,6 +2408,307 @@ theorem kadiri_thm_3_1_q1_gamma_symmetrization {s : ℂ} (_hs : s.re = 1 / 2) :
   rw [hconj, digamma_conj, Complex.add_conj]
   push_cast
   ring
+
+private lemma kadiri_digamma_half_poles {s : ℂ} {T : ℝ}
+    (hsim : (s / 2).im = T / 2) (hT : 1 ≤ T) :
+    ∀ n : ℕ, s / 2 ≠ -(n : ℂ) := by
+  intro n h
+  have hzero : (-(n : ℂ)).im = 0 := by simp
+  have : T / 2 = 0 := by
+    calc T / 2 = (s / 2).im := hsim.symm
+      _ = (-(n : ℂ)).im := by rw [h]
+      _ = 0 := hzero
+  linarith
+
+private lemma kadiri_norm_inv_half_le_two {s : ℂ} {T : ℝ}
+    (hsim : (s / 2).im = T / 2) (hT : 1 ≤ T) :
+    ‖(s / 2)⁻¹‖ ≤ (2 : ℝ) := by
+  have him_nonneg : 0 ≤ T / 2 := by linarith
+  have hnorm_ge : T / 2 ≤ ‖s / 2‖ := by
+    calc T / 2 = |(s / 2).im| := by rw [hsim, abs_of_nonneg him_nonneg]
+      _ ≤ ‖s / 2‖ := Complex.abs_im_le_norm _
+  have hnorm_pos : 0 < ‖s / 2‖ := by linarith
+  rw [norm_inv]
+  rw [inv_le_comm₀ hnorm_pos (by norm_num : (0 : ℝ) < 2)]
+  linarith
+
+private lemma kadiri_digamma_half_shift {s : ℂ} {T : ℝ}
+    (hsim : (s / 2).im = T / 2) (hT : 1 ≤ T) :
+    digamma (s / 2) = digamma ((s + 2) / 2) - (s / 2)⁻¹ := by
+  have hrec := Complex.digamma_apply_add_one (s / 2) (kadiri_digamma_half_poles hsim hT)
+  have hshift : s / 2 + 1 = (s + 2) / 2 := by ring
+  rw [hshift] at hrec
+  rw [hrec]
+  abel
+
+private lemma kadiri_gamma_factor_horizontal_norm_le_log
+    {a : ℝ} (ha : 0 < a) (ha1 : a < 1) :
+    ∃ C : ℝ, 0 < C ∧ ∀ T σ : ℝ, 1 ≤ T → -a ≤ σ → σ ≤ 1 / 2 →
+      ‖(1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))‖
+        ≤ C * Real.log (T + 2) := by
+  obtain ⟨C1, hC1, hC1_bound⟩ :=
+    Complex.exists_norm_digamma_div_two_le_log (a := 1) (b := 5 / 2) (by norm_num)
+  obtain ⟨C2, hC2, hC2_bound⟩ :=
+    Complex.exists_norm_digamma_div_two_le_log (a := 1 / 2) (b := 1 + a) (by norm_num)
+  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
+  refine ⟨C1 + C2 + 2 / Real.log 2, ?_, fun T σ hT hσlo hσhi => ?_⟩
+  · positivity
+  set s : ℂ := (σ : ℂ) + (T : ℂ) * I
+  have hsre : s.re = σ := by simp [s]
+  have hsim : s.im = T := by simp [s]
+  have hsim2 : (s / 2).im = T / 2 := by simp [s]
+  have hlog_mono : Real.log 2 ≤ Real.log (T + 2) :=
+    Real.log_le_log (by norm_num) (by linarith)
+  have hshift : ‖digamma ((s + 2) / 2)‖ ≤ C1 * Real.log (T + 2) := by
+    have hrelo : (1 : ℝ) ≤ (s + 2).re := by
+      rw [Complex.add_re, hsre]
+      norm_num
+      linarith
+    have hrehi : (s + 2).re ≤ (5 / 2 : ℝ) := by
+      rw [Complex.add_re, hsre]
+      norm_num
+      linarith
+    have h := hC1_bound (s + 2) hrelo hrehi
+    have him_eq : (s + 2).im = T := by simp [Complex.add_im, hsim]
+    simpa [him_eq, abs_of_nonneg (by linarith : 0 ≤ T)] using h
+  have hinv : ‖(s / 2)⁻¹‖ ≤ (2 / Real.log 2) * Real.log (T + 2) := by
+    calc ‖(s / 2)⁻¹‖ ≤ (2 : ℝ) := kadiri_norm_inv_half_le_two hsim2 hT
+      _ = (2 / Real.log 2) * Real.log 2 := by field_simp [hlog2.ne']
+      _ ≤ (2 / Real.log 2) * Real.log (T + 2) :=
+          mul_le_mul_of_nonneg_left hlog_mono (div_nonneg (by norm_num) hlog2.le)
+  have hleft : ‖digamma (s / 2)‖ ≤
+      (C1 + 2 / Real.log 2) * Real.log (T + 2) := by
+    rw [kadiri_digamma_half_shift hsim2 hT]
+    calc ‖digamma ((s + 2) / 2) - (s / 2)⁻¹‖
+        ≤ ‖digamma ((s + 2) / 2)‖ + ‖(s / 2)⁻¹‖ := norm_sub_le _ _
+      _ ≤ C1 * Real.log (T + 2) + (2 / Real.log 2) * Real.log (T + 2) :=
+          add_le_add hshift hinv
+      _ = (C1 + 2 / Real.log 2) * Real.log (T + 2) := by ring
+  have hright : ‖digamma ((1 - s) / 2)‖ ≤ C2 * Real.log (T + 2) := by
+    have hrelo : (1 / 2 : ℝ) ≤ (1 - s).re := by
+      rw [Complex.sub_re, Complex.one_re, hsre]
+      linarith
+    have hrehi : (1 - s).re ≤ 1 + a := by
+      rw [Complex.sub_re, Complex.one_re, hsre]
+      linarith
+    have h := hC2_bound (1 - s) hrelo hrehi
+    have him_eq : (1 - s).im = -T := by simp [Complex.sub_im, Complex.one_im, hsim]
+    simpa [him_eq, abs_of_nonneg (by linarith : 0 ≤ T)] using h
+  calc
+    ‖(1 / 2 : ℂ) * (digamma (s / 2) + digamma ((1 - s) / 2))‖
+        ≤ ‖digamma (s / 2) + digamma ((1 - s) / 2)‖ := by
+          rw [norm_mul]
+          have hhalf : ‖(1 / 2 : ℂ)‖ ≤ (1 : ℝ) := by norm_num [Complex.normSq]
+          exact mul_le_of_le_one_left (norm_nonneg _) hhalf
+    _ ≤ ‖digamma (s / 2)‖ + ‖digamma ((1 - s) / 2)‖ := norm_add_le _ _
+    _ ≤ (C1 + 2 / Real.log 2) * Real.log (T + 2) + C2 * Real.log (T + 2) :=
+        add_le_add hleft hright
+    _ = (C1 + C2 + 2 / Real.log 2) * Real.log (T + 2) := by ring
+
+private lemma tendsto_intervalIntegral_zero_of_uniform_norm_bound
+    {f : ℝ → ℝ → ℂ} {lo hi : ℝ} {B : ℝ → ℝ}
+    (hB : Filter.Tendsto (fun T : ℝ => B T * |hi - lo|) Filter.atTop (nhds 0))
+    (hf : ∀ᶠ T in Filter.atTop, ∀ x ∈ Set.uIoc lo hi, ‖f T x‖ ≤ B T) :
+    Filter.Tendsto (fun T : ℝ => ∫ x in lo..hi, f T x) Filter.atTop (nhds 0) := by
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  refine squeeze_zero' (Eventually.of_forall fun T => norm_nonneg _) ?_ hB
+  filter_upwards [hf] with T hT
+  exact intervalIntegral.norm_integral_le_of_norm_le_const (fun x hx => hT x hx)
+
+private lemma tendsto_const_mul_log_add_two_div_add_two_atTop (K : ℝ) :
+    Filter.Tendsto (fun T : ℝ => K * (Real.log (T + 2) / (T + 2)))
+      Filter.atTop (nhds 0) := by
+  have h0 : Filter.Tendsto (fun x : ℝ => Real.log x / x) Filter.atTop (nhds 0) := by
+    simpa using (Real.tendsto_pow_log_div_mul_add_atTop 1 0 1 (by norm_num : (1 : ℝ) ≠ 0))
+  have hshift : Filter.Tendsto (fun T : ℝ => Real.log (T + 2) / (T + 2))
+      Filter.atTop (nhds 0) := by
+    simpa [one_mul, add_zero] using
+      h0.comp (tendsto_atTop_add_const_right Filter.atTop 2 tendsto_id)
+  simpa using hshift.const_mul K
+
+/-- If the Laplace factor is `O(1 / T)` uniformly on the horizontal segment from
+`-a + iT` to `1/2 + iT`, then the gamma-factor horizontal integral vanishes. -/
+theorem kadiri_gamma_horizontal_vanishes_of_laplace_strip_decay
+    {Φ : ℂ → ℂ} {a CΦ : ℝ} (ha : 0 < a) (ha1 : a < 1)
+    (hΦ : ∀ᶠ (T : ℝ) in Filter.atTop, ∀ σ : ℝ,
+      σ ∈ Set.uIoc (-a) (1 / 2 : ℝ) →
+      (‖Φ (-((σ : ℂ) + (T : ℂ) * I))‖ : ℝ) ≤ (CΦ / (T + 2) : ℝ)) :
+    Filter.Tendsto
+      (fun T : ℝ => ∫ σ in (-a)..(1 / 2),
+        ((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (T : ℂ) * I)))
+      Filter.atTop (nhds 0) := by
+  obtain ⟨CΓ, hCΓ, hΓ⟩ := kadiri_gamma_factor_horizontal_norm_le_log ha ha1
+  refine tendsto_intervalIntegral_zero_of_uniform_norm_bound
+    (B := fun T : ℝ => (CΓ * CΦ) * (Real.log (T + 2) / (T + 2))) ?_ ?_
+  · have hbase :=
+      tendsto_const_mul_log_add_two_div_add_two_atTop
+        ((CΓ * CΦ) * |(1 / 2 : ℝ) - -a|)
+    convert hbase using 1
+    ext T
+    ring
+  · filter_upwards [hΦ, Filter.eventually_atTop.2 ⟨1, fun T hT => hT⟩] with T hΦT hT σ hσ
+    have hle : -a ≤ (1 / 2 : ℝ) := by linarith
+    have hσI : σ ∈ Set.Ioc (-a) (1 / 2) := by
+      rw [Set.uIoc_of_le hle] at hσ
+      exact hσ
+    have hΓT := hΓ T σ hT (le_of_lt hσI.1) hσI.2
+    have hΦT' := hΦT σ hσ
+    have hden_pos : 0 < T + 2 := by linarith
+    have hlog_nonneg : 0 ≤ Real.log (T + 2) := Real.log_nonneg (by linarith)
+    have hΓrhs_nonneg : 0 ≤ CΓ * Real.log (T + 2) := mul_nonneg hCΓ.le hlog_nonneg
+    calc
+      ‖((1 / 2 : ℂ) *
+          (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+           digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))) *
+          Φ (-((σ : ℂ) + (T : ℂ) * I))‖
+          = ‖(1 / 2 : ℂ) *
+              (digamma ((((σ : ℂ) + (T : ℂ) * I) / 2)) +
+               digamma ((((1 : ℂ) - ((σ : ℂ) + (T : ℂ) * I)) / 2)))‖ *
+            ‖Φ (-((σ : ℂ) + (T : ℂ) * I))‖ := norm_mul _ _
+      _ ≤ (CΓ * Real.log (T + 2)) * (CΦ / (T + 2)) := by
+          exact mul_le_mul hΓT hΦT' (norm_nonneg _) hΓrhs_nonneg
+      _ = (CΓ * CΦ) * (Real.log (T + 2) / (T + 2)) := by field_simp [hden_pos.ne']
+
+private lemma kadiri_fourier_deriv_eval_one
+    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
+    (hg' : Integrable (fderiv ℝ g)) (w : ℝ) :
+    (𝓕 (fderiv ℝ g) w) (1 : ℝ) =
+      (2 * Real.pi * Complex.I * (w : ℂ)) * 𝓕 g w := by
+  have h := congrFun (Real.fourier_fderiv hg hdiff hg') w
+  rw [h]
+  have hinnerC : (((((-innerSL ℝ) w) (1 : ℝ) : ℝ) : ℂ)) = -(w : ℂ) := by simp
+  simp only [VectorFourier.fourierSMulRight_apply, real_smul, smul_eq_mul, neg_mul]
+  have hslot :
+      -(2 * ↑Real.pi * Complex.I *
+          ((((((-innerSL ℝ) w) (1 : ℝ) : ℝ) : ℂ)) * 𝓕 g w)) =
+        -(2 * ↑Real.pi * Complex.I * (-(w : ℂ) * 𝓕 g w)) := by
+    rw [hinnerC]
+  calc
+    -(2 * ↑Real.pi * Complex.I *
+          ((((((-innerSL ℝ) w) (1 : ℝ) : ℝ) : ℂ)) * 𝓕 g w))
+        = -(2 * ↑Real.pi * Complex.I * (-(w : ℂ) * 𝓕 g w)) := hslot
+    _ = 2 * ↑Real.pi * Complex.I * ↑w * 𝓕 g w := by ring_nf
+
+private lemma kadiri_norm_fourier_le_integral_fderiv_div
+    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
+    (hg' : Integrable (fderiv ℝ g)) {w : ℝ} (hw : w ≠ 0) :
+    ‖𝓕 g w‖ ≤ (∫ x, ‖fderiv ℝ g x‖ ∂volume) / ((2 * Real.pi) * |w|) := by
+  have hmul := kadiri_fourier_deriv_eval_one g hg hdiff hg' w
+  have h_eval :
+      ‖(𝓕 (fderiv ℝ g) w) (1 : ℝ)‖ ≤ ‖𝓕 (fderiv ℝ g) w‖ := by
+    have h := ContinuousLinearMap.le_opNorm (𝓕 (fderiv ℝ g) w) (1 : ℝ)
+    simpa using h
+  have h_fourier :
+      ‖𝓕 (fderiv ℝ g) w‖ ≤ ∫ x, ‖fderiv ℝ g x‖ ∂volume := by
+    exact VectorFourier.norm_fourierIntegral_le_integral_norm 𝐞 volume (innerₗ ℝ)
+      (fderiv ℝ g) w
+  have hleft :
+      ((2 * Real.pi) * |w|) * ‖𝓕 g w‖ =
+        ‖(2 * Real.pi * Complex.I * (w : ℂ)) * 𝓕 g w‖ := by
+    have htwopi : ‖(2 * ↑Real.pi : ℂ)‖ = 2 * Real.pi := by
+      rw [norm_mul, Complex.norm_two, Complex.norm_of_nonneg Real.pi_pos.le]
+    have hwc : ‖(w : ℂ)‖ = |w| := by rw [norm_real, Real.norm_eq_abs]
+    rw [norm_mul, norm_mul, norm_mul, htwopi, norm_I, hwc]
+    ring
+  rw [← hmul] at hleft
+  have hmain : ((2 * Real.pi) * |w|) * ‖𝓕 g w‖ ≤ ∫ x, ‖fderiv ℝ g x‖ ∂volume := by
+    rw [hleft]
+    exact h_eval.trans h_fourier
+  have hpos : 0 < (2 * Real.pi) * |w| := by
+    positivity
+  exact (le_div_iff₀ hpos).mpr (by simpa [mul_comm, mul_left_comm, mul_assoc] using hmain)
+
+private lemma kadiri_norm_oscillatory_integral_le_integral_fderiv_div
+    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
+    (hg' : Integrable (fderiv ℝ g)) {T : ℝ} (hT : 0 < T) :
+    ‖∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume‖ ≤
+      (∫ x, ‖fderiv ℝ g x‖ ∂volume) / T := by
+  have hw : -T / (2 * Real.pi) ≠ 0 := by
+    exact div_ne_zero (neg_ne_zero.mpr hT.ne') (mul_ne_zero two_ne_zero Real.pi_ne_zero)
+  have hfourier := kadiri_norm_fourier_le_integral_fderiv_div g hg hdiff hg' hw
+  have heq :
+      (∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume) =
+        𝓕 g (-T / (2 * Real.pi)) := by
+    rw [Real.fourier_real_eq_integral_exp_smul]
+    apply integral_congr_ae
+    filter_upwards with y
+    rw [smul_eq_mul]
+    rw [mul_comm (g y)]
+    congr 1
+    congr 1
+    push_cast
+    field_simp [Real.pi_ne_zero]
+  rw [heq]
+  refine hfourier.trans_eq ?_
+  congr 1
+  have hden : (2 * Real.pi) * |-T / (2 * Real.pi)| = T := by
+    have htwopi_pos : 0 < 2 * Real.pi := by positivity
+    have hneg : -T / (2 * Real.pi) < 0 := div_neg_of_neg_of_pos (neg_neg_of_pos hT) htwopi_pos
+    rw [abs_of_neg hneg]
+    field_simp [Real.pi_ne_zero]
+  rw [hden]
+
+private lemma kadiri_norm_fourier_le_integral_deriv_div
+    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
+    (hg' : Integrable (deriv g)) {w : ℝ} (hw : w ≠ 0) :
+    ‖𝓕 g w‖ ≤ (∫ x, ‖deriv g x‖ ∂volume) / ((2 * Real.pi) * |w|) := by
+  have hmul :
+      𝓕 (deriv g) w = (2 * Real.pi * Complex.I * (w : ℂ)) * 𝓕 g w := by
+    have h := congrFun (Real.fourier_deriv hg hdiff hg') w
+    simpa [smul_eq_mul, mul_assoc] using h
+  have h_fourier :
+      ‖𝓕 (deriv g) w‖ ≤ ∫ x, ‖deriv g x‖ ∂volume := by
+    exact VectorFourier.norm_fourierIntegral_le_integral_norm 𝐞 volume (innerₗ ℝ)
+      (deriv g) w
+  have hleft :
+      ((2 * Real.pi) * |w|) * ‖𝓕 g w‖ =
+        ‖(2 * Real.pi * Complex.I * (w : ℂ)) * 𝓕 g w‖ := by
+    have htwopi : ‖(2 * ↑Real.pi : ℂ)‖ = 2 * Real.pi := by
+      rw [norm_mul, Complex.norm_two, Complex.norm_of_nonneg Real.pi_pos.le]
+    have hwc : ‖(w : ℂ)‖ = |w| := by rw [norm_real, Real.norm_eq_abs]
+    rw [norm_mul, norm_mul, norm_mul, htwopi, norm_I, hwc]
+    ring
+  have hmain : ((2 * Real.pi) * |w|) * ‖𝓕 g w‖ ≤ ∫ x, ‖deriv g x‖ ∂volume := by
+    rw [hleft, ← hmul]
+    exact h_fourier
+  have hpos : 0 < (2 * Real.pi) * |w| := by
+    positivity
+  exact (le_div_iff₀ hpos).mpr (by simpa [mul_comm, mul_left_comm, mul_assoc] using hmain)
+
+private lemma kadiri_norm_oscillatory_integral_le_integral_deriv_div
+    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
+    (hg' : Integrable (deriv g)) {T : ℝ} (hT : 0 < T) :
+    ‖∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume‖ ≤
+      (∫ x, ‖deriv g x‖ ∂volume) / T := by
+  have hw : -T / (2 * Real.pi) ≠ 0 := by
+    exact div_ne_zero (neg_ne_zero.mpr hT.ne') (mul_ne_zero two_ne_zero Real.pi_ne_zero)
+  have hfourier := kadiri_norm_fourier_le_integral_deriv_div g hg hdiff hg' hw
+  have heq :
+      (∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume) =
+        𝓕 g (-T / (2 * Real.pi)) := by
+    rw [Real.fourier_real_eq_integral_exp_smul]
+    apply integral_congr_ae
+    filter_upwards with y
+    rw [smul_eq_mul]
+    rw [mul_comm (g y)]
+    congr 1
+    congr 1
+    push_cast
+    field_simp [Real.pi_ne_zero]
+  rw [heq]
+  refine hfourier.trans_eq ?_
+  congr 1
+  have hden : (2 * Real.pi) * |-T / (2 * Real.pi)| = T := by
+    have htwopi_pos : 0 < 2 * Real.pi := by positivity
+    have hneg : -T / (2 * Real.pi) < 0 := div_neg_of_neg_of_pos (neg_neg_of_pos hT) htwopi_pos
+    rw [abs_of_neg hneg]
+    field_simp [Real.pi_ne_zero]
+  rw [hden]
 
 @[blueprint
   "kadiri-thm-3-1-q1-eq-15"
