@@ -2174,6 +2174,99 @@ theorem eventually_kadiriDyadicGoodHeightFilter_localGap
   exact ⟨k, rfl, hspec.2.2.2⟩
 
 /--
+The selected dyadic sequence also serves any requested radius below the concrete
+`c / log(2^k)` budget.
+-/
+theorem eventually_kadiriDyadicGoodHeightSequence_spec_of_le_logRadius
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) {η : ℕ → ℝ}
+    (hη_le : ∀ᶠ k : ℕ in atTop,
+      η k ≤ kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)) :
+    ∀ᶠ k : ℕ in atTop,
+      kadiriDyadicGoodHeightSequence hsrc k ∈
+          Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+        kadiriHorizontalZetaOffPoleHeight (kadiriDyadicGoodHeightSequence hsrc k) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            η k < |kadiriDyadicGoodHeightSequence hsrc k - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros,
+            rho ∈ kadiriLocalZeroWindow (kadiriDyadicGoodHeightSequence hsrc k) →
+              η k < |kadiriDyadicGoodHeightSequence hsrc k - (rho : ℂ).im|) := by
+  filter_upwards [eventually_kadiriDyadicGoodHeightSequence_spec hsrc, hη_le]
+    with k hspec hη_le_k
+  refine ⟨hspec.1, hspec.2.1, ?_, ?_⟩
+  · intro rho hrho
+    exact lt_of_le_of_lt hη_le_k (hspec.2.2.1 rho hrho)
+  · intro rho hrho
+    exact lt_of_le_of_lt hη_le_k (hspec.2.2.2 rho hrho)
+
+theorem eventually_kadiriDyadicGoodHeightSequence_spec_of_radiusConstant_le
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) {a : ℝ}
+    (ha : a ≤ kadiriDyadicGoodHeightRadius hsrc) :
+    ∀ᶠ k : ℕ in atTop,
+      kadiriDyadicGoodHeightSequence hsrc k ∈
+          Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)) ∧
+        kadiriHorizontalZetaOffPoleHeight (kadiriDyadicGoodHeightSequence hsrc k) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            a / Real.log ((2 : ℝ) ^ k) <
+              |kadiriDyadicGoodHeightSequence hsrc k - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros,
+            rho ∈ kadiriLocalZeroWindow (kadiriDyadicGoodHeightSequence hsrc k) →
+              a / Real.log ((2 : ℝ) ^ k) <
+                |kadiriDyadicGoodHeightSequence hsrc k - (rho : ℂ).im|) := by
+  refine eventually_kadiriDyadicGoodHeightSequence_spec_of_le_logRadius hsrc ?_
+  filter_upwards [Filter.eventually_ge_atTop (1 : ℕ)] with k hk
+  have hk_ne : k ≠ 0 := by omega
+  have hX_gt_one : 1 < (2 : ℝ) ^ k :=
+    one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+  have hlog_pos : 0 < Real.log ((2 : ℝ) ^ k) := Real.log_pos hX_gt_one
+  have hmul :
+      a * (Real.log ((2 : ℝ) ^ k))⁻¹ ≤
+        kadiriDyadicGoodHeightRadius hsrc * (Real.log ((2 : ℝ) ^ k))⁻¹ :=
+    mul_le_mul_of_nonneg_right ha (inv_nonneg.mpr hlog_pos.le)
+  simpa [div_eq_mul_inv] using hmul
+
+theorem eventually_kadiriDyadicGoodHeightFilter_localGap_of_le_logRadius
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) {η : ℕ → ℝ}
+    (hη_le : ∀ᶠ k : ℕ in atTop,
+      η k ≤ kadiriDyadicGoodHeightRadius hsrc / Real.log ((2 : ℝ) ^ k)) :
+    ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      ∃ k : ℕ,
+        T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            η k < |T - (rho : ℂ).im| := by
+  rw [kadiriDyadicGoodHeightFilter]
+  change ∀ᶠ n : ℕ in atTop,
+    ∃ k : ℕ,
+      kadiriDyadicGoodHeightSequence hsrc n = kadiriDyadicGoodHeightSequence hsrc k ∧
+        ∀ rho : NontrivialZeros,
+          rho ∈ kadiriLocalZeroWindow (kadiriDyadicGoodHeightSequence hsrc n) →
+            η k < |kadiriDyadicGoodHeightSequence hsrc n - (rho : ℂ).im|
+  filter_upwards [eventually_kadiriDyadicGoodHeightSequence_spec_of_le_logRadius hsrc hη_le]
+    with k hspec
+  exact ⟨k, rfl, hspec.2.2.2⟩
+
+theorem eventually_kadiriDyadicGoodHeightFilter_localGap_of_radiusConstant_le
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) {a : ℝ}
+    (ha : a ≤ kadiriDyadicGoodHeightRadius hsrc) :
+    ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+      ∃ k : ℕ,
+        T = kadiriDyadicGoodHeightSequence hsrc k ∧
+          ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            a / Real.log ((2 : ℝ) ^ k) < |T - (rho : ℂ).im| := by
+  exact eventually_kadiriDyadicGoodHeightFilter_localGap_of_le_logRadius hsrc
+    (η := fun k : ℕ => a / Real.log ((2 : ℝ) ^ k))
+    (by
+      filter_upwards [Filter.eventually_ge_atTop (1 : ℕ)] with k hk
+      have hk_ne : k ≠ 0 := by omega
+      have hX_gt_one : 1 < (2 : ℝ) ^ k :=
+        one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+      have hlog_pos : 0 < Real.log ((2 : ℝ) ^ k) := Real.log_pos hX_gt_one
+      have hmul :
+          a * (Real.log ((2 : ℝ) ^ k))⁻¹ ≤
+            kadiriDyadicGoodHeightRadius hsrc * (Real.log ((2 : ℝ) ^ k))⁻¹ :=
+        mul_le_mul_of_nonneg_right ha (inv_nonneg.mpr hlog_pos.le)
+      simpa [div_eq_mul_inv] using hmul)
+
+/--
 Selected dyadic good heights give a pointwise `log^2` bound for the local zero principal
 block.
 
@@ -2540,6 +2633,109 @@ theorem eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localP
     (Cprincipal := P) (Cremainder := R) (T := T)
     (fun σ hσ => hprincipal_T σ)
     (fun σ hσ => hremainder_T σ hσ)
+
+/-- Along the selected dyadic good-height filter, the height tends to infinity. -/
+theorem eventually_kadiriDyadicGoodHeightFilter_large
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc, 3 < |T| := by
+  have htop : ∀ᶠ T : ℝ in atTop, 3 < |T| := by
+    filter_upwards [Filter.eventually_gt_atTop (3 : ℝ)] with T hT
+    exact lt_of_lt_of_le hT (le_abs_self T)
+  exact htop.filter_mono (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+
+/--
+A one-sided positive horizontal `log^2` bound supplies the moving nonterminal
+pointwise `log^9` input for the endpoint layer.
+-/
+theorem
+    kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_positiveHorizontalSegmentLogDerivBound
+    {A C T : ℝ} (hA : 0 ≤ A) (hC : 0 ≤ C) (hT : 3 < |T|)
+    (hleft : A / Real.log |T| ^ (9 : ℕ) ≤ 2)
+    (hseg : kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C) :
+    ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+      ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ C * Real.log |T| ^ (9 : ℕ) := by
+  intro σ hσ
+  let x : ℝ := 1 - A / Real.log |T| ^ (9 : ℕ)
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hT.le
+  have hlog_pow_pos : 0 < Real.log |T| ^ (9 : ℕ) := by
+    positivity
+  have hshift_nonneg : 0 ≤ A / Real.log |T| ^ (9 : ℕ) :=
+    div_nonneg hA hlog_pow_pos.le
+  have hx_upper : x ≤ 2 := by
+    dsimp [x]
+    linarith
+  have hx_lower : -1 ≤ x := by
+    dsimp [x]
+    linarith
+  have hσ_uIcc : σ ∈ Set.uIcc 0 x :=
+    Set.uIoc_subset_uIcc hσ
+  have hσ_strip : σ ∈ Set.uIcc (-1 : ℝ) 2 := by
+    rw [Set.mem_uIcc] at hσ_uIcc ⊢
+    rcases hσ_uIcc with hσ_uIcc | hσ_uIcc
+    · exact Or.inl ⟨by linarith [hσ_uIcc.1], le_trans hσ_uIcc.2 hx_upper⟩
+    · exact Or.inl ⟨le_trans hx_lower hσ_uIcc.1, by linarith [hσ_uIcc.2]⟩
+  have hraw :
+      ‖deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ C * Real.log |T| ^ (2 : ℕ) :=
+    hseg σ hσ_strip
+  have hpow : Real.log |T| ^ (2 : ℕ) ≤ Real.log |T| ^ (9 : ℕ) :=
+    pow_le_pow_right₀ hlog_one.le (by norm_num)
+  have hraw_log9 :
+      ‖deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+          riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+        ≤ C * Real.log |T| ^ (9 : ℕ) :=
+    hraw.trans (mul_le_mul_of_nonneg_left hpow hC)
+  simpa [neg_div, norm_neg] using hraw_log9
+
+theorem
+    eventually_kadiri_neg_zeta_logDeriv_nonterminal_pointwise_log_bound_of_positiveHorizontalSegmentLogDerivBound_on_filter
+    (L : Filter ℝ) (hL : L ≤ atTop)
+    (hlarge : ∀ᶠ T : ℝ in L, 3 < |T|)
+    (hseg : ∃ C : ℝ, 0 ≤ C ∧
+      ∀ᶠ T : ℝ in L,
+        kadiriPositiveHorizontalSegmentLogDerivBound (-1) 2 T C) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in L,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ) := by
+  obtain ⟨C, hC, hseg_event⟩ := hseg
+  intro A hA
+  refine ⟨C, hC, ?_⟩
+  have hsmall : ∀ᶠ T : ℝ in L, A / Real.log |T| ^ (9 : ℕ) ≤ 2 :=
+    ((eventually_const_div_log_abs_pow_lt_atTop A 2 (by norm_num)).filter_mono
+      hL).mono fun _ hT => le_of_lt hT
+  filter_upwards [hlarge, hseg_event, hsmall] with T hlarge_T hseg_T hsmall_T
+  exact
+    kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_positiveHorizontalSegmentLogDerivBound
+      (A := A) (C := C) (T := T) hA hC hlarge_T hsmall_T hseg_T
+
+theorem eventually_kadiriDyadicGoodHeightFilter_nonterminal_pointwise_log_bound_of_localPVRemainder
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (hrem : ∃ R : ℝ, 0 ≤ R ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ∀ σ ∈ Set.uIcc (-1 : ℝ) 2,
+          ‖kadiriLocalZetaLogDerivPVRemainder T σ‖ ≤
+            R * Real.log |T| ^ (2 : ℕ)) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+          ∀ σ ∈ Ι 0 (1 - A / Real.log |T| ^ (9 : ℕ)),
+            ‖-deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+              ≤ Z * Real.log |T| ^ (9 : ℕ) := by
+  exact
+    eventually_kadiri_neg_zeta_logDeriv_nonterminal_pointwise_log_bound_of_positiveHorizontalSegmentLogDerivBound_on_filter
+      (L := kadiriDyadicGoodHeightFilter hsrc)
+      (kadiriDyadicGoodHeightFilter_le_atTop hsrc)
+      (eventually_kadiriDyadicGoodHeightFilter_large hsrc)
+      (eventually_kadiriDyadicGoodHeightFilter_positiveLogDeriv_logSq_of_localPVRemainder
+        hsrc hrem)
 
 theorem
     kadiri_nonterminal_neg_zeta_logDeriv_pointwise_log_bound_of_horizontalSegmentLogDerivBound
