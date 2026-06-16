@@ -17,6 +17,477 @@ open scoped Topology Interval
 
 noncomputable section
 
+theorem kadiri_laplace_full_strip_weight_integrable_of_continuous {ψ : ℝ → ℂ}
+    (hψ : Continuous ψ) {b σ : ℝ}
+    (hσlo : -b < σ) (hσhi : σ < 1 + b)
+    (hψ_decay : (fun x : ℝ ↦ ψ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    Integrable (fun y : ℝ => exp ((σ : ℂ) * (y : ℂ)) * ψ y) := by
+  let F : ℝ → ℂ := fun y => exp ((σ : ℂ) * (y : ℂ)) * ψ y
+  have hF_cont : Continuous F := by
+    dsimp [F]
+    fun_prop
+  have hF_loc : LocallyIntegrable F volume := hF_cont.locallyIntegrable
+  have hshape : ∀ x : ℝ,
+      ‖F x‖ = Real.exp ((σ - 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖ := by
+    intro x
+    dsimp [F]
+    rw [norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp]
+    have h1 : ((↑σ * ↑x) : ℂ).re = σ * x := by
+      norm_num [Complex.mul_re]
+    have h2 : ((x : ℂ) / 2).re = x / 2 := by
+      norm_num
+    rw [h1, h2]
+    calc
+      Real.exp (σ * x) * ‖ψ x‖
+          = (Real.exp ((σ - 1 / 2) * x) * Real.exp (x / 2)) * ‖ψ x‖ := by
+            rw [← Real.exp_add]
+            congr 1
+            ring_nf
+      _ = Real.exp ((σ - 1 / 2) * x) * (‖ψ x‖ * Real.exp (x / 2)) := by
+            ring_nf
+  have htop_decay := hψ_decay.mono (show Filter.atTop ≤ Filter.cocompact ℝ from
+    atTop_le_cocompact)
+  have hbot_decay := hψ_decay.mono (show Filter.atBot ≤ Filter.cocompact ℝ from
+    atBot_le_cocompact)
+  have htop : F =O[Filter.atTop] fun x : ℝ => Real.exp ((σ - 1 - b) * x) := by
+    rw [Asymptotics.isBigO_iff] at htop_decay ⊢
+    obtain ⟨C, hC⟩ := htop_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_gt_atTop (0 : ℝ)] with x hxC hxpos
+    rw [hshape]
+    calc
+      Real.exp ((σ - 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp ((σ - 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp ((σ - 1 - b) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_pos hxpos]
+            calc
+              Real.exp ((σ - 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * x))
+                  = C * (Real.exp ((σ - 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * x)) := by ring_nf
+              _ = C * Real.exp ((σ - 1 / 2) * x + (-(1 / 2 + b) * x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp ((σ - 1 - b) * x) := by ring_nf
+  have hbot : F =O[Filter.atBot] fun x : ℝ => Real.exp ((σ + b) * x) := by
+    rw [Asymptotics.isBigO_iff] at hbot_decay ⊢
+    obtain ⟨C, hC⟩ := hbot_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_lt_atBot (0 : ℝ)] with x hxC hxneg
+    rw [hshape]
+    calc
+      Real.exp ((σ - 1 / 2) * x) * ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ Real.exp ((σ - 1 / 2) * x) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC (Real.exp_nonneg _)
+      _ = C * ‖Real.exp ((σ + b) * x)‖ := by
+            rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
+              abs_of_pos (Real.exp_pos _), abs_of_neg hxneg]
+            calc
+              Real.exp ((σ - 1 / 2) * x) * (C * Real.exp (-(1 / 2 + b) * -x))
+                  = C * (Real.exp ((σ - 1 / 2) * x) *
+                      Real.exp (-(1 / 2 + b) * -x)) := by ring_nf
+              _ = C * Real.exp ((σ - 1 / 2) * x + (-(1 / 2 + b) * -x)) := by
+                    rw [Real.exp_add]
+              _ = C * Real.exp ((σ + b) * x) := by ring_nf
+  have htop_int : IntegrableAtFilter (fun x : ℝ => Real.exp ((σ - 1 - b) * x))
+      Filter.atTop volume := by
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 (show 0 < 1 + b - σ by linarith) using 1
+    ext x
+    ring_nf
+  have hbot_int : IntegrableAtFilter (fun x : ℝ => Real.exp ((σ + b) * x))
+      Filter.atBot volume := by
+    rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+    have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      simp
+    rw [hvol, Function.comp_def]
+    refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+    convert exp_neg_integrableOn_Ioi 0 (show 0 < σ + b by linarith) using 1
+    ext x
+    ring_nf
+  exact hF_loc.integrable_of_isBigO_atBot_atTop hbot hbot_int htop htop_int
+
+theorem kadiri_laplace_full_strip_exp_interval_moment_integrable_of_continuous
+    {ψ : ℝ → ℂ} (hψ : Continuous ψ) {b lo hi : ℝ}
+    (hlo : -b < lo) (hhi : hi < 1 + b) (hlohi : lo ≤ hi)
+    (hψ_decay : (fun x : ℝ ↦ ψ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    Integrable (fun y : ℝ =>
+      ‖(y : ℂ)‖ * ‖ψ y‖ * (Real.exp (lo * y) + Real.exp (hi * y))) := by
+  let F : ℝ → ℝ := fun y =>
+    ‖(y : ℂ)‖ * ‖ψ y‖ * (Real.exp (lo * y) + Real.exp (hi * y))
+  have hF_cont : Continuous F := by
+    dsimp [F]
+    fun_prop
+  have hF_loc : LocallyIntegrable F volume := hF_cont.locallyIntegrable
+  have hshape : ∀ x : ℝ,
+      F x =
+        ‖(x : ℂ)‖ *
+          (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+            ‖ψ x * exp ((x : ℂ) / 2)‖ := by
+    intro x
+    dsimp [F]
+    have hxre : ((x : ℂ) / 2).re = x / 2 := by norm_num
+    have hψexp : ‖ψ x * exp ((x : ℂ) / 2)‖ = ‖ψ x‖ * Real.exp (x / 2) := by
+      rw [norm_mul, Complex.norm_exp, hxre]
+    have hloexp :
+        Real.exp ((lo - 1 / 2) * x) * Real.exp (x / 2) = Real.exp (lo * x) := by
+      rw [← Real.exp_add]
+      ring_nf
+    have hhiexp :
+        Real.exp ((hi - 1 / 2) * x) * Real.exp (x / 2) = Real.exp (hi * x) := by
+      rw [← Real.exp_add]
+      ring_nf
+    rw [hψexp]
+    rw [← hloexp, ← hhiexp]
+    ring
+  let topBound : ℝ → ℝ := fun x =>
+    x * Real.exp (-(1 + b - lo) * x) +
+      x * Real.exp (-(1 + b - hi) * x)
+  let botBound : ℝ → ℝ := fun x =>
+    (-x) * Real.exp ((b + lo) * x) +
+      (-x) * Real.exp ((b + hi) * x)
+  have htop_decay := hψ_decay.mono (show Filter.atTop ≤ Filter.cocompact ℝ from
+    atTop_le_cocompact)
+  have hbot_decay := hψ_decay.mono (show Filter.atBot ≤ Filter.cocompact ℝ from
+    atBot_le_cocompact)
+  have htop : F =O[Filter.atTop] topBound := by
+    rw [Asymptotics.isBigO_iff] at htop_decay ⊢
+    obtain ⟨C, hC⟩ := htop_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_gt_atTop (0 : ℝ)] with x hxC hxpos
+    have hxnorm : ‖(x : ℂ)‖ = x := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hxpos]
+    have hdecay :
+        ‖Real.exp (-(1 / 2 + b) * |x|)‖ = Real.exp (-(1 / 2 + b) * x) := by
+      rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _), abs_of_pos hxpos]
+    rw [hshape, hxnorm]
+    rw [Real.norm_eq_abs, abs_of_nonneg
+      (by positivity :
+        0 ≤ x * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+          ‖ψ x * exp ((x : ℂ) / 2)‖)]
+    calc
+      x * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+          ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ x * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            gcongr
+      _ = C * ‖topBound x‖ := by
+            rw [hdecay]
+            have hlo_prod :
+                Real.exp ((lo - 1 / 2) * x) * Real.exp (-(1 / 2 + b) * x) =
+                  Real.exp (-(1 + b - lo) * x) := by
+              rw [← Real.exp_add]
+              ring_nf
+            have hhi_prod :
+                Real.exp ((hi - 1 / 2) * x) * Real.exp (-(1 / 2 + b) * x) =
+                  Real.exp (-(1 + b - hi) * x) := by
+              rw [← Real.exp_add]
+              ring_nf
+            have htopNorm :
+                ‖topBound x‖ =
+                  x * Real.exp (-(1 + b - lo) * x) +
+                    x * Real.exp (-(1 + b - hi) * x) := by
+              dsimp [topBound]
+              rw [abs_of_nonneg]
+              · positivity
+            rw [htopNorm]
+            calc
+              x * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+                    (C * Real.exp (-(1 / 2 + b) * x))
+                  = C * (x * (Real.exp ((lo - 1 / 2) * x) *
+                        Real.exp (-(1 / 2 + b) * x)) +
+                      x * (Real.exp ((hi - 1 / 2) * x) *
+                        Real.exp (-(1 / 2 + b) * x))) := by ring
+              _ = C * (x * Real.exp (-(1 + b - lo) * x) +
+                    x * Real.exp (-(1 + b - hi) * x)) := by
+                    rw [hlo_prod, hhi_prod]
+  have hbot : F =O[Filter.atBot] botBound := by
+    rw [Asymptotics.isBigO_iff] at hbot_decay ⊢
+    obtain ⟨C, hC⟩ := hbot_decay
+    refine ⟨C, ?_⟩
+    filter_upwards [hC, Filter.eventually_lt_atBot (0 : ℝ)] with x hxC hxneg
+    have hxnorm : ‖(x : ℂ)‖ = -x := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_neg hxneg]
+    have hdecay :
+        ‖Real.exp (-(1 / 2 + b) * |x|)‖ =
+          Real.exp (-(1 / 2 + b) * (-x)) := by
+      rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _), abs_of_neg hxneg]
+    have hxneg_nonneg : 0 ≤ -x := by linarith
+    have hsum_nonneg :
+        0 ≤ Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x) :=
+      add_nonneg (Real.exp_nonneg _) (Real.exp_nonneg _)
+    have hpref_nonneg :
+        0 ≤ (-x) * (Real.exp ((lo - 1 / 2) * x) +
+          Real.exp ((hi - 1 / 2) * x)) :=
+      mul_nonneg hxneg_nonneg hsum_nonneg
+    rw [hshape, hxnorm]
+    rw [Real.norm_eq_abs, abs_of_nonneg
+      (mul_nonneg hpref_nonneg (norm_nonneg _))]
+    calc
+      (-x) * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+          ‖ψ x * exp ((x : ℂ) / 2)‖
+          ≤ (-x) * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+              (C * ‖Real.exp (-(1 / 2 + b) * |x|)‖) := by
+            exact mul_le_mul_of_nonneg_left hxC hpref_nonneg
+      _ = C * ‖botBound x‖ := by
+            rw [hdecay]
+            have hlo_prod :
+                Real.exp ((lo - 1 / 2) * x) * Real.exp (-(1 / 2 + b) * (-x)) =
+                  Real.exp ((b + lo) * x) := by
+              rw [← Real.exp_add]
+              ring_nf
+            have hhi_prod :
+                Real.exp ((hi - 1 / 2) * x) * Real.exp (-(1 / 2 + b) * (-x)) =
+                  Real.exp ((b + hi) * x) := by
+              rw [← Real.exp_add]
+              ring_nf
+            have hbotNorm :
+                ‖botBound x‖ =
+                  (-x) * Real.exp ((b + lo) * x) +
+                    (-x) * Real.exp ((b + hi) * x) := by
+              dsimp [botBound]
+              rw [abs_of_nonneg]
+              · exact add_nonneg
+                  (mul_nonneg hxneg_nonneg (Real.exp_nonneg _))
+                  (mul_nonneg hxneg_nonneg (Real.exp_nonneg _))
+            rw [hbotNorm]
+            calc
+              (-x) * (Real.exp ((lo - 1 / 2) * x) + Real.exp ((hi - 1 / 2) * x)) *
+                    (C * Real.exp (-(1 / 2 + b) * (-x)))
+                  = C * ((-x) * (Real.exp ((lo - 1 / 2) * x) *
+                        Real.exp (-(1 / 2 + b) * (-x))) +
+                      (-x) * (Real.exp ((hi - 1 / 2) * x) *
+                        Real.exp (-(1 / 2 + b) * (-x)))) := by ring
+              _ = C * ((-x) * Real.exp ((b + lo) * x) +
+                    (-x) * Real.exp ((b + hi) * x)) := by
+                    rw [hlo_prod, hhi_prod]
+  have htop_int : IntegrableAtFilter topBound Filter.atTop volume := by
+    have h1 : IntegrableAtFilter
+        (fun x : ℝ => x ^ (1 : ℝ) * Real.exp (-(1 + b - lo) * x))
+        Filter.atTop volume := by
+      refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+      simpa [Real.rpow_one] using
+        integrableOn_rpow_mul_exp_neg_mul_rpow
+          (s := 1) (p := 1) (b := 1 + b - lo) (by norm_num) (by norm_num)
+          (by linarith)
+    have h2 : IntegrableAtFilter
+        (fun x : ℝ => x ^ (1 : ℝ) * Real.exp (-(1 + b - hi) * x))
+        Filter.atTop volume := by
+      refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+      simpa [Real.rpow_one] using
+        integrableOn_rpow_mul_exp_neg_mul_rpow
+          (s := 1) (p := 1) (b := 1 + b - hi) (by norm_num) (by norm_num)
+          (by linarith)
+    convert h1.add h2 using 1
+    ext x
+    simp [topBound, Real.rpow_one, mul_comm]
+  have hbot_int : IntegrableAtFilter botBound Filter.atBot volume := by
+    rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+    have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      simp
+    rw [hvol, Function.comp_def]
+    have h1 : IntegrableAtFilter
+        (fun x : ℝ => x ^ (1 : ℝ) * Real.exp (-(b + lo) * x))
+        Filter.atTop volume := by
+      refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+      simpa [Real.rpow_one] using
+        integrableOn_rpow_mul_exp_neg_mul_rpow
+          (s := 1) (p := 1) (b := b + lo) (by norm_num) (by norm_num)
+          (by linarith)
+    have h2 : IntegrableAtFilter
+        (fun x : ℝ => x ^ (1 : ℝ) * Real.exp (-(b + hi) * x))
+        Filter.atTop volume := by
+      refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
+      simpa [Real.rpow_one] using
+        integrableOn_rpow_mul_exp_neg_mul_rpow
+          (s := 1) (p := 1) (b := b + hi) (by norm_num) (by norm_num)
+          (by linarith)
+    convert h1.add h2 using 1
+    ext x
+    simp [botBound, Real.rpow_one, mul_comm]
+    ring_nf
+  exact hF_loc.integrable_of_isBigO_atBot_atTop hbot hbot_int htop htop_int
+
+theorem kadiri_laplace_exp_hasDerivAt_of_full_strip {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ} {s0 : ℂ}
+    (hs0lo : -b < s0.re) (hs0hi : s0.re < 1 + b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    HasDerivAt
+      (fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)
+      (∫ y : ℝ, φ y * ((y : ℂ) * exp (s0 * (y : ℂ))) ∂volume) s0 := by
+  let lo : ℝ := (-b + s0.re) / 2
+  let hi : ℝ := (s0.re + (1 + b)) / 2
+  let ε : ℝ := min (s0.re - lo) (hi - s0.re) / 2
+  have hlo_lt_s0 : lo < s0.re := by
+    dsimp [lo]
+    linarith
+  have hs0_lt_hi : s0.re < hi := by
+    dsimp [hi]
+    linarith
+  have hεpos : 0 < ε := by
+    dsimp [ε]
+    exact half_pos (lt_min (sub_pos.mpr hlo_lt_s0) (sub_pos.mpr hs0_lt_hi))
+  have hlo_bound : -b < lo := by
+    dsimp [lo]
+    linarith
+  have hhi_bound : hi < 1 + b := by
+    dsimp [hi]
+    linarith
+  have hlohi : lo ≤ hi := by
+    linarith [hlo_lt_s0.le, hs0_lt_hi.le]
+  let F : ℂ → ℝ → ℂ := fun s y => φ y * exp (s * (y : ℂ))
+  let F' : ℂ → ℝ → ℂ := fun s y => φ y * ((y : ℂ) * exp (s * (y : ℂ)))
+  let bound : ℝ → ℝ := fun y =>
+    ‖(y : ℂ)‖ * ‖φ y‖ * (Real.exp (lo * y) + Real.exp (hi * y))
+  have hball_re_bounds :
+      ∀ s ∈ Metric.ball s0 ε, lo ≤ s.re ∧ s.re ≤ hi := by
+    intro s hs
+    have hre_diff : |s.re - s0.re| ≤ ‖s - s0‖ := by
+      simpa [sub_re] using Complex.abs_re_le_norm (s - s0)
+    have hnorm_lt : ‖s - s0‖ < ε := by
+      simpa [dist_eq_norm] using Metric.mem_ball.mp hs
+    have hε_le_left : ε ≤ s0.re - lo := by
+      dsimp [ε]
+      exact (half_le_self (by positivity)).trans (min_le_left _ _)
+    have hε_le_right : ε ≤ hi - s0.re := by
+      dsimp [ε]
+      exact (half_le_self (by positivity)).trans (min_le_right _ _)
+    have hdiff_le : |s.re - s0.re| ≤ ε := le_trans hre_diff (le_of_lt hnorm_lt)
+    constructor
+    · have hleft := (abs_le.mp hdiff_le).1
+      linarith
+    · have hright := (abs_le.mp hdiff_le).2
+      linarith
+  have hF_meas : ∀ᶠ s in 𝓝 s0, AEStronglyMeasurable (F s) volume := by
+    exact Eventually.of_forall fun s => by
+      dsimp [F]
+      exact (hφ.continuous.mul (continuous_exp.comp (by fun_prop))).aestronglyMeasurable
+  have hF_int : Integrable (F s0) volume := by
+    have hbase : Integrable (fun y : ℝ => exp (((s0.re : ℝ) : ℂ) * (y : ℂ)) * φ y) :=
+      kadiri_laplace_full_strip_weight_integrable_of_continuous
+        (ψ := φ) hφ.continuous hs0lo hs0hi hφ_decay
+    refine hbase.congr' ?_ ?_
+    · dsimp [F]
+      exact (hφ.continuous.mul (continuous_exp.comp (by fun_prop))).aestronglyMeasurable
+    · filter_upwards with y
+      dsimp [F]
+      rw [norm_mul, norm_mul, Complex.norm_exp, Complex.norm_exp]
+      have h1 : (s0 * (y : ℂ)).re = s0.re * y := by norm_num [Complex.mul_re]
+      have h2 : ((((s0.re : ℝ) : ℂ) * (y : ℂ)) : ℂ).re = s0.re * y := by norm_num
+      rw [h1, h2]
+      ring
+  have hF'_meas : AEStronglyMeasurable (F' s0) volume := by
+    dsimp [F']
+    exact (hφ.continuous.mul ((continuous_ofReal.mul (continuous_exp.comp (by fun_prop))))).aestronglyMeasurable
+  have h_bound : ∀ᵐ y ∂volume, ∀ s ∈ Metric.ball s0 ε, ‖F' s y‖ ≤ bound y := by
+    filter_upwards with y s hs
+    obtain ⟨hslo, hshi⟩ := hball_re_bounds s hs
+    dsimp [F', bound]
+    rw [norm_mul, norm_mul, Complex.norm_exp]
+    have hre : (s * (y : ℂ)).re = s.re * y := by norm_num [Complex.mul_re]
+    rw [hre]
+    have hexp_le : Real.exp (s.re * y) ≤ Real.exp (lo * y) + Real.exp (hi * y) := by
+      by_cases hy : 0 ≤ y
+      · have hmul : s.re * y ≤ hi * y := mul_le_mul_of_nonneg_right hshi hy
+        exact (Real.exp_le_exp.mpr hmul).trans
+          (le_add_of_nonneg_left (Real.exp_nonneg _))
+      · have hy' : y ≤ 0 := le_of_not_ge hy
+        have hmul : s.re * y ≤ lo * y := mul_le_mul_of_nonpos_right hslo hy'
+        exact (Real.exp_le_exp.mpr hmul).trans
+          (le_add_of_nonneg_right (Real.exp_nonneg _))
+    calc
+      ‖φ y‖ * (‖(y : ℂ)‖ * Real.exp (s.re * y))
+          ≤ ‖φ y‖ * (‖(y : ℂ)‖ *
+              (Real.exp (lo * y) + Real.exp (hi * y))) := by
+            gcongr
+      _ = ‖(y : ℂ)‖ * ‖φ y‖ *
+          (Real.exp (lo * y) + Real.exp (hi * y)) := by ring
+  have hbound_int : Integrable bound volume :=
+    kadiri_laplace_full_strip_exp_interval_moment_integrable_of_continuous
+      hφ.continuous hlo_bound hhi_bound hlohi hφ_decay
+  have h_diff : ∀ᵐ y ∂volume, ∀ s ∈ Metric.ball s0 ε,
+      HasDerivAt (fun w : ℂ => F w y) (F' s y) s := by
+    filter_upwards with y s _hs
+    dsimp [F, F']
+    simpa [mul_assoc, mul_comm, mul_left_comm] using
+      (((hasDerivAt_id s).mul_const (y : ℂ)).cexp.const_mul (φ y))
+  have hderiv :=
+    (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (F := F) (F' := F') (x₀ := s0) (s := Metric.ball s0 ε)
+      (bound := bound) (μ := volume) (Metric.ball_mem_nhds s0 hεpos)
+      hF_meas hF_int hF'_meas h_bound hbound_int h_diff).2
+  simpa [F, F'] using hderiv
+
+theorem kadiri_laplace_exp_continuousAt_of_full_strip {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ} {s0 : ℂ}
+    (hs0lo : -b < s0.re) (hs0hi : s0.re < 1 + b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    ContinuousAt
+      (fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume) s0 :=
+  (kadiri_laplace_exp_hasDerivAt_of_full_strip hφ hs0lo hs0hi hφ_decay).differentiableAt.continuousAt
+
+private theorem kadiri_laplace_full_strip_isOpen {b : ℝ} :
+    IsOpen {s : ℂ | -b < s.re ∧ s.re < 1 + b} := by
+  have hleft : IsOpen {s : ℂ | (-b : ℝ) < s.re} :=
+    isOpen_lt continuous_const Complex.continuous_re
+  have hright : IsOpen {s : ℂ | s.re < 1 + b} :=
+    isOpen_lt Complex.continuous_re continuous_const
+  simpa [Set.setOf_and] using hleft.inter hright
+
+theorem kadiri_laplace_exp_differentiableOn_full_strip {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    DifferentiableOn ℂ
+      (fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)
+      {s : ℂ | -b < s.re ∧ s.re < 1 + b} := by
+  intro s hs
+  exact DifferentiableAt.differentiableWithinAt
+    ((kadiri_laplace_exp_hasDerivAt_of_full_strip hφ hs.1 hs.2 hφ_decay).differentiableAt)
+
+theorem kadiri_laplace_exp_meromorphicOn_full_strip {φ : ℝ → ℂ}
+    (hφ : ContDiff ℝ 1 φ) {b : ℝ}
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    MeromorphicOn
+      (fun s : ℂ => ∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume)
+      {s : ℂ | -b < s.re ∧ s.re < 1 + b} := by
+  exact
+    ((kadiri_laplace_exp_differentiableOn_full_strip hφ hφ_decay).analyticOnNhd
+      kadiri_laplace_full_strip_isOpen).meromorphicOn
+
+theorem kadiri_rectangle_subset_full_laplace_strip {a b T : ℝ}
+    (ha : 0 < a) (hab : a < b) (hT : 0 ≤ T) :
+    Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I) ⊆
+      {s : ℂ | -b < s.re ∧ s.re < 1 + b} := by
+  intro s hs
+  have hre :
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).re ≤
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).re := by
+    simp
+    linarith
+  have him :
+      (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I).im ≤
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I).im := by
+    simp
+    linarith
+  rcases (mem_Rect hre him s).1 hs with ⟨hsre_lo, hsre_hi, _hsim_lo, _hsim_hi⟩
+  constructor
+  · have hleft : -b < -a := by linarith
+    exact hleft.trans_le (by simpa using hsre_lo)
+  · have hright : (1 + a : ℝ) < 1 + b := by linarith
+    have hsre_hi' : s.re ≤ (1 + a : ℝ) := by simpa using hsre_hi
+    exact hsre_hi'.trans_lt hright
+
 private lemma tendsto_mul_self_of_sub_principal_isBigO_one
     {f : ℂ → ℂ} {p c : ℂ}
     (h : (f - fun z : ℂ => c / (z - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
@@ -245,6 +716,21 @@ theorem kadiri_neg_zeta_logDeriv_mul_meromorphicOn {Ψ : ℂ → ℂ} {U : Set �
     (hΨ : MeromorphicOn Ψ U) :
     MeromorphicOn (fun z : ℂ => (-deriv riemannZeta z / riemannZeta z) * Ψ z) U := by
   exact (kadiri_neg_zeta_logDeriv_meromorphicOn U).mul hΨ
+
+theorem kadiri_rectangle_neg_zeta_logDeriv_laplace_integrand_meromorphicOn
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {a b T : ℝ}
+    (ha : 0 < a) (hab : a < b) (hT : 0 ≤ T)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|)) :
+    MeromorphicOn
+      (fun s : ℂ =>
+        (-deriv riemannZeta s / riemannZeta s) *
+          (∫ y : ℝ, φ y * exp (s * (y : ℂ)) ∂volume))
+      (Rectangle (((-a : ℝ) : ℂ) + ((-T : ℝ) : ℂ) * I)
+        (((1 + a : ℝ) : ℂ) + (T : ℂ) * I)) := by
+  exact kadiri_neg_zeta_logDeriv_mul_meromorphicOn
+    ((kadiri_laplace_exp_meromorphicOn_full_strip hφ hφ_decay).mono_set
+      (kadiri_rectangle_subset_full_laplace_strip ha hab hT))
 
 /--
 An off-pole height excludes zeta zeros on both horizontal rectangle sides.
