@@ -3431,6 +3431,127 @@ theorem
       hT hleft_T hterminal_T')
 
 /--
+Right-segment sign-correct zeta PV logarithmic-growth bound from a nonterminal
+moving-boundary logarithmic input.
+
+The terminal moving-pole part is fully discharged here.  The remaining analytic input is
+only the nonterminal interval `[0, 1 - A / log |T|^9]`.
+-/
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_nonterminal_log_bound_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hnonterminal : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a)) :
+    ∃ Z : ℝ, 0 ≤ Z ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+          ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  obtain ⟨A, C, d, M, hA, hC, hd, hM, hterminal_bound⟩ :=
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_terminal_right_integral_bound_on_large_offPole_filter
+      a ha k
+  obtain ⟨Z0, hZ0, hnonterminal_bound⟩ := hnonterminal A hA
+  let K : ℝ :=
+    ((((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) / d)
+  refine ⟨Z0 + C + K, ?_, ?_⟩
+  · have hcard_nonneg :
+        0 ≤ ((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) := by
+      positivity
+    have hK_nonneg : 0 ≤ K := by
+      dsimp [K]
+      exact div_nonneg (mul_nonneg hcard_nonneg hM) hd.le
+    positivity
+  have hsmall_one : ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+      A / Real.log |T| ^ (9 : ℕ) < 1 :=
+    (eventually_const_div_log_abs_pow_lt_atTop A 1 zero_lt_one).filter_mono
+      kadiriLargeHorizontalZetaOffPoleFilter_le_atTop
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large,
+    eventually_kadiriLargeHorizontalZetaOffPoleHeight,
+    hnonterminal_bound, hterminal_bound, hsmall_one]
+    with T hlarge hT hnonterminal_T hterminal_T hsmall_one_T
+  let L : ℝ := Real.log |T| ^ (9 : ℕ)
+  let x : ℝ := 1 - A / L
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+  have hL_pos : 0 < L := by
+    dsimp [L]
+    positivity
+  have hL_nonneg : 0 ≤ L := hL_pos.le
+  have hL_one : 1 ≤ L := by
+    dsimp [L]
+    exact one_le_pow₀ hlog_one.le
+  have hshift_nonneg : 0 ≤ A / L :=
+    div_nonneg hA hL_nonneg
+  have honea_nonneg : 0 ≤ 1 + a := by linarith
+  have hx0 : 0 ≤ x := by
+    dsimp [x]
+    linarith [le_of_lt hsmall_one_T]
+  have hx_right : x ≤ 1 + a := by
+    dsimp [x]
+    linarith
+  have hlen_eq : |1 + a - x| = a + A / L := by
+    dsimp [x]
+    rw [abs_of_nonneg]
+    · ring
+    · linarith
+  have hlen_nonneg : 0 ≤ |1 + a - x| := abs_nonneg _
+  have hlen_le : |1 + a - x| ≤ 1 + a := by
+    rw [hlen_eq]
+    linarith [le_of_lt hsmall_one_T]
+  have hleft_T :
+      ‖∫ σ in 0..x, kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * L) * (1 + a) := by
+    simpa [x, L] using hnonterminal_T
+  have hterminal_T' :
+      ‖∫ σ in x..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (C * L) * |1 + a - x| + K * |1 + a - x| := by
+    simpa [x, L, K] using hterminal_T
+  have hright_split :
+      ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * L) * (1 + a) +
+            ((C * L) * |1 + a - x| + K * |1 + a - x|) :=
+    kadiriDyadicZetaLogDerivPVRemainder_right_integral_bound_of_split
+      a x T ha hx0 hx_right k ((Z0 * L) * (1 + a))
+      ((C * L) * |1 + a - x| + K * |1 + a - x|)
+      hT hleft_T hterminal_T'
+  have hK_nonneg : 0 ≤ K := by
+    have hcard_nonneg :
+        0 ≤ ((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) := by
+      positivity
+    dsimp [K]
+    exact div_nonneg (mul_nonneg hcard_nonneg hM) hd.le
+  have hCL_nonneg : 0 ≤ C * L := mul_nonneg hC.le hL_nonneg
+  have hterm_C :
+      (C * L) * |1 + a - x| ≤ (C * L) * (1 + a) :=
+    mul_le_mul_of_nonneg_left hlen_le hCL_nonneg
+  have hterm_K :
+      K * |1 + a - x| ≤ (K * L) * (1 + a) := by
+    have hK_len : K * |1 + a - x| ≤ K * (1 + a) :=
+      mul_le_mul_of_nonneg_left hlen_le hK_nonneg
+    have hK_absorb : K * (1 + a) ≤ (K * L) * (1 + a) := by
+      have hK_le : K ≤ K * L := by
+        calc
+          K = K * 1 := by ring
+          _ ≤ K * L := mul_le_mul_of_nonneg_left hL_one hK_nonneg
+      exact mul_le_mul_of_nonneg_right hK_le honea_nonneg
+    exact le_trans hK_len hK_absorb
+  have hterminal_absorb :
+      (C * L) * |1 + a - x| + K * |1 + a - x|
+        ≤ (C * L) * (1 + a) + (K * L) * (1 + a) :=
+    add_le_add hterm_C hterm_K
+  calc
+    ‖∫ σ in 0..(1 + a), kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * L) * (1 + a) +
+            ((C * L) * |1 + a - x| + K * |1 + a - x|) := hright_split
+    _ ≤ (Z0 * L) * (1 + a) +
+          ((C * L) * (1 + a) + (K * L) * (1 + a)) :=
+          add_le_add_right hterminal_absorb _
+    _ = ((Z0 + C + K) * L) * (1 + a) := by
+          ring
+
+/--
 Full-segment off-pole assembly with the right-segment truncated pole budget instantiated.
 
 The hypotheses now isolate the still-open analytic obligations: reflected/digamma control,
@@ -3820,6 +3941,37 @@ theorem
       (eventually_kadiri_digamma_pair_nonpositive_horizontal_integral_bound_of_pointwise_log_bound_on_filter
         a G ha kadiriLargeHorizontalZetaOffPoleFilter hdigamma_point)
       hzeta_rem_log_bound
+
+/--
+Full-segment off-pole logarithmic-growth bound from the nonterminal zeta PV remainder
+input alone.
+
+The dyadic endpoint selector, multiplicity cap, terminal zeta PV segment, and
+reflected/digamma bounds have all been discharged before this handoff.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_nonterminal_zeta_remainder_log_bound_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hnonterminal : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  obtain ⟨Z, hZ, hzeta_rem_log_bound⟩ :=
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_right_integral_log_bound_of_nonterminal_log_bound_on_large_offPole_filter
+      a ha k hnonterminal
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_zeta_remainder_log_bound_on_large_offPole_filter
+      a Z ha hZ k hzeta_rem_log_bound
 
 /--
 Large off-pole full-segment assembly from pointwise control of the sign-correct
