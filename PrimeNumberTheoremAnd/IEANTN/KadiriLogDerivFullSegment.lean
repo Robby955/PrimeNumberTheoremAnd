@@ -1,4 +1,5 @@
 import PrimeNumberTheoremAnd.IEANTN.Kadiri
+import PrimeNumberTheoremAnd.IEANTN.KadiriGoodHeightSelector
 import PrimeNumberTheoremAnd.IEANTN.KadiriTransversalKernel
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.ZetaBounds
@@ -1835,6 +1836,57 @@ theorem eventually_kadiriLargeHorizontalZetaOffPoleHeight :
         kadiriHorizontalZetaOffPoleHeight T :=
     Filter.mem_principal_self _
   exact hprincipal.filter_mono inf_le_right
+
+/-- A quantitative dyadic zero-ordinate gap implies the selected horizontal height is
+off-pole for the zeta logarithmic derivative. -/
+theorem kadiriHorizontalZetaOffPoleHeight_of_dyadic_gap {X η T : ℝ}
+    (hX : 0 < X) (hη : 0 ≤ η)
+    (hT : T ∈ Set.Ioc X (2 * X))
+    (hgap : ∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow X →
+      η < |T - (rho : ℂ).im|) :
+    kadiriHorizontalZetaOffPoleHeight T := by
+  constructor
+  · intro hT0
+    have hTX : X < T := hT.1
+    linarith
+  · intro rho him
+    have hrho_window : rho ∈ kadiriDyadicZeroWindow X := by
+      rw [kadiriDyadicZeroWindow, Set.mem_setOf_eq]
+      rw [him]
+      exact ⟨by linarith [hT.1], by linarith [hT.2]⟩
+    have hgap_rho := hgap rho hrho_window
+    rw [him] at hgap_rho
+    simp at hgap_rho
+    linarith
+
+/-- Endpoint-facing form of the dyadic good-height selector: the selected heights are
+large dyadic heights, quantitatively separated from the relevant zero ordinates, and
+already satisfy the off-pole predicate used by the full-segment layer. -/
+theorem exists_kadiriDyadicGoodHeightSelector_logRadius_offPole
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    ∃ c : ℝ, 0 < c ∧ ∀ᶠ k : ℕ in atTop,
+      ∃ T ∈ Set.Ioc ((2 : ℝ) ^ k) (2 * ((2 : ℝ) ^ k)),
+        kadiriHorizontalZetaOffPoleHeight T ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow ((2 : ℝ) ^ k) →
+            c / Real.log ((2 : ℝ) ^ k) < |T - (rho : ℂ).im|) ∧
+          (∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+            c / Real.log ((2 : ℝ) ^ k) < |T - (rho : ℂ).im|) := by
+  obtain ⟨c, hc, hsel⟩ := exists_kadiriDyadicGoodHeightSelector_logRadius hsrc
+  refine ⟨c, hc, ?_⟩
+  filter_upwards [hsel, Filter.eventually_ge_atTop (1 : ℕ)] with k hsel_k hk
+  obtain ⟨T, hT, hgap⟩ := hsel_k
+  refine ⟨T, hT, ?_, hgap, ?_⟩
+  · have hXpos : 0 < (2 : ℝ) ^ k := pow_pos (by norm_num) k
+    have hk_ne : k ≠ 0 := by omega
+    have hX_gt_one : 1 < (2 : ℝ) ^ k :=
+      one_lt_pow₀ (by norm_num : (1 : ℝ) < 2) hk_ne
+    have hlog_pos : 0 < Real.log ((2 : ℝ) ^ k) := Real.log_pos hX_gt_one
+    have hη : 0 ≤ c / Real.log ((2 : ℝ) ^ k) := div_nonneg hc.le hlog_pos.le
+    exact kadiriHorizontalZetaOffPoleHeight_of_dyadic_gap
+      (X := (2 : ℝ) ^ k) (η := c / Real.log ((2 : ℝ) ^ k)) (T := T)
+      hXpos hη hT hgap
+  · exact kadiriLocalZeroWindow_gap_of_dyadic_gap (X := (2 : ℝ) ^ k)
+      (η := c / Real.log ((2 : ℝ) ^ k)) (T := T) hT hgap
 
 /--
 Pointwise logarithmic-derivative control on a selected horizontal line.

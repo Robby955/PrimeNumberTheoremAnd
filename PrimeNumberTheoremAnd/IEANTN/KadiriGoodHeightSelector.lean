@@ -105,6 +105,22 @@ theorem exists_kadiriDyadicGoodHeightSelector :
   exact exists_kadiriDyadicGoodHeight_of_card_mul_radius_lt (X := X) (η := η)
     (by linarith) hη hsmall
 
+/-- The dyadic good-height gap restricts to the unit local zero window around the selected
+height. -/
+theorem kadiriLocalZeroWindow_gap_of_dyadic_gap {X η T : ℝ}
+    (hT : T ∈ Set.Ioc X (2 * X))
+    (hgap : ∀ rho : NontrivialZeros, rho ∈ kadiriDyadicZeroWindow X →
+      η < |T - (rho : ℂ).im|) :
+    ∀ rho : NontrivialZeros, rho ∈ kadiriLocalZeroWindow T →
+      η < |T - (rho : ℂ).im| := by
+  intro rho hrho
+  rw [kadiriLocalZeroWindow, Set.mem_setOf_eq] at hrho
+  have hlocal := abs_le.mp hrho
+  have hrho_window : rho ∈ kadiriDyadicZeroWindow X := by
+    rw [kadiriDyadicZeroWindow, Set.mem_setOf_eq]
+    exact ⟨by linarith [hT.1, hlocal.1], by linarith [hT.2, hlocal.2]⟩
+  exact hgap rho hrho_window
+
 /-- The dyadic good-height zero window at scale `2^k` is contained in the cumulative
 dyadic zero-counting window below `2^(k+2)`. -/
 theorem kadiriDyadicZeroWindow_ncard_le_cumulative_dyadic_count (k : ℕ) :
