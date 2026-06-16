@@ -516,6 +516,447 @@ private lemma kadiriFarTailUnitBandMajorant_nonneg (T : ℝ) (n : ℕ) :
           exact riemannZeta_one_ne_zero (by simpa [hρ] using hmem.2.2)))
   exact add_nonneg (hcount_nonneg _) (hcount_nonneg _)
 
+private abbrev kadiriFarTailZeroes (T : ℝ) :=
+  riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1)
+    ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+
+private noncomputable def kadiriFarTailHeightSqTerm (T : ℝ)
+    (ρ : kadiriFarTailZeroes T) : ℝ :=
+  (3 * |T - (ρ : ℂ).im|⁻¹ ^ (2 : ℕ)) *
+    ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ)
+
+private lemma kadiriFarTailHeightSqTerm_nonneg (T : ℝ)
+    (ρ : kadiriFarTailZeroes T) :
+    0 ≤ kadiriFarTailHeightSqTerm T ρ := by
+  rw [kadiriFarTailHeightSqTerm]
+  refine mul_nonneg (mul_nonneg (by norm_num) (sq_nonneg _)) ?_
+  exact_mod_cast riemannZeta_order_nonneg (by
+    intro hρ
+    exact riemannZeta_one_ne_zero (by simpa [hρ] using ρ.property.2.2))
+
+private theorem kadiriFarTailHeightSqTerm_summable (T : ℝ) :
+    Summable (kadiriFarTailHeightSqTerm T) := by
+  refine (kadiri_far_tail_weighted_three_height_sq_summable T).congr ?_
+  intro ρ
+  rw [kadiriFarTailHeightSqTerm]
+
+private noncomputable def kadiriFarTailBandIndex (T : ℝ)
+    (ρ : kadiriFarTailZeroes T) : ℕ × Bool :=
+  if T < (ρ : ℂ).im then
+    (⌊(ρ : ℂ).im - T - 1⌋₊, true)
+  else
+    (⌊T - (ρ : ℂ).im - 1⌋₊, false)
+
+private noncomputable def kadiriFarTailSignedBandMajorant (T : ℝ) : ℕ × Bool → ℝ
+  | (n, true) =>
+      (3 * (((n : ℝ) + 1)⁻¹ ^ (2 : ℕ))) *
+        u6aNearbyZeroCount (-1) 2 (T + ((n : ℝ) + 3 / 2))
+  | (n, false) =>
+      (3 * (((n : ℝ) + 1)⁻¹ ^ (2 : ℕ))) *
+        u6aNearbyZeroCount (-1) 2 (T - ((n : ℝ) + 3 / 2))
+
+private lemma u6aNearbyZeroCount_neg_one_two_nonneg (u : ℝ) :
+    0 ≤ u6aNearbyZeroCount (-1) 2 u := by
+  rw [u6aNearbyZeroCount,
+    riemannZeta.zeroes_sum_eq_finset_of_finite
+      (I := Set.uIcc (-1 : ℝ) 2) (J := Set.Icc (u - 1) (u + 1))
+      (f := fun _ => (1 : ℝ)) (u6aFTNearbyWindow_finite u)]
+  exact Finset.sum_nonneg fun rho hrho => by
+    have hmem := (u6aFTNearbyWindow_finite u).mem_toFinset.mp hrho
+    exact mul_nonneg zero_le_one (by
+      exact_mod_cast riemannZeta_order_nonneg (by
+        intro hρ
+        exact riemannZeta_one_ne_zero (by simpa [hρ] using hmem.2.2)))
+
+private lemma kadiriFarTailSignedBandMajorant_nonneg (T : ℝ) (j : ℕ × Bool) :
+    0 ≤ kadiriFarTailSignedBandMajorant T j := by
+  rcases j with ⟨n, b⟩
+  cases b
+  · rw [kadiriFarTailSignedBandMajorant]
+    exact mul_nonneg (mul_nonneg (by norm_num) (sq_nonneg _))
+      (u6aNearbyZeroCount_neg_one_two_nonneg _)
+  · rw [kadiriFarTailSignedBandMajorant]
+    exact mul_nonneg (mul_nonneg (by norm_num) (sq_nonneg _))
+      (u6aNearbyZeroCount_neg_one_two_nonneg _)
+
+private lemma kadiriFarTailBandIndex_upper_mem {T : ℝ} {ρ : kadiriFarTailZeroes T}
+    {n : ℕ} (hidx : kadiriFarTailBandIndex T ρ = (n, true)) :
+    (ρ : ℂ) ∈ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1)
+      (.Icc (T + ((n : ℝ) + 1)) (T + ((n : ℝ) + 2))) := by
+  unfold kadiriFarTailBandIndex at hidx
+  split_ifs at hidx with hupper
+  · obtain ⟨hre, hnot, hζ⟩ := ρ.property
+    have hn_nat : ⌊(ρ : ℂ).im - T - 1⌋₊ = n := congrArg Prod.fst hidx
+    have hn_real : (⌊(ρ : ℂ).im - T - 1⌋₊ : ℝ) = (n : ℝ) := by
+      exact_mod_cast hn_nat
+    have him_gt : T + 1 < (ρ : ℂ).im := by
+      by_contra hle_not
+      have hle : (ρ : ℂ).im ≤ T + 1 := le_of_not_gt hle_not
+      have hge : T - 1 ≤ (ρ : ℂ).im := by linarith
+      exact hnot ⟨hge, hle⟩
+    let x : ℝ := (ρ : ℂ).im - T - 1
+    have hx_nonneg : 0 ≤ x := by dsimp [x]; linarith
+    have hfloor_le : (⌊x⌋₊ : ℝ) ≤ x := Nat.floor_le hx_nonneg
+    have hx_lt : x < (⌊x⌋₊ : ℝ) + 1 := Nat.lt_floor_add_one x
+    refine ⟨hre, ?_, hζ⟩
+    dsimp [x] at hfloor_le hx_lt
+    constructor
+    · nlinarith
+    · nlinarith
+  · simp at hidx
+
+private lemma kadiriFarTailBandIndex_lower_mem {T : ℝ} {ρ : kadiriFarTailZeroes T}
+    {n : ℕ} (hidx : kadiriFarTailBandIndex T ρ = (n, false)) :
+    (ρ : ℂ) ∈ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1)
+      (.Icc (T - ((n : ℝ) + 2)) (T - ((n : ℝ) + 1))) := by
+  unfold kadiriFarTailBandIndex at hidx
+  split_ifs at hidx with hupper
+  · simp at hidx
+  · obtain ⟨hre, hnot, hζ⟩ := ρ.property
+    have hn_nat : ⌊T - (ρ : ℂ).im - 1⌋₊ = n := congrArg Prod.fst hidx
+    have hn_real : (⌊T - (ρ : ℂ).im - 1⌋₊ : ℝ) = (n : ℝ) := by
+      exact_mod_cast hn_nat
+    have him_lt : (ρ : ℂ).im < T - 1 := by
+      by_contra hlt_not
+      have hge : T - 1 ≤ (ρ : ℂ).im := le_of_not_gt hlt_not
+      have hle : (ρ : ℂ).im ≤ T + 1 := by linarith [le_of_not_gt hupper]
+      exact hnot ⟨hge, hle⟩
+    let x : ℝ := T - (ρ : ℂ).im - 1
+    have hx_nonneg : 0 ≤ x := by dsimp [x]; linarith
+    have hfloor_le : (⌊x⌋₊ : ℝ) ≤ x := Nat.floor_le hx_nonneg
+    have hx_lt : x < (⌊x⌋₊ : ℝ) + 1 := Nat.lt_floor_add_one x
+    refine ⟨hre, ?_, hζ⟩
+    dsimp [x] at hfloor_le hx_lt
+    constructor
+    · nlinarith
+    · nlinarith
+
+private lemma kadiriFarTailUpperFiberSum_le_signedMajorant
+    (T : ℝ) (n : ℕ) (s : Finset (kadiriFarTailZeroes T)) :
+    ∑ ρ ∈ s with kadiriFarTailBandIndex T ρ = (n, true),
+        kadiriFarTailHeightSqTerm T ρ ≤
+      kadiriFarTailSignedBandMajorant T (n, true) := by
+  classical
+  let fiber : Finset (kadiriFarTailZeroes T) :=
+    s.filter fun ρ => kadiriFarTailBandIndex T ρ = (n, true)
+  let image : Finset ℂ := fiber.image fun ρ : kadiriFarTailZeroes T => (ρ : ℂ)
+  let u : ℝ := T + ((n : ℝ) + 3 / 2)
+  let wide : Finset ℂ := (u6aFTNearbyWindow_finite u).toFinset
+  let coeff : ℝ := 3 * (((n : ℝ) + 1)⁻¹ ^ (2 : ℕ))
+  have hterm : ∀ ρ ∈ fiber,
+      kadiriFarTailHeightSqTerm T ρ ≤
+        coeff * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    intro ρ hρ
+    have hidx : kadiriFarTailBandIndex T ρ = (n, true) :=
+      (Finset.mem_filter.mp hρ).2
+    have hmem := kadiriFarTailBandIndex_upper_mem (T := T) (ρ := ρ) hidx
+    obtain ⟨_hre, him, _hζ⟩ := hmem
+    have hdist : ((n : ℝ) + 1) ≤ |T - (ρ : ℂ).im| := by
+      have hnonpos : T - (ρ : ℂ).im ≤ 0 := by nlinarith [him.1]
+      rw [abs_of_nonpos hnonpos]
+      nlinarith [him.1]
+    have hpos : 0 < (n : ℝ) + 1 := by positivity
+    have hinv : |T - (ρ : ℂ).im|⁻¹ ≤ ((n : ℝ) + 1)⁻¹ :=
+      inv_anti₀ hpos hdist
+    have hsquare :
+        |T - (ρ : ℂ).im|⁻¹ ^ (2 : ℕ) ≤
+          ((n : ℝ) + 1)⁻¹ ^ (2 : ℕ) :=
+      pow_le_pow_left₀ (by positivity) hinv 2
+    have hord : 0 ≤ ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+      exact_mod_cast riemannZeta_order_nonneg (by
+        intro hρ1
+        exact riemannZeta_one_ne_zero (by simpa [hρ1] using ρ.property.2.2))
+    rw [kadiriFarTailHeightSqTerm]
+    exact mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_left hsquare (by norm_num)) hord
+  have himage_sum :
+      ∑ z ∈ image, coeff * ((riemannZeta.order z : ℤ) : ℝ) =
+        ∑ ρ ∈ fiber, coeff * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    dsimp [image]
+    rw [Finset.sum_image]
+    intro ρ hρ η hη hρη
+    exact Subtype.ext hρη
+  have hsubset : image ⊆ wide := by
+    intro z hz
+    have hz' : z ∈ fiber.image (fun ρ : kadiriFarTailZeroes T => (ρ : ℂ)) := by
+      simpa [image] using hz
+    rcases Finset.mem_image.mp hz' with ⟨ρ, hρ, rfl⟩
+    have hidx : kadiriFarTailBandIndex T ρ = (n, true) :=
+      (Finset.mem_filter.mp hρ).2
+    have hmem := kadiriFarTailBandIndex_upper_mem (T := T) (ρ := ρ) hidx
+    obtain ⟨hre, him, hζ⟩ := hmem
+    rw [(u6aFTNearbyWindow_finite u).mem_toFinset]
+    unfold u6aFTNearbyWindow riemannZeta.zeroes_rect
+    refine ⟨?_, ?_, hζ⟩
+    · rw [Set.uIcc_of_le (by norm_num : (-1 : ℝ) ≤ 2)]
+      exact ⟨by linarith [hre.1], by linarith [hre.2]⟩
+    · dsimp [u]
+      exact ⟨by linarith [him.1], by linarith [him.2]⟩
+  have hwide_nonneg : ∀ z ∈ wide,
+      0 ≤ coeff * ((riemannZeta.order z : ℤ) : ℝ) := by
+    intro z hz
+    have hmem := (u6aFTNearbyWindow_finite u).mem_toFinset.mp (by simpa [wide] using hz)
+    exact mul_nonneg (by positivity) (by
+      exact_mod_cast riemannZeta_order_nonneg (by
+        intro hz1
+        exact riemannZeta_one_ne_zero (by simpa [hz1] using hmem.2.2)))
+  have hwide_sum :
+      u6aNearbyZeroCount (-1) 2 u =
+        ∑ z ∈ wide, ((riemannZeta.order z : ℤ) : ℝ) := by
+    simpa [u6aNearbyZeroCount, wide, u] using
+      riemannZeta.zeroes_sum_eq_finset_of_finite
+        (I := Set.uIcc (-1 : ℝ) 2) (J := Set.Icc (u - 1) (u + 1))
+        (f := fun _ => (1 : ℝ)) (u6aFTNearbyWindow_finite u)
+  calc
+    ∑ ρ ∈ s with kadiriFarTailBandIndex T ρ = (n, true),
+        kadiriFarTailHeightSqTerm T ρ
+        = ∑ ρ ∈ fiber, kadiriFarTailHeightSqTerm T ρ := by
+          simp [fiber]
+    _ ≤ ∑ ρ ∈ fiber, coeff * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) :=
+        Finset.sum_le_sum hterm
+    _ = ∑ z ∈ image, coeff * ((riemannZeta.order z : ℤ) : ℝ) :=
+        himage_sum.symm
+    _ ≤ ∑ z ∈ wide, coeff * ((riemannZeta.order z : ℤ) : ℝ) :=
+        Finset.sum_le_sum_of_subset_of_nonneg hsubset
+          (fun z hz _ => hwide_nonneg z (by simpa [wide] using hz))
+    _ = coeff * u6aNearbyZeroCount (-1) 2 u := by
+        rw [hwide_sum, Finset.mul_sum]
+    _ = kadiriFarTailSignedBandMajorant T (n, true) := rfl
+
+private lemma kadiriFarTailLowerFiberSum_le_signedMajorant
+    (T : ℝ) (n : ℕ) (s : Finset (kadiriFarTailZeroes T)) :
+    ∑ ρ ∈ s with kadiriFarTailBandIndex T ρ = (n, false),
+        kadiriFarTailHeightSqTerm T ρ ≤
+      kadiriFarTailSignedBandMajorant T (n, false) := by
+  classical
+  let fiber : Finset (kadiriFarTailZeroes T) :=
+    s.filter fun ρ => kadiriFarTailBandIndex T ρ = (n, false)
+  let image : Finset ℂ := fiber.image fun ρ : kadiriFarTailZeroes T => (ρ : ℂ)
+  let u : ℝ := T - ((n : ℝ) + 3 / 2)
+  let wide : Finset ℂ := (u6aFTNearbyWindow_finite u).toFinset
+  let coeff : ℝ := 3 * (((n : ℝ) + 1)⁻¹ ^ (2 : ℕ))
+  have hterm : ∀ ρ ∈ fiber,
+      kadiriFarTailHeightSqTerm T ρ ≤
+        coeff * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    intro ρ hρ
+    have hidx : kadiriFarTailBandIndex T ρ = (n, false) :=
+      (Finset.mem_filter.mp hρ).2
+    have hmem := kadiriFarTailBandIndex_lower_mem (T := T) (ρ := ρ) hidx
+    obtain ⟨_hre, him, _hζ⟩ := hmem
+    have hdist : ((n : ℝ) + 1) ≤ |T - (ρ : ℂ).im| := by
+      have hnonneg : 0 ≤ T - (ρ : ℂ).im := by nlinarith [him.2]
+      rw [abs_of_nonneg hnonneg]
+      nlinarith [him.2]
+    have hpos : 0 < (n : ℝ) + 1 := by positivity
+    have hinv : |T - (ρ : ℂ).im|⁻¹ ≤ ((n : ℝ) + 1)⁻¹ :=
+      inv_anti₀ hpos hdist
+    have hsquare :
+        |T - (ρ : ℂ).im|⁻¹ ^ (2 : ℕ) ≤
+          ((n : ℝ) + 1)⁻¹ ^ (2 : ℕ) :=
+      pow_le_pow_left₀ (by positivity) hinv 2
+    have hord : 0 ≤ ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+      exact_mod_cast riemannZeta_order_nonneg (by
+        intro hρ1
+        exact riemannZeta_one_ne_zero (by simpa [hρ1] using ρ.property.2.2))
+    rw [kadiriFarTailHeightSqTerm]
+    exact mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_left hsquare (by norm_num)) hord
+  have himage_sum :
+      ∑ z ∈ image, coeff * ((riemannZeta.order z : ℤ) : ℝ) =
+        ∑ ρ ∈ fiber, coeff * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) := by
+    dsimp [image]
+    rw [Finset.sum_image]
+    intro ρ hρ η hη hρη
+    exact Subtype.ext hρη
+  have hsubset : image ⊆ wide := by
+    intro z hz
+    have hz' : z ∈ fiber.image (fun ρ : kadiriFarTailZeroes T => (ρ : ℂ)) := by
+      simpa [image] using hz
+    rcases Finset.mem_image.mp hz' with ⟨ρ, hρ, rfl⟩
+    have hidx : kadiriFarTailBandIndex T ρ = (n, false) :=
+      (Finset.mem_filter.mp hρ).2
+    have hmem := kadiriFarTailBandIndex_lower_mem (T := T) (ρ := ρ) hidx
+    obtain ⟨hre, him, hζ⟩ := hmem
+    rw [(u6aFTNearbyWindow_finite u).mem_toFinset]
+    unfold u6aFTNearbyWindow riemannZeta.zeroes_rect
+    refine ⟨?_, ?_, hζ⟩
+    · rw [Set.uIcc_of_le (by norm_num : (-1 : ℝ) ≤ 2)]
+      exact ⟨by linarith [hre.1], by linarith [hre.2]⟩
+    · dsimp [u]
+      exact ⟨by linarith [him.1], by linarith [him.2]⟩
+  have hwide_nonneg : ∀ z ∈ wide,
+      0 ≤ coeff * ((riemannZeta.order z : ℤ) : ℝ) := by
+    intro z hz
+    have hmem := (u6aFTNearbyWindow_finite u).mem_toFinset.mp (by simpa [wide] using hz)
+    exact mul_nonneg (by positivity) (by
+      exact_mod_cast riemannZeta_order_nonneg (by
+        intro hz1
+        exact riemannZeta_one_ne_zero (by simpa [hz1] using hmem.2.2)))
+  have hwide_sum :
+      u6aNearbyZeroCount (-1) 2 u =
+        ∑ z ∈ wide, ((riemannZeta.order z : ℤ) : ℝ) := by
+    simpa [u6aNearbyZeroCount, wide, u] using
+      riemannZeta.zeroes_sum_eq_finset_of_finite
+        (I := Set.uIcc (-1 : ℝ) 2) (J := Set.Icc (u - 1) (u + 1))
+        (f := fun _ => (1 : ℝ)) (u6aFTNearbyWindow_finite u)
+  calc
+    ∑ ρ ∈ s with kadiriFarTailBandIndex T ρ = (n, false),
+        kadiriFarTailHeightSqTerm T ρ
+        = ∑ ρ ∈ fiber, kadiriFarTailHeightSqTerm T ρ := by
+          simp [fiber]
+    _ ≤ ∑ ρ ∈ fiber, coeff * ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) :=
+        Finset.sum_le_sum hterm
+    _ = ∑ z ∈ image, coeff * ((riemannZeta.order z : ℤ) : ℝ) :=
+        himage_sum.symm
+    _ ≤ ∑ z ∈ wide, coeff * ((riemannZeta.order z : ℤ) : ℝ) :=
+        Finset.sum_le_sum_of_subset_of_nonneg hsubset
+          (fun z hz _ => hwide_nonneg z (by simpa [wide] using hz))
+    _ = coeff * u6aNearbyZeroCount (-1) 2 u := by
+        rw [hwide_sum, Finset.mul_sum]
+    _ = kadiriFarTailSignedBandMajorant T (n, false) := rfl
+
+private lemma kadiriFarTailBandFiberSum_le_signedMajorant
+    (T : ℝ) (s : Finset (kadiriFarTailZeroes T)) (j : ℕ × Bool) :
+    ∑ ρ ∈ s with kadiriFarTailBandIndex T ρ = j,
+        kadiriFarTailHeightSqTerm T ρ ≤
+      kadiriFarTailSignedBandMajorant T j := by
+  rcases j with ⟨n, b⟩
+  cases b
+  · simpa using kadiriFarTailLowerFiberSum_le_signedMajorant T n s
+  · simpa using kadiriFarTailUpperFiberSum_le_signedMajorant T n s
+
+private lemma kadiriFarTailSignedBandMajorant_sum_le_unitBandMajorant_sum
+    (T : ℝ) (keys : Finset (ℕ × Bool)) :
+    ∑ j ∈ keys, kadiriFarTailSignedBandMajorant T j ≤
+      ∑ n ∈ keys.image Prod.fst, kadiriFarTailUnitBandMajorant T n := by
+  classical
+  let ns : Finset ℕ := keys.image Prod.fst
+  have hmaps : ∀ j ∈ keys, Prod.fst j ∈ ns := by
+    intro j hj
+    exact Finset.mem_image.mpr ⟨j, hj, rfl⟩
+  have hfiber :=
+    Finset.sum_fiberwise_of_maps_to (s := keys) (t := ns)
+      (g := Prod.fst) hmaps (kadiriFarTailSignedBandMajorant T)
+  have hper_n : ∀ n ∈ ns,
+      ∑ j ∈ keys with Prod.fst j = n, kadiriFarTailSignedBandMajorant T j ≤
+        kadiriFarTailUnitBandMajorant T n := by
+    intro n hn
+    let pairs : Finset (ℕ × Bool) := {(n, true), (n, false)}
+    have hsubset : (keys.filter fun j => Prod.fst j = n) ⊆ pairs := by
+      intro j hj
+      have hjn : Prod.fst j = n := (Finset.mem_filter.mp hj).2
+      rcases j with ⟨m, b⟩
+      have hm : m = n := by simpa using hjn
+      cases b <;> simp [pairs, hm]
+    have hpair_sum :
+        ∑ j ∈ pairs, kadiriFarTailSignedBandMajorant T j =
+          kadiriFarTailUnitBandMajorant T n := by
+      simp [pairs, kadiriFarTailSignedBandMajorant,
+        kadiriFarTailUnitBandMajorant, mul_add]
+    calc
+      ∑ j ∈ keys with Prod.fst j = n, kadiriFarTailSignedBandMajorant T j
+          ≤ ∑ j ∈ pairs, kadiriFarTailSignedBandMajorant T j :=
+            Finset.sum_le_sum_of_subset_of_nonneg hsubset
+              (fun j hj _ => kadiriFarTailSignedBandMajorant_nonneg T j)
+      _ = kadiriFarTailUnitBandMajorant T n := hpair_sum
+  calc
+    ∑ j ∈ keys, kadiriFarTailSignedBandMajorant T j
+        = ∑ n ∈ ns,
+            ∑ j ∈ keys with Prod.fst j = n, kadiriFarTailSignedBandMajorant T j :=
+          hfiber.symm
+    _ ≤ ∑ n ∈ ns, kadiriFarTailUnitBandMajorant T n :=
+        Finset.sum_le_sum hper_n
+    _ = ∑ n ∈ keys.image Prod.fst, kadiriFarTailUnitBandMajorant T n := rfl
+
+private theorem kadiriFarTailFiniteHeightSqTermSum_le_unitBandMajorant_tsum
+    (T : ℝ) (hmajorant_sum : Summable (fun n : ℕ => kadiriFarTailUnitBandMajorant T n))
+    (s : Finset (kadiriFarTailZeroes T)) :
+    ∑ ρ ∈ s, kadiriFarTailHeightSqTerm T ρ ≤
+      ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n := by
+  classical
+  let keys : Finset (ℕ × Bool) := s.image (kadiriFarTailBandIndex T)
+  have hmaps : ∀ ρ ∈ s, kadiriFarTailBandIndex T ρ ∈ keys := by
+    intro ρ hρ
+    exact Finset.mem_image.mpr ⟨ρ, hρ, rfl⟩
+  have hfiber :=
+    Finset.sum_fiberwise_of_maps_to (s := s) (t := keys)
+      (g := kadiriFarTailBandIndex T) hmaps (kadiriFarTailHeightSqTerm T)
+  calc
+    ∑ ρ ∈ s, kadiriFarTailHeightSqTerm T ρ
+        = ∑ j ∈ keys,
+            ∑ ρ ∈ s with kadiriFarTailBandIndex T ρ = j,
+              kadiriFarTailHeightSqTerm T ρ := hfiber.symm
+    _ ≤ ∑ j ∈ keys, kadiriFarTailSignedBandMajorant T j :=
+        Finset.sum_le_sum fun j _ =>
+          kadiriFarTailBandFiberSum_le_signedMajorant T s j
+    _ ≤ ∑ n ∈ keys.image Prod.fst, kadiriFarTailUnitBandMajorant T n :=
+        kadiriFarTailSignedBandMajorant_sum_le_unitBandMajorant_sum T keys
+    _ ≤ ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n :=
+        Summable.sum_le_tsum (s := keys.image Prod.fst)
+          (f := fun n : ℕ => kadiriFarTailUnitBandMajorant T n)
+          (fun n _ => kadiriFarTailUnitBandMajorant_nonneg T n) hmajorant_sum
+
+/--
+Every finite partial square-height far-tail sum is controlled by the concrete
+upper/lower floor-band majorant.
+-/
+theorem kadiriFarTailFiniteHeightSqSum_le_unitBandMajorant_tsum
+    (T : ℝ) (hmajorant_sum : Summable (fun n : ℕ => kadiriFarTailUnitBandMajorant T n))
+    (s : Finset (riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1)
+      ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)}))) :
+    ∑ ρ ∈ s,
+        (3 * |T - (ρ : ℂ).im|⁻¹ ^ (2 : ℕ)) *
+          ((riemannZeta.order (ρ : ℂ) : ℤ) : ℝ) ≤
+      ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n := by
+  simpa [kadiriFarTailZeroes, kadiriFarTailHeightSqTerm] using
+    kadiriFarTailFiniteHeightSqTermSum_le_unitBandMajorant_tsum T hmajorant_sum s
+
+/--
+The regrouped square-height far tail is bounded by the concrete unit-band
+majorant. The proof passes finite partial sums through
+`Finset.sum_fiberwise_of_maps_to` and then through
+`Summable.tsum_le_of_sum_le`.
+-/
+theorem kadiri_far_tail_weighted_three_height_sq_tsum_le_unitBandMajorant_tsum
+    (T : ℝ) (hmajorant_sum : Summable (fun n : ℕ => kadiriFarTailUnitBandMajorant T n)) :
+    riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1)
+        ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+        (fun ρ => 3 * |T - ρ.im|⁻¹ ^ (2 : ℕ)) ≤
+      ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n := by
+  have hfinite : ∀ s : Finset (kadiriFarTailZeroes T),
+      ∑ ρ ∈ s, kadiriFarTailHeightSqTerm T ρ ≤
+        ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n :=
+    kadiriFarTailFiniteHeightSqTermSum_le_unitBandMajorant_tsum T hmajorant_sum
+  have htsum :=
+    Summable.tsum_le_of_sum_le (kadiriFarTailHeightSqTerm_summable T) hfinite
+  unfold riemannZeta.zeroes_sum
+  simpa [kadiriFarTailZeroes, kadiriFarTailHeightSqTerm] using htsum
+
+/--
+The paired far-tail Hadamard zero contribution is controlled by the concrete
+unit-band majorant.
+-/
+theorem kadiri_far_tail_paired_zeroes_sum_norm_le_unitBandMajorant_tsum
+    (T σ : ℝ) (hσ : σ ∈ Set.uIcc (-1 : ℝ) 2)
+    (hmajorant_sum : Summable (fun n : ℕ => kadiriFarTailUnitBandMajorant T n)) :
+    ‖riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1)
+        ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+        (fun ρ => (1 : ℂ) / (((σ : ℂ) + (T : ℂ) * I) - ρ) -
+          (1 : ℂ) / (((2 : ℂ) + (T : ℂ) * I) - ρ))‖ ≤
+      ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n := by
+  calc
+    ‖riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1)
+        ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+        (fun ρ => (1 : ℂ) / (((σ : ℂ) + (T : ℂ) * I) - ρ) -
+          (1 : ℂ) / (((2 : ℂ) + (T : ℂ) * I) - ρ))‖
+        ≤ riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1)
+          ({u : ℝ | u ∉ Set.Icc (T - 1) (T + 1)})
+          (fun ρ => 3 * |T - ρ.im|⁻¹ ^ (2 : ℕ)) :=
+          kadiri_far_tail_paired_zeroes_sum_norm_le_height_sq_tail T σ hσ
+    _ ≤ ∑' n : ℕ, kadiriFarTailUnitBandMajorant T n :=
+        kadiri_far_tail_weighted_three_height_sq_tsum_le_unitBandMajorant_tsum
+          T hmajorant_sum
+
 private lemma log_abs_shift_add_two_le_log_band_product {T : ℝ} (hTnonneg : 0 ≤ T)
     (hT4 : 4 ≤ T) (n : ℕ) (sgn : Bool) :
     Real.log (|T + (if sgn then 1 else -1) * ((n : ℝ) + 3 / 2)| + 2) ≤
