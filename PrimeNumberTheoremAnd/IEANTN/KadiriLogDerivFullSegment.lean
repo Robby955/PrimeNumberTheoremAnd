@@ -4269,6 +4269,105 @@ theorem
       a Z ha hZ k hzeta_rem_log_bound
 
 /--
+Moving nonterminal actual-log-derivative control gives the matching sign-correct zeta
+PV remainder budget.
+
+The finite moving-pole principal block has already been selected and bounded. This lemma
+only absorbs that finite constant into the same `log |T| ^ 9` envelope as the analytic
+nonterminal `-ζ'/ζ` input.
+-/
+theorem
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_log_bound_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hlogDeriv_nonterminal : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a)) :
+    ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+  intro A hA
+  obtain ⟨Z0, hZ0, hlogDeriv_bound⟩ := hlogDeriv_nonterminal A hA
+  obtain ⟨e, d, M, C, he, hd, hM, hC, hzeta_bound⟩ :=
+    eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_right_integral_bound_of_logDeriv_on_large_offPole_filter
+      a A ha hA k (fun T : ℝ => (Z0 * Real.log |T| ^ (9 : ℕ)) * (1 + a))
+      hlogDeriv_bound
+  let K : ℝ :=
+    (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) * M) * C
+  have hK_nonneg : 0 ≤ K := by
+    have hcard_nonneg :
+        0 ≤ ((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) := by
+      positivity
+    dsimp [K]
+    positivity
+  refine ⟨Z0 + K, add_nonneg hZ0 hK_nonneg, ?_⟩
+  filter_upwards [eventually_kadiriLargeHorizontalZetaOffPoleFilter_large, hzeta_bound]
+    with T hlarge hzeta_T
+  let L : ℝ := Real.log |T| ^ (9 : ℕ)
+  have hlog_one : (1 : ℝ) < Real.log |T| := logt_gt_one hlarge.le
+  have hL_one : 1 ≤ L := by
+    dsimp [L]
+    exact one_le_pow₀ hlog_one.le
+  have hL_nonneg : 0 ≤ L := le_trans zero_le_one hL_one
+  have honea_one : 1 ≤ 1 + a := by linarith
+  have honea_nonneg : 0 ≤ 1 + a := le_trans zero_le_one honea_one
+  have hKL_nonneg : 0 ≤ K * L := mul_nonneg hK_nonneg hL_nonneg
+  have hK_absorb : K ≤ (K * L) * (1 + a) := by
+    calc
+      K = K * 1 := by ring
+      _ ≤ K * L := mul_le_mul_of_nonneg_left hL_one hK_nonneg
+      _ = (K * L) * 1 := by ring
+      _ ≤ (K * L) * (1 + a) :=
+          mul_le_mul_of_nonneg_left honea_one hKL_nonneg
+  calc
+    ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+        kadiriDyadicZetaLogDerivPVRemainder k T σ‖
+        ≤ (Z0 * Real.log |T| ^ (9 : ℕ)) * (1 + a) + K := by
+          simpa [K] using hzeta_T
+    _ ≤ (Z0 * L) * (1 + a) + (K * L) * (1 + a) := by
+          simpa [L] using add_le_add_right hK_absorb ((Z0 * L) * (1 + a))
+    _ = ((Z0 + K) * Real.log |T| ^ (9 : ℕ)) * (1 + a) := by
+          simp [L]
+          ring
+
+/--
+Full-segment off-pole bound from a moving nonterminal actual-log-derivative input.
+
+All finite moving-pole selectors, terminal PV estimates, and reflected/digamma estimates
+are discharged here. The only remaining analytic input is the moving nonterminal
+`-ζ'/ζ` logarithmic integral estimate.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_nonterminal_logDeriv_log_bound_on_large_offPole_filter
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ)
+    (hlogDeriv_nonterminal : ∀ A : ℝ, 0 ≤ A →
+      ∃ Z : ℝ, 0 ≤ Z ∧
+        ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+          ‖∫ σ in 0..(1 - A / Real.log |T| ^ (9 : ℕ)),
+              -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+                riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+            ≤ (Z * Real.log |T| ^ (9 : ℕ)) * (1 + a)) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriLargeHorizontalZetaOffPoleFilter,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp := by
+  exact
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_nonterminal_zeta_remainder_log_bound_on_large_offPole_filter
+      a ha k
+      (eventually_kadiriDyadicZetaLogDerivPVRemainder_nonterminal_integral_log_bound_of_logDeriv_log_bound_on_large_offPole_filter
+        a ha k hlogDeriv_nonterminal)
+
+/--
 Pointwise control of the sign-correct zeta PV remainder on a moving nonterminal
 interval gives the corresponding moving nonterminal integral budget.
 
