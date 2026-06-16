@@ -1,4 +1,4 @@
-import PrimeNumberTheoremAnd.IEANTN.KadiriLogDerivFullSegment
+import PrimeNumberTheoremAnd.IEANTN.KadiriHadamardPVBridge
 
 /-!
 # Selected good-height Hadamard/PV endpoint handoffs
@@ -569,5 +569,25 @@ theorem
     hsrc a ha k
     (eventually_kadiriDyadicGoodHeightFilter_localPVRemainder_logSq_of_titchmarshPartialFraction
       hsrc hpartial)
+
+/--
+Closed selected-height endpoint: the Hadamard/PV bridge supplies the Titchmarsh
+partial-fraction input, so the endpoint no longer carries `hpartial`.
+-/
+theorem
+    eventually_kadiri_logDeriv_zeta_full_segment_bound_of_titchmarshPartialFraction_closed_on_dyadicGoodHeightFilter
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource)
+    (a : ℝ) (ha : 0 ≤ a) (k : ℕ) :
+    ∃ e M C Cp : ℝ, 0 < e ∧ 0 ≤ M ∧ 0 ≤ C ∧ 0 ≤ Cp ∧
+      ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter hsrc,
+        ‖∫ σ in (-a)..(1 + a),
+            -deriv riemannZeta (((σ : ℂ) + (T : ℂ) * I)) /
+              riemannZeta (((σ : ℂ) + (T : ℂ) * I))‖
+          ≤ (C * Real.log |T| ^ 9) * (1 + 2 * a) + |Real.log Real.pi| * a +
+              (((kadiriTruncatedNontrivialZeros ((2 : ℝ) ^ (k + 1))).card : ℝ) *
+                M) * Cp :=
+  eventually_kadiri_logDeriv_zeta_full_segment_bound_of_titchmarshPartialFraction_on_dyadicGoodHeightFilter
+    hsrc a ha k
+    (kadiriTitchmarshLocalPartialFractionLogBoundOnFilter_of_dyadicGoodHeight hsrc)
 
 end Kadiri
