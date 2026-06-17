@@ -2364,6 +2364,230 @@ theorem identity_16_complex_weighted_of_integrable_on_dyadicGoodHeight {d : ℝ}
     (summable_kadiriTestFn_weighted_at_zeros hd hf_C2 hf_supp hf_d hf_deriv_0
       hf_deriv_d hs) hΓ_int
 
+/-- Downstream factorization of `re_inner_eq`: the only remaining analytic input
+is the real part of the Hadamard constant. -/
+theorem re_inner_eq_of_re_hadamardB_eq
+    (hB_re : hadamardB.re =
+      -riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ => (1 / ρ).re))
+    {s : ℂ} (hs : 1 < s.re) :
+    ((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1) +
+       riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+         (fun ρ => 1 / ρ + 1 / (s - ρ))).re -
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => (1 / ρ).re) =
+    -(1 / 2 : ℝ) * Real.log Real.pi +
+      (1 / 2 : ℝ) * (digamma (s / 2 + 1)).re := by
+  have hs0 : s ≠ 0 := by
+    intro hs_eq
+    rw [hs_eq] at hs
+    norm_num at hs
+  have hs1 : s ≠ 1 := by
+    intro hs_eq
+    rw [hs_eq] at hs
+    norm_num at hs
+  have hsZ : s ∉ riemannZeta.zeroes := by
+    intro hz
+    exact (riemannZeta_ne_zero_of_one_le_re (le_of_lt hs)) (by
+      simpa [riemannZeta.zeroes] using hz)
+  rw [tsum_vonMangoldt_eq hs, hadamard_identity s hs0 hs1 hsZ]
+  ring_nf
+  simp only [Complex.add_re, Complex.neg_re, Complex.mul_re, Complex.ofReal_re,
+    Complex.ofReal_im, zero_mul, sub_zero]
+  rw [hB_re]
+  norm_num
+  ring_nf
+
+/-- Downstream replacement for `identity_16_complex`. The old theorem hides the
+gamma-line integrability input behind a `sorry`; this variant carries it
+explicitly. -/
+theorem identity_16_complex_on_dyadicGoodHeight_of_integrable {d : ℝ}
+    (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (_hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)) =
+      (f 0 : ℂ) * ((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1))
+      + riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ))
+      + laplaceTransform f (s - 1)
+      + ((1 / (2 * (Real.pi : ℂ))) *
+          (∫ t : ℝ,
+            ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+              laplaceTransform (fun u ↦ deriv (deriv f) u) (s - (1 / 2 + (t : ℂ) * I))
+              / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+          + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2) :=
+  identity_16_complex_weighted_of_integrable_on_dyadicGoodHeight hd hf_C2 hf_supp
+    hf_d hf_deriv_0 hf_deriv_d hs hΓ_int
+
+private theorem kadiri_downstream_zeroes_sum_complex_re_of_summable (φ : ℂ → ℂ)
+    (hsum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) =>
+      φ ρ.val * (riemannZeta.order ρ.val : ℂ))) :
+    (riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) φ).re =
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ => (φ ρ).re) := by
+  unfold riemannZeta.zeroes_sum
+  change Complex.reCLM
+      (∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+        φ ρ.val * (riemannZeta.order ρ.val : ℂ)) =
+      ∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+        (φ ρ.val).re * (riemannZeta.order ρ.val : ℝ)
+  rw [ContinuousLinearMap.map_tsum Complex.reCLM hsum]
+  refine tsum_congr fun ρ => ?_
+  change (φ ρ.val * (riemannZeta.order ρ.val : ℂ)).re =
+    (φ ρ.val).re * (riemannZeta.order ρ.val : ℝ)
+  rw [Complex.mul_re]
+  simp
+
+/-- Downstream replacement for `identity_16` that avoids the old
+`identity_16_complex`. It names the gamma-line integrability input that the
+old statement hides behind a `sorry`. -/
+theorem identity_16_on_dyadicGoodHeight_of_integrable
+    {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1) +
+                riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+                  (fun ρ => 1 / ρ + 1 / (s - ρ))).re -
+              riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+                (fun ρ => (1 / ρ).re))
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ => (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re := by
+  have hcomplex :=
+    identity_16_complex_on_dyadicGoodHeight_of_integrable hd hf_C2 hf_supp hf_d
+      hf_deriv_0 hf_deriv_d hf_deriv2_d hs hΓ_int
+  have hsub := summable_lap_sub_pole_weighted_at_zeros hd hf_C2 hf_supp hf_d hf_deriv_0
+    hf_deriv_d hs
+  have hre1 := summable_weighted_re_one_div_at_zeros s
+  have hreF := summable_lap_re_weighted_at_zeros hd hf_nonneg hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hf_deriv2_d s
+  have htsum_re :
+      (riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ))).re =
+        riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => ((f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)).re) :=
+    kadiri_downstream_zeroes_sum_complex_re_of_summable
+      (fun ρ => (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)) hsub
+  have hpt : ∀ ρ : ℂ,
+      ((f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)).re =
+        f 0 * (1 / (s - ρ)).re - (laplaceTransform f (s - ρ)).re := by
+    intro ρ
+    have hmul : ((f 0 : ℝ) : ℂ) / (s - ρ) =
+        ((f 0 : ℝ) : ℂ) * (1 / (s - ρ)) := div_eq_mul_one_div _ _
+    rw [Complex.sub_re, hmul, Complex.re_ofReal_mul]
+  have hzero_rewrite :
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => ((f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ)).re) =
+        riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => f 0 * (1 / (s - ρ)).re - (laplaceTransform f (s - ρ)).re) := by
+    unfold riemannZeta.zeroes_sum
+    refine tsum_congr fun ρ => ?_
+    change (((f 0 : ℂ) / (s - ρ.val) - laplaceTransform f (s - ρ.val)).re) *
+        (riemannZeta.order ρ.val : ℝ) =
+      (f 0 * (1 / (s - ρ.val)).re - (laplaceTransform f (s - ρ.val)).re) *
+        (riemannZeta.order ρ.val : ℝ)
+    rw [hpt ρ.val]
+  have hsplit :
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => f 0 * (1 / (s - ρ)).re - (laplaceTransform f (s - ρ)).re) =
+        f 0 * riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => (1 / (s - ρ)).re) -
+        riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => (laplaceTransform f (s - ρ)).re) := by
+    unfold riemannZeta.zeroes_sum
+    change (∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+        (f 0 * (1 / (s - ρ.val)).re - (laplaceTransform f (s - ρ.val)).re) *
+          (riemannZeta.order ρ.val : ℝ)) =
+      f 0 * (∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+        (1 / (s - ρ.val)).re * (riemannZeta.order ρ.val : ℝ)) -
+      ∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+        (laplaceTransform f (s - ρ.val)).re * (riemannZeta.order ρ.val : ℝ)
+    have hterm :
+        (∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ),
+            (f 0 * (1 / (s - ρ.val)).re - (laplaceTransform f (s - ρ.val)).re) *
+              (riemannZeta.order ρ.val : ℝ)) =
+          ∑' ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ), (
+            f 0 * ((1 / (s - ρ.val)).re * (riemannZeta.order ρ.val : ℝ)) -
+              (laplaceTransform f (s - ρ.val)).re *
+                (riemannZeta.order ρ.val : ℝ)) := by
+      refine tsum_congr fun ρ => ?_
+      ring_nf
+    rw [hterm]
+    rw [Summable.tsum_sub (hre1.mul_left (f 0)) hreF, tsum_mul_left]
+  rw [hcomplex]
+  simp only [Complex.add_re, Complex.sub_re]
+  rw [htsum_re, hzero_rewrite, hsplit, Complex.re_ofReal_mul, Complex.sub_re,
+    re_shifted_sum_eq_paired_sub_re_inv s]
+  ring
+
+/-- Downstream replacement for `prop_2_1` with the remaining inputs named
+explicitly instead of inherited through old `sorry` declarations. -/
+theorem prop_2_1_on_dyadicGoodHeight_of_integrable_of_re_hadamardB_eq
+    {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume))
+    (hB_re : hadamardB.re =
+      -riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ => (1 / ρ).re)) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+                (laplaceTransform f (s - ρ.val)).re * (riemannZeta.order ρ.val : ℝ)) ∧
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (-(1 / 2 : ℝ) * Real.log Real.pi
+              + (1 / 2 : ℝ) * (digamma (s / 2 + 1)).re)
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ => (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re := by
+  refine ⟨summable_lap_re_weighted_at_zeros hd hf_nonneg hf_C2 hf_supp hf_d
+      hf_deriv_0 hf_deriv_d hf_deriv2_d s, ?_⟩
+  rw [identity_16_on_dyadicGoodHeight_of_integrable
+      hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d hf_deriv2_d hs
+      hΓ_int,
+    re_inner_eq_of_re_hadamardB_eq hB_re hs]
+
 end
 
 end Kadiri
