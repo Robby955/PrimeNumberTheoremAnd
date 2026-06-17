@@ -2115,6 +2115,65 @@ theorem kadiri_thm_3_1_q1_explicit_on_dyadicGoodHeight
         (a := a) ha_pos ha_lt_b ha_lt_1 hΦ_sum hΓ_int)
   exact tendsto_nhds_unique hlim11 hpieces
 
+theorem kadiri_thm_3_1_q1_on_dyadicGoodHeight
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hΦ_sum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (∫ y, φ y * exp (ρ.val * (y : ℂ)) ∂volume) *
+        (riemannZeta.order ρ.val : ℂ)))
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    let Φ : ℂ → ℂ := fun z ↦ ∫ y, φ y * exp (-z * (y : ℂ)) ∂volume
+    (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n)) =
+      Φ (-1) + Φ 0
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ Φ (-ρ))
+        - φ 0 * ((Real.log Real.pi : ℝ) : ℂ)
+        - ∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n)
+        + (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                Φ (-(1 / 2 + (t : ℂ) * I)) := by
+  intro Φ
+  have h := kadiri_thm_3_1_q1_explicit_on_dyadicGoodHeight
+    (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay hΦ_sum hΓ_int
+  convert h using 1
+  · have hΦ_neg_one : Φ (-1) = ∫ y : ℝ, φ y * exp ((y : ℂ)) ∂volume := by
+      dsimp [Φ]
+      simp
+    have hΦ_zero : Φ 0 = ∫ y : ℝ, φ y ∂volume := by
+      dsimp [Φ]
+      simp
+    have hzeroes :
+        riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ Φ (-ρ)) =
+          riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ ↦ ∫ y, φ y * exp (ρ * (y : ℂ)) ∂volume) := by
+      unfold riemannZeta.zeroes_sum
+      apply tsum_congr
+      intro ρ
+      dsimp [Φ]
+      simp
+    have hgamma :
+        (∫ t : ℝ,
+          ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+            Φ (-(1 / 2 + (t : ℂ) * I))) =
+          ∫ t : ℝ,
+            ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+              ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume := by
+      refine MeasureTheory.integral_congr_ae ?_
+      filter_upwards with t
+      dsimp [Φ]
+      simp
+    rw [hΦ_neg_one, hΦ_zero, hzeroes, hgamma]
+    simp_rw [show ∀ t : ℝ, (t : ℂ) * I = I * (t : ℂ) from fun t => mul_comm _ _]
+    rw [show (((-Real.log Real.pi : ℝ) : ℂ)) = -(((Real.log Real.pi : ℝ) : ℂ)) by
+      norm_num]
+    ring
+
 end
 
 end Kadiri
