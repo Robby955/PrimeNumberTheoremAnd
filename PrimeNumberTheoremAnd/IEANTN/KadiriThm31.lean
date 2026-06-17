@@ -13,6 +13,7 @@ namespace Kadiri
 
 open Complex Filter MeasureTheory
 open Asymptotics
+open ArithmeticFunction hiding log
 open scoped Topology Interval
 
 noncomputable section
@@ -1756,6 +1757,363 @@ theorem kadiri_thm_3_1_q1_eq_12_of_offPole {φ : ℝ → ℂ} (hφ : ContDiff �
     kadiri_rectangleIntegral_laplace_eq_line_terms φ ha hT.le
   simpa only [neg_neg, one_mul, sub_eq_add_neg, add_assoc] using
     (kadiri_eq12_algebra (hline := hline) (hrect := hrect))
+
+theorem eventually_kadiri_thm_3_1_q1_eq_12_on_dyadicGoodHeight
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    ∀ᶠ T : ℝ in kadiriDyadicGoodHeightFilter
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window,
+      let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+      kadiri_thm_3_1_q1_I φ a T =
+        (1 / (2 * (Real.pi : ℂ))) *
+          (∫ t in Set.Ioo (-T) T,
+            (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+                riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+              Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I)))
+        + (1 / (2 * (Real.pi : ℂ) * I)) *
+          (∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+              Φ (-((σ : ℂ) + (T : ℂ) * I)))
+        - (1 / (2 * (Real.pi : ℂ) * I)) *
+          (∫ σ in Set.Ioo (-a) (1 + a),
+            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
+        + Φ (-1)
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)) := by
+  let hsrc : zeroImagDyadicCumulativeCountBoundSource :=
+    zeroImagDyadicCumulativeCountBoundSource_of_local_window
+  filter_upwards [eventually_kadiriDyadicGoodHeightFilter_scale hsrc,
+    eventually_kadiriDyadicGoodHeightFilter_offPole hsrc] with T hscale hT_off
+  obtain ⟨k, _hT_eq, hT_mem⟩ := hscale
+  have hpow_pos : 0 < (2 : ℝ) ^ k := pow_pos (by norm_num) k
+  have hT_pos : 0 < T := lt_trans hpow_pos hT_mem.1
+  exact kadiri_thm_3_1_q1_eq_12_of_offPole
+    hφ hb hφ_decay hφ'_decay ha hab ha1 hT_pos hT_off
+
+private theorem tendsto_tsum_subtype_of_eventually_mem
+    {α : Type*} (f : α → ℂ) (p : ℝ → α → Prop)
+    (hs : Summable f)
+    (hp : ∀ a : α, ∀ᶠ T : ℝ in atTop, p T a) :
+    Tendsto (fun T : ℝ => ∑' a : {a : α // p T a}, f a.1)
+      atTop (𝓝 (∑' a, f a)) := by
+  classical
+  have hif : Tendsto (fun T : ℝ =>
+      ∑' a : α, ({a : α | p T a}.indicator f) a)
+      atTop (𝓝 (∑' a, f a)) := by
+    refine tendsto_tsum_of_dominated_convergence (𝓕 := atTop)
+      (f := fun T a => ({a : α | p T a}.indicator f) a)
+      (g := f)
+      (bound := fun a => ‖f a‖) ?_ ?_ ?_
+    · exact hs.norm
+    · intro a
+      exact tendsto_nhds_of_eventually_eq ((hp a).mono fun T hT => by
+        exact Set.indicator_of_mem hT f)
+    · filter_upwards with T a
+      by_cases h : p T a
+      · rw [Set.indicator_of_mem (show a ∈ {a : α | p T a} from h)]
+      · rw [Set.indicator_of_notMem (show a ∉ {a : α | p T a} from h)]
+        simp
+  refine Filter.Tendsto.congr' ?_ hif
+  filter_upwards with T
+  rw [← tsum_subtype]
+  rfl
+
+private def kadiriVerticalZeroesAllEquiv (T : ℝ) :
+    {ρ : riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ) //
+        (ρ : ℂ).im ∈ Set.Ioo (-T) T} ≃
+      riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) where
+  toFun ρ := by
+    refine ⟨(ρ.1 : ℂ), ?_⟩
+    rcases ρ.1.property with ⟨hre, _him, hzeta⟩
+    exact ⟨hre, ρ.2, hzeta⟩
+  invFun ρ := by
+    refine ⟨⟨(ρ : ℂ), ?_⟩, ?_⟩
+    · rcases ρ.property with ⟨hre, him, hzeta⟩
+      exact ⟨hre, Set.mem_univ _, hzeta⟩
+    · exact ρ.property.2.1
+  left_inv := by
+    intro ρ
+    cases ρ
+    rfl
+  right_inv := by
+    intro ρ
+    cases ρ
+    rfl
+
+theorem tendsto_kadiri_zeroes_sum_Ioo_vertical_atTop
+    {φ : ℝ → ℂ}
+    (hΦ_sum : Summable
+      (fun ρ : riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ) =>
+        (∫ y, φ y * exp ((ρ : ℂ) * (y : ℂ)) ∂volume) *
+          (riemannZeta.order (ρ : ℂ) : ℂ))) :
+    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+    Tendsto
+      (fun T : ℝ =>
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) (fun ρ ↦ Φ (-ρ)))
+      atTop
+      (𝓝 (riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+        (fun ρ ↦ Φ (-ρ)))) := by
+  classical
+  dsimp
+  let All := riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+  let F : All → ℂ := fun ρ =>
+    (∫ y, φ y * exp ((ρ : ℂ) * (y : ℂ)) ∂volume) *
+      (riemannZeta.order (ρ : ℂ) : ℂ)
+  let p : ℝ → All → Prop := fun T ρ => (ρ : ℂ).im ∈ Set.Ioo (-T) T
+  have hF : Summable F := by
+    simpa [F, All] using hΦ_sum
+  have hp : ∀ ρ : All, ∀ᶠ T : ℝ in atTop, p T ρ := by
+    intro ρ
+    filter_upwards [Filter.eventually_gt_atTop (|((ρ : ℂ).im)| + 1)] with T hT
+    have h_abs_lt : |(ρ : ℂ).im| < T := by linarith
+    exact abs_lt.mp h_abs_lt
+  have hsub := tendsto_tsum_subtype_of_eventually_mem F p hF hp
+  have hfinite_eq : ∀ T : ℝ,
+      riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.Ioo (-T) T)
+          (fun ρ => (∫ y, φ y * exp (-(-ρ) * (y : ℂ)) ∂volume)) =
+        ∑' ρ : {ρ : All // p T ρ}, F ρ.1 := by
+    intro T
+    unfold riemannZeta.zeroes_sum
+    calc
+      (∑' ρ : riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T),
+          (∫ y, φ y * exp (-(-((ρ : ℂ))) * (y : ℂ)) ∂volume) *
+            (riemannZeta.order (ρ : ℂ) : ℂ))
+          = ∑' ρ : riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T),
+              (∫ y, φ y * exp ((ρ : ℂ) * (y : ℂ)) ∂volume) *
+                (riemannZeta.order (ρ : ℂ) : ℂ) := by
+              apply tsum_congr
+              intro ρ
+              simp
+      _ = ∑' ρ : {ρ : All // p T ρ}, F ρ.1 := by
+              rw [← Equiv.tsum_eq (kadiriVerticalZeroesAllEquiv T)]
+              rfl
+  have hfull_eq :
+      riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+          (fun ρ => (∫ y, φ y * exp (-(-ρ) * (y : ℂ)) ∂volume)) =
+        ∑' ρ : All, F ρ := by
+    unfold riemannZeta.zeroes_sum
+    apply tsum_congr
+    intro ρ
+    simp [F, All]
+  rw [hfull_eq]
+  refine Filter.Tendsto.congr' ?_ hsub
+  filter_upwards with T
+  exact (hfinite_eq T).symm
+
+theorem lim_I_from_pieces_explicit_on_dyadicGoodHeight
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1)
+    (hΦ_sum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (∫ y, φ y * exp (ρ.val * (y : ℂ)) ∂volume) *
+        (riemannZeta.order ρ.val : ℂ)))
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T)
+      (kadiriDyadicGoodHeightFilter zeroImagDyadicCumulativeCountBoundSource_of_local_window)
+      (nhds
+        (φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
+        + (-∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n))
+        + ((∫ y : ℝ, φ y)
+          + (1 / (2 * (Real.pi : ℂ))) *
+              ∫ t : ℝ,
+                ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                  ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)
+        + (∫ y : ℝ, φ y * exp ((y : ℂ)) ∂volume)
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ ↦ ∫ y, φ y * exp (ρ * (y : ℂ)) ∂volume))) := by
+  classical
+  let L : Filter ℝ :=
+    kadiriDyadicGoodHeightFilter zeroImagDyadicCumulativeCountBoundSource_of_local_window
+  let left : ℝ → ℂ := fun T =>
+    (1 / (2 * (Real.pi : ℂ))) *
+      (∫ t in Set.Ioo (-T) T,
+        (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+            riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+          (∫ y, φ y * exp ((((-a : ℝ) : ℂ) + (t : ℂ) * I) * (y : ℂ)) ∂volume))
+  let top : ℝ → ℂ := fun T =>
+    (1 / (2 * (Real.pi : ℂ) * I)) *
+      (∫ σ in Set.Ioo (-a) (1 + a),
+        (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
+            riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
+          (∫ y, φ y * exp (((σ : ℂ) + (T : ℂ) * I) * (y : ℂ)) ∂volume))
+  let bot : ℝ → ℂ := fun T =>
+    (1 / (2 * (Real.pi : ℂ) * I)) *
+      (∫ σ in Set.Ioo (-a) (1 + a),
+        (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
+            riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
+          (∫ y, φ y * exp (((σ : ℂ) + ((-T : ℝ) : ℂ) * I) * (y : ℂ)) ∂volume))
+  let zsum : ℝ → ℂ := fun T =>
+    riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+      (fun ρ ↦ ∫ y, φ y * exp (ρ * (y : ℂ)) ∂volume)
+  let zfull : ℂ :=
+    riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+      (fun ρ ↦ ∫ y, φ y * exp (ρ * (y : ℂ)) ∂volume)
+  let pole : ℂ := ∫ y : ℝ, φ y * exp ((y : ℂ)) ∂volume
+  let l1 : ℂ := φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
+  let l2 : ℂ := -∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n)
+  let l3 : ℂ := (∫ y : ℝ, φ y)
+    + (1 / (2 * (Real.pi : ℂ))) *
+        ∫ t : ℝ,
+          ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+            ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume
+  have hle : L ≤ Filter.atTop := by
+    simpa [L] using
+      (kadiriDyadicGoodHeightFilter_le_atTop
+        zeroImagDyadicCumulativeCountBoundSource_of_local_window)
+  have hI_eq :
+      (fun T : ℝ => kadiri_thm_3_1_q1_I φ a T)
+        =ᶠ[L]
+      (fun T : ℝ => left T + top T - bot T + pole - zsum T) := by
+    simpa [L, left, top, bot, pole, zsum, sub_eq_add_neg, add_assoc] using
+      (eventually_kadiri_thm_3_1_q1_eq_12_on_dyadicGoodHeight
+        (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+        (a := a) ha hab ha1)
+  have h13L : Filter.Tendsto (fun T : ℝ => kadiri_thm_3_1_q1_I_1 φ a T)
+      L (nhds l1) := by
+    simpa [L, l1] using
+      (kadiri_thm_3_1_q1_eq_13 hφ hb hφ_decay hφ'_decay ha hab ha1).mono_left hle
+  have h14L : Filter.Tendsto (fun T : ℝ => kadiri_thm_3_1_q1_I_2 φ a T)
+      L (nhds l2) := by
+    simpa [L, l2] using
+      (kadiri_thm_3_1_q1_eq_14 hφ hb hφ_decay hφ'_decay ha hab ha1).mono_left hle
+  have h15L : Filter.Tendsto (fun T : ℝ => kadiri_thm_3_1_q1_I_3 φ a T)
+      L (nhds l3) := by
+    simpa [L, l3] using
+      (kadiri_thm_3_1_q1_eq_15 hφ hb hφ_decay hφ'_decay ha hab ha1 hΓ_int).mono_left hle
+  have hleft : Filter.Tendsto left L (nhds (l1 + l2 + l3)) := by
+    have hpieces := (h13L.add h14L).add h15L
+    refine Filter.Tendsto.congr' ?_ hpieces
+    filter_upwards with T
+    have hs := kadiri_thm_3_1_q1_shifted_eq_I123
+      (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+      (a := a) ha hab ha1 T
+    simpa [left, add_assoc] using hs.symm
+  have htop : Filter.Tendsto top L (nhds 0) := by
+    simpa [L, top] using
+      (kadiri_thm_3_1_q1_top_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+        (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+        (a := a) ha hab ha1)
+  have hbot : Filter.Tendsto bot L (nhds 0) := by
+    simpa [L, bot] using
+      (kadiri_thm_3_1_q1_bot_horizontal_vanishes_on_dyadicGoodHeight_unconditional
+        (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+        (a := a) ha hab ha1)
+  have hzsum : Filter.Tendsto zsum L (nhds zfull) := by
+    simpa [L, zsum, zfull] using
+      (tendsto_kadiri_zeroes_sum_Ioo_vertical_atTop (φ := φ) hΦ_sum).mono_left hle
+  have hrect : Filter.Tendsto
+      (fun T : ℝ => left T + top T - bot T + pole - zsum T) L
+      (nhds (l1 + l2 + l3 + pole - zfull)) := by
+    have hbase : Filter.Tendsto (fun T : ℝ => left T + top T - bot T) L
+        (nhds (l1 + l2 + l3)) := by
+      simpa using (hleft.add htop).sub hbot
+    simpa [sub_eq_add_neg, add_assoc] using (hbase.add_const pole).sub hzsum
+  refine Filter.Tendsto.congr' ?_ hrect
+  exact hI_eq.symm
+
+theorem kadiriDyadicGoodHeightFilter_neBot
+    (hsrc : zeroImagDyadicCumulativeCountBoundSource) :
+    (kadiriDyadicGoodHeightFilter hsrc).NeBot := by
+  rw [kadiriDyadicGoodHeightFilter]
+  infer_instance
+
+theorem kadiri_thm_3_1_q1_explicit_on_dyadicGoodHeight
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
+    (hΦ_sum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+      (∫ y, φ y * exp (ρ.val * (y : ℂ)) ∂volume) *
+        (riemannZeta.order ρ.val : ℂ)))
+    (hΓ_int : MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)) :
+    (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n)) =
+      (φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
+      + (-∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n))
+      + ((∫ y : ℝ, φ y)
+        + (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)
+      + (∫ y : ℝ, φ y * exp ((y : ℂ)) ∂volume)
+      - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ ↦ ∫ y, φ y * exp (ρ * (y : ℂ)) ∂volume)) := by
+  classical
+  let hsrc : zeroImagDyadicCumulativeCountBoundSource :=
+    zeroImagDyadicCumulativeCountBoundSource_of_local_window
+  let L : Filter ℝ := kadiriDyadicGoodHeightFilter hsrc
+  haveI : L.NeBot := by
+    simpa [L, hsrc] using kadiriDyadicGoodHeightFilter_neBot hsrc
+  have hbmin1 : 0 < min b 1 := lt_min hb one_pos
+  set a : ℝ := min b 1 / 2 with ha_def
+  have ha_pos : 0 < a := by rw [ha_def]; linarith
+  have ha_lt_b : a < b := by
+    rw [ha_def]
+    have h : min b 1 ≤ b := min_le_left b 1
+    linarith
+  have ha_lt_1 : a < 1 := by
+    rw [ha_def]
+    have h : min b 1 ≤ 1 := min_le_right b 1
+    linarith
+  have hle : L ≤ Filter.atTop := by
+    simpa [L, hsrc] using kadiriDyadicGoodHeightFilter_le_atTop hsrc
+  have hinv : ∀ n : ℕ, 1 ≤ n →
+      let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
+      Tendsto
+        (fun T : ℝ =>
+          (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t in (-T)..T,
+              Φ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I) *
+                (n : ℂ) ^ ((-(1 + a : ℝ) : ℂ) + (t : ℂ) * I))
+        atTop (𝓝 (φ (Real.log n))) := by
+    intro n hn
+    exact kadiri_thm_3_1_q1_laplace_inversion_hinv
+      (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+      (a := a) ha_pos ha_lt_b ha_lt_1 (n := n) hn
+  have heq11 :=
+    kadiri_thm_3_1_q1_eq_11 hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1 hinv
+  have hlim11_atTop :
+      Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) Filter.atTop
+        (nhds (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) := by
+    exact heq11.congr' (kadiri_thm_3_1_q1_I_eventually_eq_interval φ a).symm
+  have hlim11 :
+      Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) L
+        (nhds (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) :=
+    hlim11_atTop.mono_left hle
+  have hpieces :
+      Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) L
+        (nhds
+          (φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
+          + (-∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n))
+          + ((∫ y : ℝ, φ y)
+            + (1 / (2 * (Real.pi : ℂ))) *
+                ∫ t : ℝ,
+                  ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                    ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)
+          + (∫ y : ℝ, φ y * exp ((y : ℂ)) ∂volume)
+          - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+              (fun ρ ↦ ∫ y, φ y * exp (ρ * (y : ℂ)) ∂volume))) := by
+    simpa [L, hsrc] using
+      (lim_I_from_pieces_explicit_on_dyadicGoodHeight
+        (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay
+        (a := a) ha_pos ha_lt_b ha_lt_1 hΦ_sum hΓ_int)
+  exact tendsto_nhds_unique hlim11 hpieces
 
 end
 
