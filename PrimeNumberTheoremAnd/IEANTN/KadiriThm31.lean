@@ -3057,6 +3057,37 @@ theorem prop_2_1_on_dyadicGoodHeight_of_re_hadamardB_eq
       hf_deriv_d hs)
     hB_re
 
+/-- Downstream replacement for `prop_2_1` after discharging both gamma-line
+integrability and the real Hadamard-constant identity. -/
+theorem prop_2_1_on_dyadicGoodHeight
+    {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+                (laplaceTransform f (s - ρ.val)).re * (riemannZeta.order ρ.val : ℝ)) ∧
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (-(1 / 2 : ℝ) * Real.log Real.pi
+              + (1 / 2 : ℝ) * (digamma (s / 2 + 1)).re)
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ => (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re :=
+  prop_2_1_on_dyadicGoodHeight_of_re_hadamardB_eq hd hf_nonneg hf_C2 hf_supp
+    hf_d hf_deriv_0 hf_deriv_d hf_deriv2_d hs re_hadamardB_eq
+
 end
 
 end Kadiri

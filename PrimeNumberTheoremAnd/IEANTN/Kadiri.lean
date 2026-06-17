@@ -6571,24 +6571,6 @@ on vertical strips (\ref{kadiri-laplace-re-decay}), giving the per-term bound
 $|\Re F(s - \rho)| \ll 1/\gamma^2$. -/
 
 @[blueprint
-  "kadiri-re-hadamardB-eq"
-  (title := "Real part of the Hadamard constant")
-  (statement := /-- $\Re B = -\sum_{\rho \in Z(\zeta)} \Re \tfrac{1}{\rho}$, where $B$ is the
-  Hadamard constant (\ref{kadiri-hadamard-B}). -/)
-  (proof := /-- Subtract $\tfrac{1}{s-1}$ from \ref{kadiri-hadamard-identity}, take $s \to 1$
-  using the Laurent expansion $-\zeta'/\zeta(s) = \tfrac{1}{s-1} - \gamma + O(s - 1)$ near $s = 1$
-  and the value $\Gamma'/\Gamma(3/2)$, then symmetrise the resulting sum
-  $\sum_\rho (1/\rho + 1/(1-\rho))$ using $\rho \leftrightarrow 1 - \bar\rho$ to relate
-  $\sum_\rho 1/\rho$ to $\Re B$. To be formalised. -/)
-  (latexEnv := "lemma")
-  (discussion := 1476)]
-theorem re_hadamardB_eq :
-    hadamardB.re =
-    -riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
-        (fun ρ => (1 / ρ).re) := by
-  sorry
-
-@[blueprint
   "kadiri-backlund-bound"
   (title := "Backlund's explicit Riemann--von Mangoldt bound")
   (statement := /-- Backlund's explicit zero-counting bound (\cite{Backlund1918}, cited in
@@ -7200,6 +7182,261 @@ theorem re_shifted_sum_eq_paired_sub_re_inv (s : ℂ) :
         (fun ρ => (1 / ρ).re) := by
   rw [re_tsum_paired_eq_re_inv_add_re_shifted s]
   ring
+
+private theorem riemannXi_analyticOrderAt_one_sub (z : ℂ) :
+    analyticOrderAt riemannXi (1 - z) = analyticOrderAt riemannXi z := by
+  let R : ℂ → ℂ := fun w => 1 - w
+  have hcomp :
+      analyticOrderAt (riemannXi ∘ R) z = analyticOrderAt riemannXi (R z) :=
+    analyticOrderAt_comp_of_deriv_ne_zero
+      (f := riemannXi) (g := R) (z₀ := z) (by dsimp [R]; fun_prop)
+      (by dsimp [R]; simp)
+  have hsym :
+      analyticOrderAt (riemannXi ∘ R) z = analyticOrderAt riemannXi z := by
+    apply analyticOrderAt_congr
+    filter_upwards with w
+    exact riemannXi_one_sub w
+  calc
+    analyticOrderAt riemannXi (1 - z) = analyticOrderAt riemannXi (R z) := by rfl
+    _ = analyticOrderAt (riemannXi ∘ R) z := hcomp.symm
+    _ = analyticOrderAt riemannXi z := hsym
+
+private theorem riemannZeta_order_one_sub_nontrivial
+    (ρ : riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)) :
+    riemannZeta.order (1 - (ρ : ℂ)) = riemannZeta.order (ρ : ℂ) := by
+  have hre := ρ.property.1
+  have hre0 : 0 < (ρ : ℂ).re := hre.1
+  have hre1 : (ρ : ℂ).re < 1 := hre.2
+  have href0 : 0 < (1 - (ρ : ℂ)).re := by
+    simp only [Complex.sub_re, Complex.one_re]
+    linarith
+  have href1 : (1 - (ρ : ℂ)).re < 1 := by
+    simp only [Complex.sub_re, Complex.one_re]
+    linarith
+  have hdiv_ref :=
+    riemannXi_divisor_eq_riemannZeta_order_of_criticalStrip href0 href1
+  have hdiv :=
+    riemannXi_divisor_eq_riemannZeta_order_of_criticalStrip hre0 hre1
+  rw [← hdiv_ref, ← hdiv]
+  have hmero : MeromorphicOn riemannXi Set.univ := fun x _ =>
+    (Differentiable.analyticAt (f := riemannXi) differentiable_riemannXi x).meromorphicAt
+  have han_ref : AnalyticAt ℂ riemannXi (1 - (ρ : ℂ)) :=
+    Differentiable.analyticAt (f := riemannXi) differentiable_riemannXi _
+  have han : AnalyticAt ℂ riemannXi (ρ : ℂ) :=
+    Differentiable.analyticAt (f := riemannXi) differentiable_riemannXi _
+  rw [MeromorphicOn.divisor_apply hmero (Set.mem_univ _),
+    MeromorphicOn.divisor_apply hmero (Set.mem_univ _),
+    han_ref.meromorphicOrderAt_eq, han.meromorphicOrderAt_eq,
+    riemannXi_analyticOrderAt_one_sub]
+
+private noncomputable def riemannZetaNontrivialOneSubEquiv :
+    riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ) ≃
+      riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ) where
+  toFun ρ := by
+    refine ⟨1 - (ρ : ℂ), ?_⟩
+    have hxi : riemannXi (ρ : ℂ) = 0 :=
+      (riemannXi_zero_iff_zeta_nontrivial).2 ρ.property
+    have hxi_ref : riemannXi (1 - (ρ : ℂ)) = 0 := by
+      rw [riemannXi_one_sub]
+      exact hxi
+    exact (riemannXi_zero_iff_zeta_nontrivial).1 hxi_ref
+  invFun ρ := by
+    refine ⟨1 - (ρ : ℂ), ?_⟩
+    have hxi : riemannXi (ρ : ℂ) = 0 :=
+      (riemannXi_zero_iff_zeta_nontrivial).2 ρ.property
+    have hxi_ref : riemannXi (1 - (ρ : ℂ)) = 0 := by
+      rw [riemannXi_one_sub]
+      exact hxi
+    exact (riemannXi_zero_iff_zeta_nontrivial).1 hxi_ref
+  left_inv ρ := by
+    apply Subtype.ext
+    change 1 - (1 - (ρ : ℂ)) = (ρ : ℂ)
+    ring
+  right_inv ρ := by
+    apply Subtype.ext
+    change 1 - (1 - (ρ : ℂ)) = (ρ : ℂ)
+    ring
+
+private theorem zeroes_sum_re_one_div_one_sub_eq_re_inv :
+    riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+        (fun ρ => (1 / (1 - ρ)).re) =
+      riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+        (fun ρ => (1 / ρ).re) := by
+  classical
+  let Z := riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+  let e : Z ≃ Z := riemannZetaNontrivialOneSubEquiv
+  unfold riemannZeta.zeroes_sum
+  have h := e.tsum_eq
+    (fun ρ : Z => (1 / (ρ : ℂ)).re * (riemannZeta.order (ρ : ℂ) : ℝ))
+  trans ∑' ρ : Z,
+      (1 / ((e ρ : Z) : ℂ)).re * (riemannZeta.order ((e ρ : Z) : ℂ) : ℝ)
+  · refine tsum_congr fun ρ => ?_
+    change (1 / (1 - (ρ : ℂ))).re * (riemannZeta.order (ρ : ℂ) : ℝ) =
+      (1 / ((e ρ : Z) : ℂ)).re * (riemannZeta.order ((e ρ : Z) : ℂ) : ℝ)
+    simp [e, riemannZetaNontrivialOneSubEquiv, riemannZeta_order_one_sub_nontrivial]
+  · exact h
+
+private theorem logDeriv_riemannXi_zero_eq_hadamardB :
+    logDeriv riemannXi 0 = hadamardB := by
+  let zero : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) → ℂ :=
+    fun ρ => Complex.Hadamard.divisorZeroIndex₀_val ρ
+  rcases hadamardB_spec with ⟨P, hdeg, hfac, hB⟩
+  have hXi :
+      logDeriv riemannXi 0 =
+        Polynomial.eval 0 P.derivative +
+          ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+            (1 / ((0 : ℂ) - zero ρ) + 1 / zero ρ) := by
+    simpa [zero] using
+      logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
+        (P := P) (z := (0 : ℂ)) hfac
+        (fun ρ => (Complex.Hadamard.divisorZeroIndex₀_val_ne_zero ρ).symm)
+  have hsum_zero :
+      (∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        (1 / ((0 : ℂ) - zero ρ) + 1 / zero ρ)) = 0 := by
+    trans ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ), (0 : ℂ)
+    · refine tsum_congr fun ρ => ?_
+      have hz : zero ρ ≠ 0 := Complex.Hadamard.divisorZeroIndex₀_val_ne_zero ρ
+      field_simp [zero, hz]
+      ring
+    · simp
+  rw [hXi, hsum_zero, add_zero, hB.symm]
+
+private theorem logDeriv_riemannXi_one_eq_neg_zero :
+    logDeriv riemannXi 1 = -logDeriv riemannXi 0 := by
+  let R : ℂ → ℂ := fun z => 1 - z
+  have hsym_near : (riemannXi ∘ R) =ᶠ[𝓝 (0 : ℂ)] riemannXi := by
+    filter_upwards with z
+    exact riemannXi_one_sub z
+  have hcomp :
+      logDeriv (riemannXi ∘ R) (0 : ℂ) =
+        logDeriv riemannXi (R 0) * deriv R 0 := by
+    rw [logDeriv_comp]
+    · exact differentiable_riemannXi.differentiableAt
+    · dsimp [R]
+      fun_prop
+  have hderivR : deriv R (0 : ℂ) = -1 := by
+    dsimp [R]
+    simp
+  have hlog_eq :
+      logDeriv (riemannXi ∘ R) (0 : ℂ) = logDeriv riemannXi 0 := by
+    rw [logDeriv_apply, logDeriv_apply]
+    rw [Filter.EventuallyEq.deriv_eq hsym_near]
+    exact congrArg (fun z => deriv riemannXi 0 / z) hsym_near.eq_of_nhds
+  rw [hcomp, hderivR] at hlog_eq
+  rw [show R (0 : ℂ) = 1 by simp [R]] at hlog_eq
+  linear_combination -hlog_eq
+
+private theorem logDeriv_riemannXi_one_eq_hadamardB_add_tsum :
+    let zero : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) → ℂ :=
+      fun ρ => Complex.Hadamard.divisorZeroIndex₀_val ρ
+    logDeriv riemannXi 1 =
+      hadamardB +
+        ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+          (1 / ((1 : ℂ) - zero ρ) + 1 / zero ρ) := by
+  intro zero
+  rcases hadamardB_spec with ⟨P, hdeg, hfac, hB⟩
+  have hXi :
+      logDeriv riemannXi 1 =
+        Polynomial.eval 1 P.derivative +
+          ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+            (1 / ((1 : ℂ) - zero ρ) + 1 / zero ρ) := by
+    simpa [zero] using
+      logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
+        (P := P) (z := (1 : ℂ)) hfac
+        (fun ρ hρ => by
+          have hxi1 : riemannXi (1 : ℂ) ≠ 0 := by
+            have hval : riemannXi (1 : ℂ) = 1 / 2 := by
+              have h := riemannXi_one_sub (0 : ℂ)
+              simpa [riemannXi_zero] using h
+            rw [hval]
+            norm_num
+          apply hxi1
+          rw [hρ]
+          exact riemannXi_val_eq_zero ρ)
+  have hPder : Polynomial.eval 1 P.derivative = hadamardB := by
+    calc
+      Polynomial.eval 1 P.derivative = Polynomial.eval 0 P.derivative :=
+        Polynomial.eval_derivative_eq_eval_derivative_zero_of_degree_le_one hdeg 1
+      _ = hadamardB := hB.symm
+  rw [hXi, hPder]
+
+@[blueprint
+  "kadiri-re-hadamardB-eq"
+  (title := "Real part of the Hadamard constant")
+  (statement := /-- $\Re B = -\sum_{\rho \in Z(\zeta)} \Re \tfrac{1}{\rho}$, where $B$ is the
+  Hadamard constant (\ref{kadiri-hadamard-B}). -/)
+  (proof := /-- Evaluate the xi Hadamard logarithmic derivative at `0` and `1`. The genus-one
+  packet vanishes at `0`, so `logDeriv ξ 0 = B`; the functional equation `ξ(1-s)=ξ(s)` gives
+  `logDeriv ξ 1 = -logDeriv ξ 0`. At `1`, the same Hadamard formula gives
+  `logDeriv ξ 1 = B + Σρ (1/(1-ρ)+1/ρ)`. Taking real parts and reindexing non-trivial zeros by
+  `ρ ↦ 1-ρ`, with multiplicity preserved through the xi divisor order, identifies the packet
+  real part with twice `Σρ Re(1/ρ)`. -/)
+  (latexEnv := "lemma")
+  (discussion := 1476)]
+theorem re_hadamardB_eq :
+    hadamardB.re =
+    -riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+        (fun ρ => (1 / ρ).re) := by
+  let zero : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ) → ℂ :=
+    fun ρ => Complex.Hadamard.divisorZeroIndex₀_val ρ
+  let S : ℂ :=
+    ∑' ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+      (1 / ((1 : ℂ) - zero ρ) + 1 / zero ρ)
+  let A : ℝ :=
+    riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+      (fun ρ => (1 / ρ).re)
+  have h0 : logDeriv riemannXi 0 = hadamardB :=
+    logDeriv_riemannXi_zero_eq_hadamardB
+  have h1 : logDeriv riemannXi 1 = hadamardB + S := by
+    simpa [S, zero] using logDeriv_riemannXi_one_eq_hadamardB_add_tsum
+  have hsym : logDeriv riemannXi 1 = -logDeriv riemannXi 0 :=
+    logDeriv_riemannXi_one_eq_neg_zero
+  have hS : S = -2 * hadamardB := by
+    have h := h1
+    rw [hsym, h0] at h
+    linear_combination -h
+  have hnot1 :
+      ∀ ρ : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
+        (1 : ℂ) ≠ zero ρ := by
+    intro ρ hρ
+    have hxi1 : riemannXi (1 : ℂ) ≠ 0 := by
+      have hval : riemannXi (1 : ℂ) = 1 / 2 := by
+        have h := riemannXi_one_sub (0 : ℂ)
+        simpa [riemannXi_zero] using h
+      rw [hval]
+      norm_num
+    apply hxi1
+    rw [hρ]
+    exact riemannXi_val_eq_zero ρ
+  have hsumm :=
+    summable_riemannXi_logDerivTerms_divisorZeroIndex₀ (z := (1 : ℂ)) hnot1
+  have hBridge :
+      S =
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+          (fun ρ => 1 / ((1 : ℂ) - ρ) + 1 / ρ) := by
+    simpa [S, zero] using
+      tsum_riemannXi_divisorZeroIndex₀_eq_zeroes_sum
+        (fun ρ => 1 / ((1 : ℂ) - ρ) + 1 / ρ) hsumm
+  have hpacket_comm :
+      riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+          (fun ρ => 1 / ((1 : ℂ) - ρ) + 1 / ρ) =
+        riemannZeta.zeroes_sum (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+          (fun ρ => 1 / ρ + 1 / ((1 : ℂ) - ρ)) := by
+    unfold riemannZeta.zeroes_sum
+    refine tsum_congr fun ρ => ?_
+    ring
+  have hSre : S.re = 2 * A := by
+    rw [hBridge, hpacket_comm, re_tsum_paired_eq_re_inv_add_re_shifted (1 : ℂ)]
+    rw [zeroes_sum_re_one_div_one_sub_eq_re_inv]
+    simp [A]
+    ring
+  change hadamardB.re = -A
+  have hreal : 2 * A = -2 * hadamardB.re := by
+    calc
+      2 * A = S.re := hSre.symm
+      _ = (-2 * hadamardB).re := by rw [hS]
+      _ = -2 * hadamardB.re := by simp [Complex.mul_re]
+  linarith
 
 
 /-- The explicit formula's weighted zero-sum hypothesis holds at the Kadiri test
