@@ -2195,6 +2195,376 @@ private lemma kadiri_downstream_summable_f_log {d : ℝ} {f : ℝ → ℝ}
   simp only [Function.mem_support] at hn ⊢
   exact fun h ↦ hn (by rw [h, Complex.ofReal_zero, mul_zero])
 
+private lemma kadiri_rpow_neg_integrableAtFilter_atTop {β : ℝ} (hβ : 1 < β) :
+    IntegrableAtFilter (fun y : ℝ ↦ |y| ^ (-β)) Filter.atTop volume := by
+  refine ⟨Set.Ioi 1, Filter.Ioi_mem_atTop 1, ?_⟩
+  rw [integrableOn_congr_fun (fun y hy ↦ ?_) measurableSet_Ioi]
+  · rw [integrableOn_Ioi_rpow_iff zero_lt_one]
+    exact neg_lt_neg_iff.mpr hβ
+  · exact congrArg (· ^ (-β)) (abs_of_pos (zero_lt_one.trans (Set.mem_Ioi.mp hy)))
+
+private lemma kadiri_rpow_neg_integrableAtFilter_atBot {β : ℝ} (hβ : 1 < β) :
+    IntegrableAtFilter (fun y : ℝ ↦ |y| ^ (-β)) Filter.atBot volume := by
+  rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
+  have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
+    convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+    simp
+  rw [hvol, Function.comp_def]
+  simp only [abs_neg]
+  exact kadiri_rpow_neg_integrableAtFilter_atTop hβ
+
+private lemma kadiri_log_abs_add_two_le_four_sqrt {t : ℝ} (ht2 : 2 ≤ |t|) :
+    Real.log (|t| + 2) ≤ 4 * |t| ^ ((1 : ℝ) / 2) := by
+  have harg_nonneg : 0 ≤ |t| + 2 := by positivity
+  have h0 : Real.log (|t| + 2) ≤
+      (|t| + 2) ^ ((1 : ℝ) / 4) / ((1 : ℝ) / 4) :=
+    Real.log_le_rpow_div harg_nonneg (by norm_num)
+  have htadd_sq : |t| + 2 ≤ |t| ^ 2 := by
+    nlinarith [abs_nonneg t]
+  have hrpow_le : (|t| + 2) ^ ((1 : ℝ) / 4) ≤
+      (|t| ^ 2) ^ ((1 : ℝ) / 4) :=
+    Real.rpow_le_rpow harg_nonneg htadd_sq (by norm_num)
+  have hpow : (|t| ^ 2) ^ ((1 : ℝ) / 4) = |t| ^ ((1 : ℝ) / 2) := by
+    rw [← Real.rpow_natCast, ← Real.rpow_mul (abs_nonneg t)]
+    norm_num
+  calc
+    Real.log (|t| + 2) ≤ (|t| + 2) ^ ((1 : ℝ) / 4) / ((1 : ℝ) / 4) := h0
+    _ = 4 * (|t| + 2) ^ ((1 : ℝ) / 4) := by ring
+    _ ≤ 4 * (|t| ^ 2) ^ ((1 : ℝ) / 4) := by gcongr
+    _ = 4 * |t| ^ ((1 : ℝ) / 2) := by rw [hpow]
+
+private lemma kadiri_abs_sqrt_div_sq_eq_abs_rpow_neg_three_halves {t : ℝ}
+    (ht : t ≠ 0) :
+    |t| ^ ((1 : ℝ) / 2) / t ^ 2 = |t| ^ (-(3 / 2 : ℝ)) := by
+  have habspos : 0 < |t| := abs_pos.mpr ht
+  rw [← sq_abs t]
+  rw [← Real.rpow_natCast, ← Real.rpow_sub habspos]
+  norm_num
+
+private theorem kadiriTestFn_gamma_line_continuous {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    Continuous (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume) := by
+  obtain ⟨b, hb, hdecay, _hdecay'⟩ := kadiriTestFn_decay hf_supp hs
+  have hφ : ContDiff ℝ 1 (kadiriTestFn f s) :=
+    kadiriTestFn_contDiff hd hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d s
+  rw [continuous_iff_continuousAt]
+  intro t
+  have hψarg :
+      ContinuousAt (fun u : ℝ => ((1 / 2 + (u : ℂ) * I) / 2 : ℂ)) t := by
+    fun_prop
+  have hψarg_re : 0 < (((1 / 2 + (t : ℂ) * I) / 2 : ℂ).re) := by
+    norm_num [Complex.add_re, Complex.mul_re, Complex.div_re]
+  have hψcomplex :
+      ContinuousAt (fun u : ℝ => digamma ((1 / 2 + (u : ℂ) * I) / 2)) t :=
+    @ContinuousAt.comp ℝ ℂ ℂ _ _ _
+      (fun u : ℝ => ((1 / 2 + (u : ℂ) * I) / 2 : ℂ)) t digamma
+      (Complex.continuousAt_digamma_of_re_pos hψarg_re) hψarg
+  have hψ : ContinuousAt
+      (fun u : ℝ => ((digamma ((1 / 2 + (u : ℂ) * I) / 2)).re : ℂ)) t := by
+    exact @ContinuousAt.comp ℝ ℝ ℂ _ _ _
+      (fun u : ℝ => (digamma ((1 / 2 + (u : ℂ) * I) / 2)).re) t Complex.ofReal
+      Complex.continuous_ofReal.continuousAt
+      (@ContinuousAt.comp ℝ ℂ ℝ _ _ _
+        (fun u : ℝ => digamma ((1 / 2 + (u : ℂ) * I) / 2)) t Complex.re
+        Complex.continuous_re.continuousAt hψcomplex)
+  let z0 : ℂ := (1 / 2 : ℂ) + (t : ℂ) * I
+  have hz0lo : -b < z0.re := by
+    dsimp [z0]
+    norm_num [Complex.add_re, Complex.mul_re]
+    linarith
+  have hz0hi : z0.re < 1 + b := by
+    dsimp [z0]
+    norm_num [Complex.add_re, Complex.mul_re]
+    linarith
+  have hLap : ContinuousAt
+      (fun z : ℂ => ∫ y : ℝ, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume) z0 :=
+    kadiri_laplace_exp_continuousAt_of_full_strip hφ hz0lo hz0hi hdecay
+  have hzline : ContinuousAt (fun u : ℝ => (1 / 2 : ℂ) + (u : ℂ) * I) t := by
+    fun_prop
+  have hinner : ContinuousAt
+      (fun u : ℝ => ∫ y : ℝ, kadiriTestFn f s y *
+          exp ((1 / 2 + (u : ℂ) * I) * (y : ℂ)) ∂volume) t := by
+    simpa [z0] using
+      (@ContinuousAt.comp ℝ ℂ ℂ _ _ _
+        (fun u : ℝ => (1 / 2 : ℂ) + (u : ℂ) * I) t
+        (fun z : ℂ => ∫ y : ℝ, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume)
+        hLap hzline)
+  exact hψ.mul hinner
+
+private theorem kadiriTestFn_gamma_line_isBigO_atTop {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)
+      =O[Filter.atTop] (fun t : ℝ ↦ |t| ^ (-(3 / 2 : ℝ))) := by
+  obtain ⟨Cψ, hCψpos, hψ⟩ :=
+    Complex.exists_norm_digamma_div_two_le_log (a := 1 / 2) (b := 1 / 2)
+      (by norm_num)
+  obtain ⟨CL, hL⟩ := laplaceTransform_sub_pole_norm_decay hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d (s.re - 1)
+  let C0 : ℝ := max CL 0
+  let K : ℝ := 16 * Cψ * C0
+  refine IsBigO.of_bound K ?_
+  filter_upwards [Filter.eventually_ge_atTop (max 2 (2 * |s.im| + 2))] with t ht
+  have ht2 : 2 ≤ t := le_trans (le_max_left _ _) ht
+  have htpos : 0 < t := by linarith
+  have htne : t ≠ 0 := ne_of_gt htpos
+  have htabs : |t| = t := abs_of_pos htpos
+  have htim_large : 2 * |s.im| + 2 ≤ t := le_trans (le_max_right _ _) ht
+  have hsim_half : |s.im| ≤ t / 2 := by linarith
+  let z : ℂ := (1 / 2 : ℂ) + (t : ℂ) * I
+  let w : ℂ := s - z
+  have hzre : z.re = 1 / 2 := by
+    dsimp [z]
+    norm_num [Complex.add_re, Complex.mul_re]
+  have hzim : z.im = t := by
+    dsimp [z]
+    norm_num [Complex.add_im, Complex.mul_im]
+  have hwre : s.re - 1 ≤ w.re := by
+    dsimp [w]
+    rw [hzre]
+    linarith
+  have hwim : w.im = s.im - t := by
+    dsimp [w]
+    rw [hzim]
+  have hdiff_abs : t / 2 ≤ |s.im - t| := by
+    have hbase := abs_sub_abs_le_abs_sub t s.im
+    rw [abs_of_pos htpos, abs_sub_comm] at hbase
+    calc
+      t / 2 ≤ t - |s.im| := by linarith
+      _ ≤ |s.im - t| := hbase
+  have hwim_ne : w.im ≠ 0 := by
+    intro hzero
+    have habs0 : |s.im - t| = 0 := by
+      rw [← hwim, hzero, abs_zero]
+    linarith
+  have hinner_eq :
+      (∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume) =
+        (f 0 : ℂ) / w - laplaceTransform f w := by
+    have hre : (0 : ℝ) < (s + -z).re := by
+      rw [Complex.add_re, Complex.neg_re, hzre]
+      linarith
+    have h := kadiriTestFn_laplaceTransform hd hf_C2 hf_supp s (-z) hre
+    simpa [w, sub_eq_add_neg] using h
+  have hden : (t / 2) ^ 2 ≤ w.im ^ 2 := by
+    rw [sq_le_sq]
+    have hleft : |t / 2| = t / 2 := abs_of_pos (by positivity)
+    have hright : |w.im| = |s.im - t| := by rw [hwim]
+    rw [hleft, hright]
+    exact hdiff_abs
+  have hquarter_pos : 0 < (t / 2) ^ 2 := by positivity
+  have hwim_sq_pos : 0 < w.im ^ 2 := by positivity
+  have hinner_norm : ‖∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume‖ ≤
+      (4 * C0) / t ^ 2 := by
+    rw [hinner_eq]
+    have hraw := hL w hwre hwim_ne
+    calc
+      ‖(f 0 : ℂ) / w - laplaceTransform f w‖
+          ≤ CL / w.im ^ 2 := hraw
+      _ ≤ C0 / w.im ^ 2 :=
+          div_le_div_of_nonneg_right (le_max_left CL 0) hwim_sq_pos.le
+      _ ≤ C0 / (t / 2) ^ 2 :=
+          div_le_div_of_nonneg_left (le_max_right CL 0) hquarter_pos hden
+      _ = (4 * C0) / t ^ 2 := by
+          field_simp [ne_of_gt htpos]
+          ring
+  have hψnorm : ‖(((digamma (z / 2)).re : ℂ))‖ ≤
+      Cψ * Real.log (|t| + 2) := by
+    have hψz := hψ z (by rw [hzre]) (by rw [hzre])
+    have hψz' : ‖digamma (z / 2)‖ ≤ Cψ * Real.log (|t| + 2) := by
+      simpa [hzim] using hψz
+    rw [Complex.norm_real, Real.norm_eq_abs]
+    exact (Complex.abs_re_le_norm _).trans hψz'
+  have hlog_nonneg : 0 ≤ Real.log (|t| + 2) :=
+    Real.log_nonneg (by rw [htabs]; linarith)
+  have hψrhs_nonneg : 0 ≤ Cψ * Real.log (|t| + 2) :=
+    mul_nonneg hCψpos.le hlog_nonneg
+  have hmul_bound :
+      ‖((digamma (z / 2)).re : ℂ)‖ *
+        ‖∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume‖ ≤
+      (Cψ * Real.log (|t| + 2)) * ((4 * C0) / t ^ 2) := by
+    exact mul_le_mul hψnorm hinner_norm (norm_nonneg _) hψrhs_nonneg
+  have hlog_le : Real.log (|t| + 2) ≤ 4 * |t| ^ ((1 : ℝ) / 2) :=
+    kadiri_log_abs_add_two_le_four_sqrt (by rwa [htabs])
+  rw [norm_mul]
+  calc
+    ‖((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ)‖ *
+        ‖∫ y, kadiriTestFn f s y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume‖
+        = ‖((digamma (z / 2)).re : ℂ)‖ *
+            ‖∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume‖ := by rfl
+    _ ≤ (Cψ * Real.log (|t| + 2)) * ((4 * C0) / t ^ 2) := hmul_bound
+    _ ≤ (Cψ * (4 * |t| ^ ((1 : ℝ) / 2))) * ((4 * C0) / t ^ 2) := by
+          gcongr
+    _ = K * ‖|t| ^ (-(3 / 2 : ℝ))‖ := by
+          rw [Real.norm_eq_abs, abs_of_nonneg (Real.rpow_nonneg (abs_nonneg t) _),
+            ← kadiri_abs_sqrt_div_sq_eq_abs_rpow_neg_three_halves htne]
+          dsimp [K]
+          field_simp [ne_of_gt htpos]
+          ring
+
+private theorem kadiriTestFn_gamma_line_isBigO_atBot {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume)
+      =O[Filter.atBot] (fun t : ℝ ↦ |t| ^ (-(3 / 2 : ℝ))) := by
+  obtain ⟨Cψ, hCψpos, hψ⟩ :=
+    Complex.exists_norm_digamma_div_two_le_log (a := 1 / 2) (b := 1 / 2)
+      (by norm_num)
+  obtain ⟨CL, hL⟩ := laplaceTransform_sub_pole_norm_decay hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d (s.re - 1)
+  let C0 : ℝ := max CL 0
+  let K : ℝ := 16 * Cψ * C0
+  refine IsBigO.of_bound K ?_
+  filter_upwards [Filter.eventually_le_atBot (-(max 2 (2 * |s.im| + 2)))] with t ht
+  have hR : max 2 (2 * |s.im| + 2) ≤ -t := by linarith
+  have ht2 : 2 ≤ -t := le_trans (le_max_left _ _) hR
+  have htneg : t < 0 := by linarith
+  have htne : t ≠ 0 := ne_of_lt htneg
+  have htabs : |t| = -t := abs_of_neg htneg
+  have htim_large : 2 * |s.im| + 2 ≤ -t := le_trans (le_max_right _ _) hR
+  have hsim_half : |s.im| ≤ (-t) / 2 := by linarith
+  let z : ℂ := (1 / 2 : ℂ) + (t : ℂ) * I
+  let w : ℂ := s - z
+  have hzre : z.re = 1 / 2 := by
+    dsimp [z]
+    norm_num [Complex.add_re, Complex.mul_re]
+  have hzim : z.im = t := by
+    dsimp [z]
+    norm_num [Complex.add_im, Complex.mul_im]
+  have hwre : s.re - 1 ≤ w.re := by
+    dsimp [w]
+    rw [hzre]
+    linarith
+  have hwim : w.im = s.im - t := by
+    dsimp [w]
+    rw [hzim]
+  have hdiff_abs : (-t) / 2 ≤ |s.im - t| := by
+    have hbase := abs_sub_abs_le_abs_sub t s.im
+    rw [htabs, abs_sub_comm] at hbase
+    calc
+      (-t) / 2 ≤ -t - |s.im| := by linarith
+      _ ≤ |s.im - t| := hbase
+  have hwim_ne : w.im ≠ 0 := by
+    intro hzero
+    have habs0 : |s.im - t| = 0 := by
+      rw [← hwim, hzero, abs_zero]
+    linarith
+  have hinner_eq :
+      (∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume) =
+        (f 0 : ℂ) / w - laplaceTransform f w := by
+    have hre : (0 : ℝ) < (s + -z).re := by
+      rw [Complex.add_re, Complex.neg_re, hzre]
+      linarith
+    have h := kadiriTestFn_laplaceTransform hd hf_C2 hf_supp s (-z) hre
+    simpa [w, sub_eq_add_neg] using h
+  have hden : (t / 2) ^ 2 ≤ w.im ^ 2 := by
+    rw [sq_le_sq]
+    have hleft : |t / 2| = (-t) / 2 := by
+      rw [abs_of_neg]
+      · ring
+      · linarith
+    have hright : |w.im| = |s.im - t| := by rw [hwim]
+    rw [hleft, hright]
+    exact hdiff_abs
+  have hquarter_pos : 0 < (t / 2) ^ 2 := by positivity
+  have hwim_sq_pos : 0 < w.im ^ 2 := by positivity
+  have hinner_norm : ‖∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume‖ ≤
+      (4 * C0) / t ^ 2 := by
+    rw [hinner_eq]
+    have hraw := hL w hwre hwim_ne
+    calc
+      ‖(f 0 : ℂ) / w - laplaceTransform f w‖
+          ≤ CL / w.im ^ 2 := hraw
+      _ ≤ C0 / w.im ^ 2 :=
+          div_le_div_of_nonneg_right (le_max_left CL 0) hwim_sq_pos.le
+      _ ≤ C0 / (t / 2) ^ 2 :=
+          div_le_div_of_nonneg_left (le_max_right CL 0) hquarter_pos hden
+      _ = (4 * C0) / t ^ 2 := by
+          field_simp [htne]
+          ring
+  have hψnorm : ‖(((digamma (z / 2)).re : ℂ))‖ ≤
+      Cψ * Real.log (|t| + 2) := by
+    have hψz := hψ z (by rw [hzre]) (by rw [hzre])
+    have hψz' : ‖digamma (z / 2)‖ ≤ Cψ * Real.log (|t| + 2) := by
+      simpa [hzim] using hψz
+    rw [Complex.norm_real, Real.norm_eq_abs]
+    exact (Complex.abs_re_le_norm _).trans hψz'
+  have hlog_nonneg : 0 ≤ Real.log (|t| + 2) :=
+    Real.log_nonneg (by rw [htabs]; linarith)
+  have hψrhs_nonneg : 0 ≤ Cψ * Real.log (|t| + 2) :=
+    mul_nonneg hCψpos.le hlog_nonneg
+  have hmul_bound :
+      ‖((digamma (z / 2)).re : ℂ)‖ *
+        ‖∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume‖ ≤
+      (Cψ * Real.log (|t| + 2)) * ((4 * C0) / t ^ 2) := by
+    exact mul_le_mul hψnorm hinner_norm (norm_nonneg _) hψrhs_nonneg
+  have hlog_le : Real.log (|t| + 2) ≤ 4 * |t| ^ ((1 : ℝ) / 2) :=
+    kadiri_log_abs_add_two_le_four_sqrt (by rwa [htabs])
+  rw [norm_mul]
+  calc
+    ‖((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ)‖ *
+        ‖∫ y, kadiriTestFn f s y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume‖
+        = ‖((digamma (z / 2)).re : ℂ)‖ *
+            ‖∫ y, kadiriTestFn f s y * exp (z * (y : ℂ)) ∂volume‖ := by rfl
+    _ ≤ (Cψ * Real.log (|t| + 2)) * ((4 * C0) / t ^ 2) := hmul_bound
+    _ ≤ (Cψ * (4 * |t| ^ ((1 : ℝ) / 2))) * ((4 * C0) / t ^ 2) := by
+          gcongr
+    _ = K * ‖|t| ^ (-(3 / 2 : ℝ))‖ := by
+          rw [Real.norm_eq_abs, abs_of_nonneg (Real.rpow_nonneg (abs_nonneg t) _),
+            ← kadiri_abs_sqrt_div_sq_eq_abs_rpow_neg_three_halves htne]
+          dsimp [K]
+          field_simp [htne]
+          ring
+
+/-- The gamma-line integrability hypothesis in Kadiri Theorem 3.1 is automatic
+for the Kadiri test function used in identity (16). -/
+theorem kadiriTestFn_gamma_line_integrable {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    MeasureTheory.Integrable (fun t : ℝ ↦
+      ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+        ∫ y, kadiriTestFn f s y *
+          exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume) := by
+  have hloc : LocallyIntegrable
+      (fun t : ℝ ↦
+        ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+          ∫ y, kadiriTestFn f s y *
+            exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ)) ∂volume) volume :=
+    (kadiriTestFn_gamma_line_continuous hd hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hs).locallyIntegrable
+  exact hloc.integrable_of_isBigO_atBot_atTop
+    (kadiriTestFn_gamma_line_isBigO_atBot hd hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hs)
+    (kadiri_rpow_neg_integrableAtFilter_atBot (by norm_num : (1 : ℝ) < 3 / 2))
+    (kadiriTestFn_gamma_line_isBigO_atTop hd hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hs)
+    (kadiri_rpow_neg_integrableAtFilter_atTop (by norm_num : (1 : ℝ) < 3 / 2))
+
 /-- Downstream replacement for `identity_16_complex_weighted` that uses the
 axiom-clean Theorem 3.1 assembly in this file instead of the old skeleton in
 `Kadiri.lean`. -/
@@ -2398,7 +2768,7 @@ theorem re_inner_eq_of_re_hadamardB_eq
   ring_nf
 
 /-- Downstream replacement for `identity_16_complex`. The old theorem hides the
-gamma-line integrability input behind a `sorry`; this variant carries it
+gamma-line integrability input behind an unproved skeleton; this variant carries it
 explicitly. -/
 theorem identity_16_complex_on_dyadicGoodHeight_of_integrable {d : ℝ}
     (hd : 0 < d) {f : ℝ → ℝ}
@@ -2428,6 +2798,34 @@ theorem identity_16_complex_on_dyadicGoodHeight_of_integrable {d : ℝ}
   identity_16_complex_weighted_of_integrable_on_dyadicGoodHeight hd hf_C2 hf_supp
     hf_d hf_deriv_0 hf_deriv_d hs hΓ_int
 
+/-- Downstream replacement for `identity_16_complex` with the gamma-line
+integrability discharged for the Kadiri test function. -/
+theorem identity_16_complex_on_dyadicGoodHeight {d : ℝ}
+    (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)) =
+      (f 0 : ℂ) * ((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1))
+      + riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+          (fun ρ => (f 0 : ℂ) / (s - ρ) - laplaceTransform f (s - ρ))
+      + laplaceTransform f (s - 1)
+      + ((1 / (2 * (Real.pi : ℂ))) *
+          (∫ t : ℝ,
+            ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+              laplaceTransform (fun u ↦ deriv (deriv f) u) (s - (1 / 2 + (t : ℂ) * I))
+              / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+          + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2) :=
+  identity_16_complex_on_dyadicGoodHeight_of_integrable hd hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hf_deriv2_d hs
+    (kadiriTestFn_gamma_line_integrable hd hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hs)
+
 private theorem kadiri_downstream_zeroes_sum_complex_re_of_summable (φ : ℂ → ℂ)
     (hsum : Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) =>
       φ ρ.val * (riemannZeta.order ρ.val : ℂ))) :
@@ -2448,7 +2846,7 @@ private theorem kadiri_downstream_zeroes_sum_complex_re_of_summable (φ : ℂ �
 
 /-- Downstream replacement for `identity_16` that avoids the old
 `identity_16_complex`. It names the gamma-line integrability input that the
-old statement hides behind a `sorry`. -/
+old statement hides behind an unproved skeleton. -/
 theorem identity_16_on_dyadicGoodHeight_of_integrable
     {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     (hf_nonneg : ∀ t, 0 ≤ f t)
@@ -2547,8 +2945,42 @@ theorem identity_16_on_dyadicGoodHeight_of_integrable
     re_shifted_sum_eq_paired_sub_re_inv s]
   ring
 
+/-- Downstream replacement for `identity_16` with the gamma-line integrability
+discharged for the Kadiri test function. -/
+theorem identity_16_on_dyadicGoodHeight
+    {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re) :
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (((∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) - 1 / (s - 1) +
+                riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+                  (fun ρ => 1 / ρ + 1 / (s - ρ))).re -
+              riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+                (fun ρ => (1 / ρ).re))
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ => (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re :=
+  identity_16_on_dyadicGoodHeight_of_integrable hd hf_nonneg hf_C2 hf_supp hf_d
+    hf_deriv_0 hf_deriv_d hf_deriv2_d hs
+    (kadiriTestFn_gamma_line_integrable hd hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hs)
+
 /-- Downstream replacement for `prop_2_1` with the remaining inputs named
-explicitly instead of inherited through old `sorry` declarations. -/
+explicitly instead of inherited through old unproved declarations. -/
 theorem prop_2_1_on_dyadicGoodHeight_of_integrable_of_re_hadamardB_eq
     {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     (hf_nonneg : ∀ t, 0 ≤ f t)
@@ -2587,6 +3019,43 @@ theorem prop_2_1_on_dyadicGoodHeight_of_integrable_of_re_hadamardB_eq
       hd hf_nonneg hf_C2 hf_supp hf_d hf_deriv_0 hf_deriv_d hf_deriv2_d hs
       hΓ_int,
     re_inner_eq_of_re_hadamardB_eq hB_re hs]
+
+/-- Downstream replacement for `prop_2_1` after discharging the gamma-line
+integrability for the Kadiri test function. The real Hadamard-constant identity
+remains explicit. -/
+theorem prop_2_1_on_dyadicGoodHeight_of_re_hadamardB_eq
+    {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
+    (hf_nonneg : ∀ t, 0 ≤ f t)
+    (hf_C2 : ContDiffOn ℝ 2 f (.Icc 0 d))
+    (hf_supp : tsupport f ⊆ .Ico 0 d)
+    (hf_d : f d = 0)
+    (hf_deriv_0 : derivWithin f (Set.Icc 0 d) 0 = 0)
+    (hf_deriv_d : derivWithin f (Set.Icc 0 d) d = 0)
+    (hf_deriv2_d :
+      derivWithin (fun x => derivWithin f (Set.Icc 0 d) x) (Set.Icc 0 d) d = 0)
+    {s : ℂ} (hs : 1 < s.re)
+    (hB_re : hadamardB.re =
+      -riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ => (1 / ρ).re)) :
+    Summable (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) ↦
+                (laplaceTransform f (s - ρ.val)).re * (riemannZeta.order ρ.val : ℝ)) ∧
+    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s * ((f (Real.log n) : ℝ) : ℂ)).re =
+      f 0 * (-(1 / 2 : ℝ) * Real.log Real.pi
+              + (1 / 2 : ℝ) * (digamma (s / 2 + 1)).re)
+        + (laplaceTransform f (s - 1)).re
+        - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+            (fun ρ => (laplaceTransform f (s - ρ)).re)
+        + ((1 / (2 * (Real.pi : ℂ))) *
+            (∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                laplaceTransform (fun u ↦ deriv (deriv f) u)
+                  (s - (1 / 2 + (t : ℂ) * I))
+                / (s - (1 / 2 + (t : ℂ) * I)) ^ 2)
+            + laplaceTransform (fun u ↦ deriv (deriv f) u) s / s ^ 2).re :=
+  prop_2_1_on_dyadicGoodHeight_of_integrable_of_re_hadamardB_eq hd hf_nonneg hf_C2
+    hf_supp hf_d hf_deriv_0 hf_deriv_d hf_deriv2_d hs
+    (kadiriTestFn_gamma_line_integrable hd hf_C2 hf_supp hf_d hf_deriv_0
+      hf_deriv_d hs)
+    hB_re
 
 end
 
