@@ -87,9 +87,10 @@ private theorem hasDerivAt_kadiriWitnessInner (x : ℝ) :
     have := (hx.neg).div_const 2
     simpa [neg_div] using this
   have hsq : HasDerivAt (fun t : ℝ => (t : ℂ) ^ 2) (2 * (x : ℂ)) x := by
-    have := hx.pow 2
-    simpa [pow_one, mul_comm] using this
-  simpa [kadiriWitnessInner] using hlin.sub hsq
+    have h := hx.pow 2
+    norm_num at h
+    exact h
+  exact hlin.sub hsq
 
 theorem kadiriWitnessPhi_contDiff : ContDiff ℝ 1 kadiriWitnessPhi := by
   have hinner : ContDiff ℝ 1 kadiriWitnessInner := by
@@ -100,7 +101,7 @@ theorem kadiriWitnessPhi_contDiff : ContDiff ℝ 1 kadiriWitnessPhi := by
         (hofReal.neg).div_const 2
       have h2 : ContDiff ℝ 1 (fun x : ℝ => (x : ℂ) ^ 2) := hofReal.pow 2
       exact h1.sub h2
-    simpa [kadiriWitnessInner] using this
+    exact this
   exact Complex.contDiff_exp.comp hinner
 
 /-- Pointwise derivative of the witness: `φ'(x) = (-1/2 - 2x)·φ(x)`. -/
@@ -110,8 +111,9 @@ theorem kadiriWitnessPhi_deriv (x : ℝ) :
   have hcomp : HasDerivAt kadiriWitnessPhi
       ((-(1 / 2 : ℂ) - 2 * (x : ℂ)) * kadiriWitnessPhi x) x := by
     have hinner := hasDerivAt_kadiriWitnessInner x
-    have := hinner.cexp
-    simpa [kadiriWitnessPhi, kadiriWitnessInner, mul_comm] using this
+    have h := hinner.cexp
+    rw [mul_comm] at h
+    exact h
   exact hcomp.deriv
 
 /-- `φ(x)·e^{x/2} = e^{-x²}` pointwise. -/

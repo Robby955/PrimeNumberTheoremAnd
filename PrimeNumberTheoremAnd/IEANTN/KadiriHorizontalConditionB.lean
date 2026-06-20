@@ -155,10 +155,12 @@ private theorem KadiriPhiConditionB.kadiriHorizontalPhi_hasDerivAt
         (φ := φ) (b := b) (s0 := -z0)
         hB.contDiff hslo hshi hφ_decay)
   have hneg : HasDerivAt (fun z : ℂ => -z) (-1) z0 := by
-    simpa using (hasDerivAt_id z0).neg
+    exact (hasDerivAt_id z0).neg
   have hcomp := hF.comp z0 hneg
-  convert hcomp using 1
-  ring
+  have hval : -(∫ y : ℝ, φ y * ((y : ℂ) * Complex.exp ((-z0) * (y : ℂ))) ∂volume)
+      = (∫ y : ℝ, φ y * ((y : ℂ) * Complex.exp ((-z0) * (y : ℂ))) ∂volume) * (-1) := by ring
+  rw [hval]
+  exact hcomp
 
 /-- Pointwise derivative formula for `kadiriHorizontalPhi`, extracted from the
 condition-(B) full-strip differentiability bridge. -/
@@ -282,8 +284,7 @@ private theorem KadiriPhiConditionB.weightedEndpointEnvelopeIntegrable
         Complex.exp (((1 + a : ℝ) : ℂ) * (y : ℂ)) * φ y) :=
     kadiri_laplace_full_strip_weight_integrable_of_continuous
       hB.contDiff.continuous hright_lo hright_hi hφ_decay
-  convert hleft.norm.add hright.norm using 1
-  ext y
+  refine (hleft.norm.add hright.norm).congr (Filter.Eventually.of_forall fun y => ?_)
   simp [Complex.norm_exp, mul_add, mul_comm]
 
 /-- On a nonempty horizontal strip, condition (B) gives an endpoint envelope for
@@ -310,8 +311,7 @@ private theorem KadiriPhiConditionB.weightedDerivEndpointEnvelopeIntegrable
         Complex.exp (((1 + a : ℝ) : ℂ) * (y : ℂ)) * deriv φ y) :=
     kadiri_laplace_full_strip_weight_integrable_of_continuous
       hderiv_cont hright_lo hright_hi hφ'_decay
-  convert hleft.norm.add hright.norm using 1
-  ext y
+  refine (hleft.norm.add hright.norm).congr (Filter.Eventually.of_forall fun y => ?_)
   simp [Complex.norm_exp, mul_add, mul_comm]
 
 /-- On a nonempty horizontal strip, condition (B) gives a first-moment endpoint
@@ -508,7 +508,9 @@ private theorem KadiriPhiConditionB.weightedMomentLineDifferentiable
       (fun x : ℝ => (x : ℂ) * Complex.exp ((σ : ℂ) * (x : ℂ)))
       (Complex.exp ((σ : ℂ) * (y : ℂ)) +
         (y : ℂ) * ((σ : ℂ) * Complex.exp ((σ : ℂ) * (y : ℂ)))) y := by
-    simpa using hlinear.mul hexp
+    have h := hlinear.mul hexp
+    rw [one_mul] at h
+    exact h
   exact (hφy.mul hmoment).differentiableAt
 
 /-- Pointwise derivative of the first-moment weighted-line source. -/
@@ -531,7 +533,9 @@ private theorem KadiriPhiConditionB.weightedMomentLine_deriv_eq
       (fun x : ℝ => (x : ℂ) * Complex.exp ((σ : ℂ) * (x : ℂ)))
       (Complex.exp ((σ : ℂ) * (y : ℂ)) +
         (y : ℂ) * ((σ : ℂ) * Complex.exp ((σ : ℂ) * (y : ℂ)))) y := by
-    simpa using hlinear.mul hexp
+    have h := hlinear.mul hexp
+    rw [one_mul] at h
+    exact h
   have hmul := hφy.mul hmoment
   calc
     deriv (fun x : ℝ =>
@@ -539,7 +543,7 @@ private theorem KadiriPhiConditionB.weightedMomentLine_deriv_eq
         = deriv φ y * ((y : ℂ) * Complex.exp ((σ : ℂ) * (y : ℂ))) +
           φ y * (Complex.exp ((σ : ℂ) * (y : ℂ)) +
             (y : ℂ) * ((σ : ℂ) * Complex.exp ((σ : ℂ) * (y : ℂ)))) := by
-          simpa [mul_add, add_mul, mul_assoc, mul_comm, mul_left_comm] using hmul.deriv
+          exact (hmul.deriv).trans (by ring)
     _ = (deriv φ y * (y : ℂ) + φ y + (σ : ℂ) * (φ y * (y : ℂ))) *
         Complex.exp ((σ : ℂ) * (y : ℂ)) := by
           ring
@@ -1461,7 +1465,7 @@ private theorem KadiriPhiConditionB.topHorizontalPhi_variation_norm_le
         dsimp [kadiriTopHorizontalPoint]
         simpa using
           (Complex.ofRealCLM.hasDerivAt (x := x)).add_const ((T : ℂ) * I)
-      simpa using hpoint_pos.neg
+      exact hpoint_pos.neg
     have hcomplex0 := hB.kadiriHorizontalPhi_hasDerivAt
       (z0 := -(kadiriTopHorizontalPoint T x)) (by
         simpa [kadiriTopHorizontalPoint] using hx)
@@ -1472,7 +1476,7 @@ private theorem KadiriPhiConditionB.topHorizontalPhi_variation_norm_le
           (-(kadiriTopHorizontalPoint T x)) := by
       simpa [hcomplex0.deriv] using hcomplex0
     have hcomp := hcomplex.scomp x hpoint
-    simpa [f] using hcomp.hasDerivWithinAt
+    simpa [f, Function.comp_def] using hcomp.hasDerivWithinAt
   have hbound : ∀ x ∈ Set.Icc (-a) (1 + a),
       ‖(-1 : ℂ) •
           deriv (fun z : ℂ => kadiriHorizontalPhi φ z)
@@ -1518,7 +1522,7 @@ private theorem KadiriPhiConditionB.botHorizontalPhi_variation_norm_le
         dsimp [kadiriBotHorizontalPoint]
         simpa using
           (Complex.ofRealCLM.hasDerivAt (x := x)).add_const (((-T : ℝ) : ℂ) * I)
-      simpa using hpoint_pos.neg
+      exact hpoint_pos.neg
     have hcomplex0 := hB.kadiriHorizontalPhi_hasDerivAt
       (z0 := -(kadiriBotHorizontalPoint T x)) (by
         simpa [kadiriBotHorizontalPoint] using hx)
@@ -1529,7 +1533,7 @@ private theorem KadiriPhiConditionB.botHorizontalPhi_variation_norm_le
           (-(kadiriBotHorizontalPoint T x)) := by
       simpa [hcomplex0.deriv] using hcomplex0
     have hcomp := hcomplex.scomp x hpoint
-    simpa [f] using hcomp.hasDerivWithinAt
+    simpa [f, Function.comp_def] using hcomp.hasDerivWithinAt
   have hbound : ∀ x ∈ Set.Icc (-a) (1 + a),
       ‖(-1 : ℂ) •
           deriv (fun z : ℂ => kadiriHorizontalPhi φ z)

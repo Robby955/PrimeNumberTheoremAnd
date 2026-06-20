@@ -113,7 +113,8 @@ theorem kadiriConditionB_weightedStripIntegrable_of_continuous {φ : ℝ → ℂ
         Filter.atBot volume := by
     rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
     have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
-      convert (MeasurableEquiv.neg ℝ).map_symm.symm using 1
+      change (volume : Measure ℝ).comap (MeasurableEquiv.neg ℝ) = volume
+      rw [← MeasurableEquiv.map_symm]
       simp
     rw [hvol, Function.comp_def]
     refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
@@ -168,8 +169,11 @@ theorem kadiriConditionB_weightedLine_deriv_eq {φ : ℝ → ℂ}
       (((hasDerivAt_id y).ofReal_comp.const_mul (σ : ℂ)).cexp)
   have hφy : HasDerivAt φ (deriv φ y) y :=
     ((hφ.differentiable (by norm_num)) y).hasDerivAt
-  have hmul := hφy.mul hexp
-  simpa [mul_add, mul_assoc, mul_comm, mul_left_comm] using hmul.deriv
+  have hmul : HasDerivAt (fun x : ℝ => φ x * exp ((σ : ℂ) * (x : ℂ)))
+      (deriv φ y * exp ((σ : ℂ) * (y : ℂ)) +
+        φ y * ((σ : ℂ) * exp ((σ : ℂ) * (y : ℂ)))) y :=
+    hφy.mul hexp
+  exact hmul.deriv.trans (by ring)
 
 /-- Condition B gives integrability of the derivative of the weighted line
 source, the precondition for the Fourier/IBP decay step. -/
