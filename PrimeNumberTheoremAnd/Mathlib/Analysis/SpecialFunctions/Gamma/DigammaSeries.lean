@@ -432,8 +432,8 @@ lemma hasSum_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
         have : (0 : ℝ) ≤ m := Nat.cast_nonneg m
         linarith
       have hinner : HasDerivAt (fun w : ℂ => w + (m : ℂ)) 1 x := (hasDerivAt_id x).add_const _
-      simpa using! (hasDerivAt_log hmem).comp x hinner
-    simpa only [logGammaSeq] using! h1.sub h2
+      convert (hasDerivAt_log hmem).comp x hinner using 1 <;> first | rfl | (funext w; rfl) | ring
+    convert h1.sub h2 using 2 <;> first | rfl | (simp only [logGammaSeq, Pi.sub_apply]; push_cast; ring)
   -- pointwise convergence to the limit function
   have hptw : ∀ x : ℂ, x ∈ s →
       Tendsto (fun n => logGammaSeq x n) atTop (𝓝 (limUnder atTop (logGammaSeq x))) :=
@@ -477,6 +477,58 @@ lemma hasSum_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
     rw [hdig]
     ring
   exact ht ▸ hsm.hasSum
+
+/--
+The Euler-limit derivative sequence converges to `digamma` on the right half-plane.
+This exposes the finite limit used to pass Euler-Maclaurin resolvent sums to the
+digamma value.
+-/
+lemma tendsto_log_sub_sum_inv_add_of_re_pos {z : ℂ} (hz : 0 < z.re) :
+    Tendsto (fun n : ℕ => (Real.log n : ℂ) - ∑ m ∈ Finset.range (n + 1), (z + m)⁻¹)
+      atTop (𝓝 (digamma z)) := by
+  have hsum := (hasSum_digamma_of_re_pos hz).tendsto_sum_nat
+  have hsum_shift : Tendsto
+      (fun n : ℕ => ∑ m ∈ Finset.range (n + 1), (((m : ℂ) + 1)⁻¹ - (z + m)⁻¹))
+      atTop (𝓝 (digamma z + Real.eulerMascheroniConstant)) := by
+    exact hsum.comp (tendsto_add_atTop_nat 1)
+  have hcR : Tendsto (fun n : ℕ => Real.log n - ((harmonic (n + 1) : ℚ) : ℝ)) atTop
+      (𝓝 (-Real.eulerMascheroniConstant)) := by
+    have h1 : Tendsto (fun n : ℕ => Real.log n - (harmonic n : ℝ)) atTop
+        (𝓝 (-Real.eulerMascheroniConstant)) :=
+      Real.tendsto_harmonic_sub_log.neg.congr fun n => by ring
+    have h2 : Tendsto (fun n : ℕ => ((n : ℝ) + 1)⁻¹) atTop (𝓝 0) := by
+      apply Tendsto.inv_tendsto_atTop
+      exact tendsto_atTop_add_const_right atTop 1 tendsto_natCast_atTop_atTop
+    have hcomb := h1.sub h2
+    have hfun : (fun n : ℕ => Real.log n - (harmonic n : ℝ) - ((n : ℝ) + 1)⁻¹) =
+        (fun n : ℕ => Real.log n - ((harmonic (n + 1) : ℚ) : ℝ)) := by
+      funext n
+      rw [harmonic_succ]
+      push_cast
+      ring
+    rw [← hfun]
+    simpa using hcomb
+  have hcC : Tendsto
+      (fun n : ℕ => ((Real.log n - ((harmonic (n + 1) : ℚ) : ℝ) : ℝ) : ℂ))
+      atTop (𝓝 (-(Real.eulerMascheroniConstant : ℂ))) := by
+    have h := (continuous_ofReal.tendsto (-Real.eulerMascheroniConstant)).comp hcR
+    have hval : ((-Real.eulerMascheroniConstant : ℝ) : ℂ) =
+        -(Real.eulerMascheroniConstant : ℂ) := by
+      push_cast
+      ring_nf
+    rw [← hval]
+    exact h
+  have hadd := hcC.add hsum_shift
+  have hfun :
+      (fun n : ℕ => ((Real.log n - ((harmonic (n + 1) : ℚ) : ℝ) : ℝ) : ℂ) +
+        ∑ m ∈ Finset.range (n + 1), (((m : ℂ) + 1)⁻¹ - (z + m)⁻¹)) =
+      (fun n : ℕ => (Real.log n : ℂ) - ∑ m ∈ Finset.range (n + 1), (z + m)⁻¹) := by
+    funext n
+    rw [Finset.sum_sub_distrib, sum_inv_natCast_add_one (n + 1)]
+    push_cast
+    abel_nf
+  rw [hfun] at hadd
+  simpa using hadd
 
 /-! ## The main statements -/
 
@@ -562,8 +614,7 @@ theorem hasSum_digamma {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
         push_cast
         ring
       rw [e2] at hfin
-      convert! hfin using 1
-      ring
+      convert hfin using 1 <;> first | rfl | ring
 
 /-- The series representation of the digamma function, written as a formula:
 `digamma z = -γ + ∑' n, (1 / (n + 1) - 1 / (n + z))` for `z` away from the poles. -/
@@ -572,6 +623,58 @@ theorem digamma_eq_tsum {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
       + ∑' n : ℕ, (1 / ((n : ℂ) + 1) - 1 / ((n : ℂ) + z)) := by
   rw [(hasSum_digamma hz).tsum_eq]
   ring
+
+/-- The real part of `1 / (n + 1)` in the digamma series. -/
+lemma re_one_div_natCast_add_one (n : ℕ) :
+    ((1 / ((n : ℂ) + 1)).re) = 1 / ((n : ℝ) + 1) := by
+  have hpos : (0 : ℝ) < (n : ℝ) + 1 := by positivity
+  rw [one_div, inv_re, Complex.normSq_apply]
+  simp only [add_re, natCast_re, one_re, add_im, natCast_im, one_im, zero_add]
+  field_simp [hpos.ne']
+  ring
+
+/-- The real part of `1 / (n + x + iy)` for `x > 0`. -/
+lemma re_one_div_natCast_add_ofReal_add_mul_I {x y : ℝ} (hx : 0 < x) (n : ℕ) :
+    ((1 / ((n : ℂ) + (x : ℂ) + (y : ℂ) * I)).re) =
+      ((n : ℝ) + x) / (((n : ℝ) + x) ^ 2 + y ^ 2) := by
+  have hnx : 0 < (n : ℝ) + x := by positivity
+  rw [one_div, inv_re]
+  simp only [add_re, natCast_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im,
+    zero_mul, sub_self, add_zero]
+  rw [Complex.normSq_apply]
+  simp only [add_re, natCast_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im,
+    zero_mul, sub_self, add_zero]
+  simp only [add_im, natCast_im, ofReal_im, mul_im, ofReal_re, I_im, I_re, mul_one,
+    mul_zero, zero_add, add_zero]
+  ring
+
+/-- Real-part form of the digamma series in the open right half-plane. -/
+theorem re_digamma_eq_tsum_real {x y : ℝ} (hx : 0 < x) :
+    (digamma ((x : ℂ) + (y : ℂ) * I)).re =
+      -Real.eulerMascheroniConstant +
+        ∑' n : ℕ, (1 / ((n : ℝ) + 1) -
+          ((n : ℝ) + x) / (((n : ℝ) + x) ^ 2 + y ^ 2)) := by
+  let z : ℂ := (x : ℂ) + (y : ℂ) * I
+  have hzre : z.re = x := by simp [z]
+  have hpoles : ∀ n : ℕ, z ≠ -(n : ℂ) := by
+    intro n hn
+    have hre := congrArg Complex.re hn
+    rw [hzre] at hre
+    simp only [neg_re, natCast_re] at hre
+    have hn_nonneg : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+    linarith
+  have hsum : Summable (fun n : ℕ => 1 / ((n : ℂ) + 1) - 1 / ((n : ℂ) + z)) :=
+    (hasSum_digamma hpoles).summable
+  have h := congrArg Complex.re (digamma_eq_tsum hpoles)
+  rw [Complex.add_re, Complex.neg_re, Complex.ofReal_re, Complex.re_tsum hsum] at h
+  rw [h]
+  congr 1
+  apply tsum_congr
+  intro n
+  rw [Complex.sub_re, re_one_div_natCast_add_one n]
+  have hzterm : ((n : ℂ) + z) = (n : ℂ) + (x : ℂ) + (y : ℂ) * I := by
+    simp [z, add_assoc]
+  rw [hzterm, re_one_div_natCast_add_ofReal_add_mul_I hx n]
 
 /-- The digamma function is continuous on bounded closed substrips of the right half-plane. -/
 theorem continuousOn_digamma_of_re_ge_norm_le {a R : ℝ} (ha : 0 < a) (ha1 : a ≤ 1) :
@@ -610,39 +713,6 @@ theorem continuousOn_digamma_of_re_ge_norm_le {a R : ℝ} (ha : 0 < a) (ha1 : a 
         simpa using hre
       have hn : 0 ≤ (n : ℝ) := by positivity
       linarith
-
-/-- The digamma function is continuous at every point of the open right half-plane. -/
-theorem continuousAt_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
-    ContinuousAt digamma z₀ := by
-  set a : ℝ := min (z₀.re / 2) 1 with ha_def
-  set R : ℝ := ‖z₀‖ + 1 with hR_def
-  have ha : 0 < a := by
-    rw [ha_def]
-    exact lt_min (by linarith) one_pos
-  have ha1 : a ≤ 1 := by
-    rw [ha_def]
-    exact min_le_right _ _
-  have hcont := continuousOn_digamma_of_re_ge_norm_le (a := a) (R := R) ha ha1
-  have hs_mem :
-      ({z : ℂ | a ≤ z.re} ∩ {z : ℂ | ‖z‖ ≤ R}) ∈ 𝓝 z₀ := by
-    have hopen : IsOpen ({z : ℂ | a < z.re} ∩ {z : ℂ | ‖z‖ < R}) :=
-      (isOpen_lt continuous_const continuous_re).inter
-        (isOpen_lt continuous_norm continuous_const)
-    have hzopen : z₀ ∈ ({z : ℂ | a < z.re} ∩ {z : ℂ | ‖z‖ < R}) := by
-      constructor
-      · have hale : a ≤ z₀.re / 2 := by
-          rw [ha_def]
-          exact min_le_left _ _
-        exact lt_of_le_of_lt hale (by linarith)
-      · rw [hR_def]
-        exact lt_add_of_pos_right ‖z₀‖ (by norm_num : (0 : ℝ) < 1)
-    exact mem_of_superset (hopen.mem_nhds hzopen) fun z hz => by
-      have hleft : a < z.re := hz.1
-      have hright : ‖z‖ < R := hz.2
-      constructor
-      · exact le_of_lt hleft
-      · exact le_of_lt hright
-  exact hcont.continuousAt hs_mem
 
 /-- The digamma function is differentiable on bounded open substrips of the right half-plane. -/
 theorem differentiableOn_digamma_of_re_gt_norm_lt {a R : ℝ} (ha : 0 < a) (ha1 : a ≤ 1) :
@@ -691,6 +761,39 @@ theorem differentiableOn_digamma_of_re_gt_norm_lt {a R : ℝ} (ha : 0 < a) (ha1 
   intro n
   rw [one_div, one_div, add_comm z (n : ℂ)]
 
+/-- The digamma function is continuous at every point of the open right half-plane. -/
+theorem continuousAt_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
+    ContinuousAt digamma z₀ := by
+  set a : ℝ := min (z₀.re / 2) 1 with ha_def
+  set R : ℝ := ‖z₀‖ + 1 with hR_def
+  have ha : 0 < a := by
+    rw [ha_def]
+    exact lt_min (by linarith) one_pos
+  have ha1 : a ≤ 1 := by
+    rw [ha_def]
+    exact min_le_right _ _
+  have hcont := continuousOn_digamma_of_re_ge_norm_le (a := a) (R := R) ha ha1
+  have hs_mem :
+      ({z : ℂ | a ≤ z.re} ∩ {z : ℂ | ‖z‖ ≤ R}) ∈ 𝓝 z₀ := by
+    have hopen : IsOpen ({z : ℂ | a < z.re} ∩ {z : ℂ | ‖z‖ < R}) :=
+      (isOpen_lt continuous_const continuous_re).inter
+        (isOpen_lt continuous_norm continuous_const)
+    have hzopen : z₀ ∈ ({z : ℂ | a < z.re} ∩ {z : ℂ | ‖z‖ < R}) := by
+      constructor
+      · have hale : a ≤ z₀.re / 2 := by
+          rw [ha_def]
+          exact min_le_left _ _
+        exact lt_of_le_of_lt hale (by linarith)
+      · rw [hR_def]
+        exact lt_add_of_pos_right ‖z₀‖ (by norm_num : (0 : ℝ) < 1)
+    exact mem_of_superset (hopen.mem_nhds hzopen) fun z hz => by
+      have hleft : a < z.re := hz.1
+      have hright : ‖z‖ < R := hz.2
+      constructor
+      · exact le_of_lt hleft
+      · exact le_of_lt hright
+  exact hcont.continuousAt hs_mem
+
 /-- The digamma function is differentiable at every point of the open right half-plane. -/
 theorem differentiableAt_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
     DifferentiableAt ℂ digamma z₀ := by
@@ -718,6 +821,31 @@ theorem differentiableAt_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
         exact lt_add_of_pos_right ‖z₀‖ (by norm_num : (0 : ℝ) < 1)
     exact hopen.mem_nhds hzopen
   exact hdiff.differentiableAt hs_mem
+
+/-- The digamma function is analytic at every point of the open right half-plane. -/
+theorem analyticAt_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
+    AnalyticAt ℂ digamma z₀ := by
+  set a : ℝ := min (z₀.re / 2) 1 with ha_def
+  set R : ℝ := ‖z₀‖ + 1 with hR_def
+  have ha : 0 < a := by
+    rw [ha_def]
+    exact lt_min (by linarith) one_pos
+  have ha1 : a ≤ 1 := by
+    rw [ha_def]
+    exact min_le_right _ _
+  have hs_open : IsOpen ({z : ℂ | a < z.re} ∩ {z : ℂ | ‖z‖ < R}) :=
+    (isOpen_lt continuous_const continuous_re).inter
+      (isOpen_lt continuous_norm continuous_const)
+  have hz_mem : z₀ ∈ ({z : ℂ | a < z.re} ∩ {z : ℂ | ‖z‖ < R}) := by
+    constructor
+    · have hale : a ≤ z₀.re / 2 := by
+        rw [ha_def]
+        exact min_le_left _ _
+      exact lt_of_le_of_lt hale (by linarith)
+    · rw [hR_def]
+      exact lt_add_of_pos_right ‖z₀‖ (by norm_num : (0 : ℝ) < 1)
+  exact (differentiableOn_digamma_of_re_gt_norm_lt (a := a) (R := R) ha ha1).analyticAt
+    (hs_open.mem_nhds hz_mem)
 
 /-! ## The growth bound on vertical strips -/
 

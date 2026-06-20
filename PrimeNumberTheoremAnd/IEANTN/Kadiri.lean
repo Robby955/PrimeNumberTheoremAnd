@@ -445,73 +445,6 @@ theorem kadiri_thm_3_1_q1_eq_12 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
   simp only [hf] at key ⊢
   linear_combination key
 
-@[blueprint
-  "kadiri-thm-3-1-q1-top-horizontal-vanishes"
-  (title := "Top horizontal integral in eq.~(12) of \\cite{Kadiri2005} vanishes as $T \\to \\infty$")
-  (statement := /-- Under the hypotheses of \ref{kadiri-thm-3-1-q1-eq-11}:
-  $$ \lim_{T \to \infty}
-       \frac{1}{2\pi i} \int_{-a + iT}^{1 + a + iT}
-         \!\!\!\! \left(-\frac{\zeta'}{\zeta}\right)\!(s)\, \Phi(-s)\, ds \;=\; 0. $$
-  This is one of the two assertions on \cite[p.~12]{Kadiri2005} that "les deux
-  dernières intégrales tendent vers $0$ lorsque $T$ tend vers $\infty$." -/)
-  (proof := /-- The integrand has $|\Phi(-s)| = O(1/|t|) = O(1/T)$ on the horizontal arc
-  (by (B), uniformly on the closed strip $-a \leq \sigma \leq 1 + a$), and
-  $-\zeta'/\zeta(s)$ grows at most polynomially in $\log|\Im s| = \log T$ on this strip.
-  The horizontal arc has fixed length $1 + 2a$, so the integral is bounded by
-  $O((\log T)^k / T) \to 0$ as $T \to \infty$. To be formalised. -/)
-  (latexEnv := "sublemma")
-  (discussion := 1538)]
-theorem kadiri_thm_3_1_q1_top_horizontal_vanishes
-    {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
-    {b : ℝ} (_hb : 0 < b)
-    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
-        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
-        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1) :
-    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-    Filter.Tendsto
-      (fun T : ℝ ↦
-        (1 / (2 * (Real.pi : ℂ) * I)) *
-          ∫ σ in Set.Ioo (-a) (1 + a),
-            (-deriv riemannZeta ((σ : ℂ) + (T : ℂ) * I) /
-                riemannZeta ((σ : ℂ) + (T : ℂ) * I)) *
-              Φ (-((σ : ℂ) + (T : ℂ) * I)))
-      Filter.atTop (nhds 0) := by
-  sorry
-
-@[blueprint
-  "kadiri-thm-3-1-q1-bot-horizontal-vanishes"
-  (title := "Bottom horizontal integral in eq.~(12) of \\cite{Kadiri2005} vanishes as $T \\to \\infty$")
-  (statement := /-- Under the hypotheses of \ref{kadiri-thm-3-1-q1-eq-11}:
-  $$ \lim_{T \to \infty}
-       \frac{1}{2\pi i} \int_{-a - iT}^{1 + a - iT}
-         \!\!\!\! \left(-\frac{\zeta'}{\zeta}\right)\!(s)\, \Phi(-s)\, ds \;=\; 0. $$
-  Companion to \ref{kadiri-thm-3-1-q1-top-horizontal-vanishes}. -/)
-  (proof := /-- Identical argument to \ref{kadiri-thm-3-1-q1-top-horizontal-vanishes},
-  with $T$ replaced by $-T$ (the decay bound on $\Phi$ is symmetric in $t$, and the
-  growth bound on $-\zeta'/\zeta$ depends only on $|t|$). To be formalised. -/)
-  (latexEnv := "sublemma")
-  (discussion := 1539)]
-theorem kadiri_thm_3_1_q1_bot_horizontal_vanishes
-    {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
-    {b : ℝ} (_hb : 0 < b)
-    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
-        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
-        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1) :
-    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-    Filter.Tendsto
-      (fun T : ℝ ↦
-        (1 / (2 * (Real.pi : ℂ) * I)) *
-          ∫ σ in Set.Ioo (-a) (1 + a),
-            (-deriv riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I) /
-                riemannZeta ((σ : ℂ) + ((-T : ℝ) : ℂ) * I)) *
-              Φ (-((σ : ℂ) + ((-T : ℝ) : ℂ) * I)))
-      Filter.atTop (nhds 0) := by
-  sorry
-
 private lemma zetaPiFactor_eq_cpow (s : ℂ) :
     zetaPiFactor s = (Real.pi : ℂ) ^ (-(s / 2)) := by
   unfold zetaPiFactor
@@ -1105,7 +1038,11 @@ private lemma kadiri_laplace_positive_line_weight_integrable_of_continuous {ψ :
       Filter.atBot volume := by
     rw [← Filter.map_neg_atTop, measurableEmbedding_neg.integrableAtFilter_iff_comap]
     have hvol : (volume : Measure ℝ).comap Neg.neg = volume := by
-      convert! (MeasurableEquiv.neg ℝ).map_symm.symm using 1; simp
+      have h1 : (volume : Measure ℝ).comap Neg.neg
+          = (volume : Measure ℝ).comap (MeasurableEquiv.neg ℝ).symm := rfl
+      rw [h1, MeasurableEquiv.comap_symm]
+      show Measure.map (fun x : ℝ => -x) volume = volume
+      exact Measure.map_neg_eq_self volume
     rw [hvol, Function.comp_def]
     refine ⟨Set.Ioi 0, Filter.Ioi_mem_atTop 0, ?_⟩
     convert exp_neg_integrableOn_Ioi 0 (sub_pos.mpr hab) using 1
@@ -1648,13 +1585,6 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
   -- · `heq11`: LHS as Mellin contour integral on σ = 1 + a (kadiri-thm-3-1-q1-eq-11).
   have heq11 :=
     kadiri_thm_3_1_q1_eq_11 hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1
-  -- · `htop`, `hbot`: horizontal integrals → 0 as T → ∞.
-  have htop :=
-    kadiri_thm_3_1_q1_top_horizontal_vanishes
-      hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1
-  have hbot :=
-    kadiri_thm_3_1_q1_bot_horizontal_vanishes
-      hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1
   -- · `h13`, `h14`, `h15`: limits of I₁(T), I₂(T), I₃(T) as T → ∞.
   have h13 :=
     kadiri_thm_3_1_q1_eq_13 hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1
@@ -1742,8 +1672,10 @@ private lemma laplaceKernel_antideriv_hasDerivAt {w : ℂ} (hw : w ≠ 0) (x : �
     HasDerivAt (fun y : ℝ => -exp (-w * (y : ℂ)) / w)
       (exp (-w * (x : ℂ))) x := by
   have h := (laplaceKernel_hasDerivAt w x).neg.div_const w
-  convert! h using 1
-  field_simp [hw]
+  convert h using 1 <;>
+    first
+      | rfl
+      | (rw [eq_div_iff hw]; ring)
 
 private lemma eq_zero_of_tsupport_subset_Ico_right {d : ℝ} {f : ℝ → ℝ} {x : ℝ}
     (hf_supp : tsupport f ⊆ Set.Ico 0 d) (hdx : d ≤ x) :
@@ -1783,7 +1715,7 @@ private lemma laplaceTransform_eq_interval_of_tsupport_subset_Ico {d : ℝ} (hd 
       ∫ t in (0 : ℝ)..d, exp (-w * (t : ℂ)) * (f t : ℂ) := by
   unfold laplaceTransform
   rw [intervalIntegral.integral_of_le hd.le]
-  exact MeasureTheory.setIntegral_eq_of_subset_of_forall_sdiff_eq_zero measurableSet_Ioi
+  exact setIntegral_eq_of_subset_of_forall_diff_eq_zero measurableSet_Ioi
     Set.Ioc_subset_Ioi_self (fun x hx => by
       have hxpos : 0 < x := hx.1
       have hdx : d ≤ x := by
@@ -1798,7 +1730,7 @@ private lemma laplaceTransform_deriv_deriv_eq_interval_of_tsupport_subset_Ico {d
         exp (-w * (t : ℂ)) * ((deriv (deriv f) t : ℝ) : ℂ) := by
   unfold laplaceTransform
   rw [intervalIntegral.integral_of_le hd.le]
-  exact MeasureTheory.setIntegral_eq_of_subset_of_forall_sdiff_eq_zero measurableSet_Ioi
+  exact setIntegral_eq_of_subset_of_forall_diff_eq_zero measurableSet_Ioi
     Set.Ioc_subset_Ioi_self (fun x hx => by
       have hxpos : 0 < x := hx.1
       have hdx : d ≤ x := by
@@ -1829,13 +1761,15 @@ theorem laplaceTransform_ibp {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
     have hdf_cont : ContinuousOn (fun t => (df t : ℂ)) (Set.uIcc (0 : ℝ) d) := by
       have hreal : ContinuousOn df I :=
         hdf_C1.continuousOn
-      simpa [I, Set.uIcc_of_le hd.le] using! continuous_ofReal.comp_continuousOn hreal
+      simpa [I, Set.uIcc_of_le hd.le, Function.comp_def] using
+        continuous_ofReal.comp_continuousOn hreal
     exact hdf_cont.intervalIntegrable
   have hd2f_int : IntervalIntegrable (fun t => (d2f t : ℂ)) volume 0 d := by
     have hd2f_cont : ContinuousOn (fun t => (d2f t : ℂ)) (Set.uIcc (0 : ℝ) d) := by
       have hreal : ContinuousOn d2f I := by
         simpa [d2f] using hdf_C1.continuousOn_derivWithin (uniqueDiffOn_Icc hd) (by norm_num)
-      simpa [I, Set.uIcc_of_le hd.le] using! continuous_ofReal.comp_continuousOn hreal
+      simpa [I, Set.uIcc_of_le hd.le, Function.comp_def] using
+        continuous_ofReal.comp_continuousOn hreal
     exact hd2f_cont.intervalIntegrable
   have hA_deriv : ∀ x ∈ Set.uIcc (0 : ℝ) d, HasDerivWithinAt A (K x) (Set.uIcc (0 : ℝ) d) x := by
     intro x _hx
@@ -2116,7 +2050,7 @@ private lemma kadiriTestFnRightTail_hasDerivWithinAt_d {d : ℝ} {f : ℝ → �
       HasDerivWithinAt (fun y : ℝ => exp (-s * (y : ℂ)))
         (-s * exp (-s * (d : ℂ))) (Set.Ici d) d := by
     simpa using (laplaceKernel_hasDerivAt s d).hasDerivWithinAt
-  simpa [kadiriTestFnRightTail] using! hexp.const_mul (f 0 : ℂ)
+  convert hexp.const_mul (f 0 : ℂ) using 1 <;> rfl
 
 private theorem kadiriTestFn_H1_seam_derivatives {d : ℝ} (hd : 0 < d)
     {f : ℝ → ℝ} (hf : KadiriH1 d f) (s : ℂ) :
@@ -2312,8 +2246,7 @@ private lemma kadiriTestFn_H1_deriv_eq_rightTail_near_d {d : ℝ} (hd : 0 < d)
       have hright_deriv :
           HasDerivAt (kadiriTestFnRightTail f s)
             ((f 0 : ℂ) * (-s * exp (-s * (d : ℂ)))) d := by
-        simpa [kadiriTestFnRightTail] using!
-          (laplaceKernel_hasDerivAt s d).const_mul (f 0 : ℂ)
+        convert (laplaceKernel_hasDerivAt s d).const_mul (f 0 : ℂ) using 1 <;> rfl
       exact hright_deriv.deriv
     exact hglobal.trans hright.symm
 
@@ -2581,7 +2514,7 @@ theorem kadiriTestFn_laplaceTransform {d : ℝ} (_hd : 0 < d) {f : ℝ → ℝ}
   have hiexp : IntegrableOn (fun y : ℝ => exp (-w * (y : ℂ))) (Set.Ioi 0) := by
     refine (integrable_norm_iff (Measurable.aestronglyMeasurable <| by fun_prop)).mp ?_
     suffices h : IntegrableOn (fun y : ℝ => Real.exp (-w.re * y)) (Set.Ioi 0) by
-      simpa [Complex.norm_exp, neg_mul] using! h
+      simpa [Complex.norm_exp, neg_mul, IntegrableOn] using h
     exact exp_neg_integrableOn_Ioi 0 hsz
   have hiA : IntegrableOn (fun y : ℝ => (f 0 : ℂ) * exp (-w * (y : ℂ))) (Set.Ioi 0) :=
     hiexp.const_mul _
