@@ -126,6 +126,51 @@ theorem kadiri_thm_3_1_q1_eq_12_pv
     kadiriBotHorizontalIntegral_eq_pvCanonical_of_noZero
       (φ := φ) (a := a) (T := T) hbotNo] using hOrdinary
 
+/-- Faithful form of the top horizontal sublemma (eq. (12), Kadiri 2005; cf.
+issue #1538). The ordinary horizontal integral tends to `0` as `T → ∞` ranging
+over ordinates with no zero of `ζ` on the line, the natural domain for the
+all-height limit. The unrestricted all-`T` statement is not valid at ordinates of
+zeros of `ζ`: the integration segment `σ ∈ (-a, 1+a)` contains the critical
+strip, so at such heights `-ζ'/ζ` has a pole on the path. -/
+theorem top_horizontal_integral_vanishes_avoiding_zeros
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * Complex.exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1 / 2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * Complex.exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1 / 2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    Filter.Tendsto (kadiriTopHorizontalIntegral φ a)
+      (Filter.atTop ⊓ Filter.principal {T : ℝ | KadiriNoZeroOrdinate T}) (nhds 0) := by
+  have hPV := kadiri_thm_3_1_q1_top_horizontal_vanishes hφ hb hφ_decay hφ'_decay ha hab ha1
+  have heq : (kadiriTopHorizontalPVCanonical φ a)
+      =ᶠ[Filter.atTop ⊓ Filter.principal {T : ℝ | KadiriNoZeroOrdinate T}]
+      (kadiriTopHorizontalIntegral φ a) := by
+    refine Filter.eventually_inf_principal.2 (Filter.Eventually.of_forall (fun T hT => ?_))
+    have hT' : KadiriNoZeroOrdinate T := hT
+    simp [kadiriTopHorizontalPVCanonical, hT']
+  exact (hPV.mono_left inf_le_left).congr' heq
+
+/-- Faithful form of the bottom horizontal sublemma (eq. (12), Kadiri 2005; cf.
+issue #1539). Companion to `top_horizontal_integral_vanishes_avoiding_zeros`,
+with the bottom ordinate `-T`. -/
+theorem bot_horizontal_integral_vanishes_avoiding_zeros
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ) {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * Complex.exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1 / 2 + b) * |x|))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * Complex.exp ((x : ℂ) / 2))
+        =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1 / 2 + b) * |x|))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    Filter.Tendsto (kadiriBotHorizontalIntegral φ a)
+      (Filter.atTop ⊓ Filter.principal {T : ℝ | KadiriNoZeroOrdinate (-T)}) (nhds 0) := by
+  have hPV := kadiri_thm_3_1_q1_bot_horizontal_vanishes hφ hb hφ_decay hφ'_decay ha hab ha1
+  have heq : (kadiriBotHorizontalPVCanonical φ a)
+      =ᶠ[Filter.atTop ⊓ Filter.principal {T : ℝ | KadiriNoZeroOrdinate (-T)}]
+      (kadiriBotHorizontalIntegral φ a) := by
+    refine Filter.eventually_inf_principal.2 (Filter.Eventually.of_forall (fun T hT => ?_))
+    have hT' : KadiriNoZeroOrdinate (-T) := hT
+    simp [kadiriBotHorizontalPVCanonical, hT']
+  exact (hPV.mono_left inf_le_left).congr' heq
+
 end
 
 end Kadiri
