@@ -20,8 +20,10 @@ open Complex
 #check exp_logGammaBranch
 #check riemannVonMangoldtMainTerm
 #check riemannVonMangoldtZetaTopLogDerivIntegral
+#check riemannVonMangoldtZetaContourLogDerivIntegral
 #check riemannVonMangoldtS
-#check riemannVonMangoldtS_eq_zetaTopLogDerivIntegral_im
+#check riemannVonMangoldtS_eq_zetaContourLogDerivIntegral_im
+#check riemannVonMangoldtS_eq_zetaVertical_add_top_im
 #check riemannZeta_N_eq_toFinset_sum_order
 #check riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero
 #check riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero
@@ -52,8 +54,10 @@ example (T : ℝ) (hT : 1 ≤ T)
 #print axioms exp_logGammaBranch
 #print axioms riemannVonMangoldtMainTerm
 #print axioms riemannVonMangoldtZetaTopLogDerivIntegral
+#print axioms riemannVonMangoldtZetaContourLogDerivIntegral
 #print axioms riemannVonMangoldtS
-#print axioms riemannVonMangoldtS_eq_zetaTopLogDerivIntegral_im
+#print axioms riemannVonMangoldtS_eq_zetaContourLogDerivIntegral_im
+#print axioms riemannVonMangoldtS_eq_zetaVertical_add_top_im
 #print axioms riemannZeta_N_eq_toFinset_sum_order
 #print axioms riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero
 #print axioms riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero

@@ -47,17 +47,33 @@ def riemannVonMangoldtZetaTopLogDerivIntegral (T : ℝ) : ℂ :=
   HIntegral (logDeriv riemannZeta) 2 (1 / 2) T
 
 /--
+The unwrapped zeta log-derivative integral along the classical Riemann-von
+Mangoldt zeta contour: up the line `Re s = 2` from height `0` to `T`, then
+left along the top edge to `1 / 2 + iT`.
+-/
+def riemannVonMangoldtZetaContourLogDerivIntegral (T : ℝ) : ℂ :=
+  VIntegral (logDeriv riemannZeta) 2 0 T +
+    riemannVonMangoldtZetaTopLogDerivIntegral T
+
+/--
 The unwrapped zeta-argument term used by the L0 Riemann-von Mangoldt bridge.
 
 This is the contour argument contribution, not a principal `Complex.arg`
 endpoint difference.
 -/
 def riemannVonMangoldtS (T : ℝ) : ℝ :=
-  (1 / Real.pi) * (riemannVonMangoldtZetaTopLogDerivIntegral T).im
+  (1 / Real.pi) * (riemannVonMangoldtZetaContourLogDerivIntegral T).im
 
-theorem riemannVonMangoldtS_eq_zetaTopLogDerivIntegral_im (T : ℝ) :
+theorem riemannVonMangoldtS_eq_zetaContourLogDerivIntegral_im (T : ℝ) :
     riemannVonMangoldtS T =
-      (1 / Real.pi) * (riemannVonMangoldtZetaTopLogDerivIntegral T).im :=
+      (1 / Real.pi) * (riemannVonMangoldtZetaContourLogDerivIntegral T).im :=
+  rfl
+
+theorem riemannVonMangoldtS_eq_zetaVertical_add_top_im (T : ℝ) :
+    riemannVonMangoldtS T =
+      (1 / Real.pi) *
+        (VIntegral (logDeriv riemannZeta) 2 0 T +
+          riemannVonMangoldtZetaTopLogDerivIntegral T).im :=
   rfl
 
 /-- `N(T)` as a finite order-weighted sum over the positive-height zero window. -/
