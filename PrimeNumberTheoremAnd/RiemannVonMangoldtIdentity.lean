@@ -70,6 +70,46 @@ private lemma Gammaℝ_ne_zero_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) :
   intro n hn
   exact hs (by simp [hn])
 
+private lemma analyticAt_Gamma_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) :
+    AnalyticAt ℂ Gamma s := by
+  let U : Set ℂ := {z | z.im ≠ 0}
+  have hU_open : IsOpen U := by
+    have hU : U = Complex.im ⁻¹' ({0}ᶜ : Set ℝ) := by
+      ext z
+      simp [U]
+    rw [hU]
+    exact isOpen_compl_singleton.preimage continuous_im
+  have hdiff : DifferentiableOn ℂ Gamma U := by
+    intro z hz
+    exact (Complex.differentiableAt_Gamma z (fun n hn => by
+      have him : z.im = 0 := by
+        rw [hn]
+        simp
+      exact hz him)).differentiableWithinAt
+  exact (hdiff.analyticOnNhd hU_open) s hs
+
+private lemma analyticAt_Gammaℝ_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) :
+    AnalyticAt ℂ Gammaℝ s := by
+  rw [show Gammaℝ = fun z ↦ (Real.pi : ℂ) ^ (-z / 2) * Complex.Gamma (z / 2) from
+    funext Gammaℝ_def]
+  refine AnalyticAt.mul ?_ ?_
+  · rw [show (fun z : ℂ ↦ (Real.pi : ℂ) ^ (-z / 2)) =
+        fun z ↦ Complex.exp (Complex.log (Real.pi : ℂ) * (-z / 2)) from by
+      funext z
+      rw [Complex.cpow_def_of_ne_zero (by simp [Real.pi_ne_zero])]]
+    fun_prop
+  · have hhalf_im : (s / 2).im ≠ 0 := by
+      intro h
+      have h' : s.im / 2 = 0 := by
+        simpa using h
+      exact hs (by linarith)
+    simpa [Function.comp_def] using
+      AnalyticAt.comp_of_eq
+        (g := Complex.Gamma) (f := fun z : ℂ => z / 2) (x := s) (y := s / 2)
+        (analyticAt_Gamma_of_im_ne_zero hhalf_im)
+        (analyticAt_id.div_const (c := (2 : ℂ)))
+        rfl
+
 /--
 Away from the real axis, `ξ` is `ζ` times the nonzero Gamma-polynomial factor appearing in
 the completed zeta function.
@@ -98,6 +138,36 @@ theorem riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero {s : ℂ}
     exact (mul_eq_zero.mp h).resolve_left hfactor
   · intro h
     simp [h]
+
+/-- Away from the real axis, `ξ` and `ζ` have the same meromorphic order. -/
+theorem meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero {s : ℂ}
+    (hs : s.im ≠ 0) :
+    meromorphicOrderAt riemannXi s = meromorphicOrderAt riemannZeta s := by
+  let G : ℂ → ℂ := fun z => z * (z - 1) * Gammaℝ z / 2
+  have hG_an : AnalyticAt ℂ G s := by
+    dsimp [G]
+    exact (((analyticAt_id.mul (analyticAt_id.sub analyticAt_const)).mul
+      (analyticAt_Gammaℝ_of_im_ne_zero hs)).div_const (c := (2 : ℂ)))
+  have hG_ne : G s ≠ 0 := by
+    dsimp [G]
+    exact div_ne_zero
+      (mul_ne_zero
+        (mul_ne_zero (ne_zero_of_im_ne_zero hs)
+          (sub_ne_zero.mpr (ne_one_of_im_ne_zero hs)))
+        (Gammaℝ_ne_zero_of_im_ne_zero hs))
+      (by norm_num)
+  have him_nhds : ∀ᶠ z in 𝓝 s, z.im ≠ 0 :=
+    (continuous_im.continuousAt.ne_iff_eventually_ne continuousAt_const).mp hs
+  have hxi_eq : riemannXi =ᶠ[𝓝[≠] s] fun z => G z * riemannZeta z := by
+    filter_upwards [him_nhds.filter_mono nhdsWithin_le_nhds] with z hz
+    dsimp [G]
+    exact riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero hz
+  calc
+    meromorphicOrderAt riemannXi s =
+        meromorphicOrderAt (fun z => G z * riemannZeta z) s :=
+      meromorphicOrderAt_congr hxi_eq
+    _ = meromorphicOrderAt riemannZeta s :=
+      meromorphicOrderAt_mul_of_ne_zero (f := riemannZeta) hG_an hG_ne
 
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
