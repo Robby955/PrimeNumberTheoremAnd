@@ -7,6 +7,7 @@ module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 public import PrimeNumberTheoremAnd.EulerMaclaurin2
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
 
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.Calculus.Deriv.Inv
@@ -523,6 +524,11 @@ noncomputable def digammaBinetKernel (z : ℂ) (t : ℝ) : ℂ :=
     ((z ^ 2 + ((t ^ 2 : ℝ) : ℂ)) *
       (((Real.exp (2 * Real.pi * t) - 1 : ℝ) : ℂ)))
 
+/-- The `n`th geometric-Bose term in the positive second-Binet kernel expansion. -/
+noncomputable def binetTerm (z : ℂ) (n : ℕ) (t : ℝ) : ℂ :=
+  (((2 * t : ℝ) : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ))) *
+    ((Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) : ℝ) : ℂ)
+
 /-- The exponential majorant for the positive second-Binet kernel. -/
 noncomputable def binetMajorant (x t : ℝ) : ℝ :=
   Real.exp (-(digammaBinetA0 * t)) / digammaBinetA0 +
@@ -540,6 +546,83 @@ lemma norm_digammaBinetKernel_eq {z : ℂ} {t : ℝ} (ht : 0 < t) :
         Real.exp (2 * Real.pi * t) - 1 := by
     rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hEpos.le]
   rw [digammaBinetKernel, norm_div, norm_mul, hnum, hE]
+
+lemma exp_neg_two_pi_nat_add_one_mul_assoc (n : ℕ) (t : ℝ) :
+    Real.exp (-(2 * Real.pi * ((n : ℝ) + 1) * t)) =
+      Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+  congr 1
+  ring
+
+lemma digammaBinetKernel_eq_tsum_binetTerm (z : ℂ) {t : ℝ} (ht : 0 < t) :
+    digammaBinetKernel z t = ∑' n : ℕ, binetTerm z n t := by
+  let A : ℂ := ((2 * t : ℝ) : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ))
+  let e : ℕ → ℝ := fun n => Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t)
+  have hgeom_old := tsum_exp_neg_two_pi_nat_add_one t ht
+  have hgeom : (∑' n : ℕ, e n) = 1 / (Real.exp (2 * Real.pi * t) - 1) := by
+    rw [← hgeom_old]
+    congr
+    ext n
+    exact (exp_neg_two_pi_nat_add_one_mul_assoc n t).symm
+  have hgeomC : (((1 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ)) =
+      ∑' n : ℕ, ((e n : ℝ) : ℂ) := by
+    rw [← hgeom]
+    exact Complex.ofReal_tsum e
+  calc
+    digammaBinetKernel z t = A * (((1 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ)) := by
+      simp [A, digammaBinetKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+    _ = A * (∑' n : ℕ, ((e n : ℝ) : ℂ)) := by rw [hgeomC]
+    _ = ∑' n : ℕ, A * ((e n : ℝ) : ℂ) := by
+      rw [tsum_mul_left]
+    _ = ∑' n : ℕ, binetTerm z n t := by
+      simp [A, e, binetTerm, mul_comm, mul_left_comm]
+
+lemma binetTerm_integrableOn (z : ℂ) (hz : 0 < z.re) (n : ℕ) :
+    IntegrableOn (binetTerm z n) (Set.Ioi (0 : ℝ)) volume := by
+  let a : ℝ := 2 * Real.pi * ((n : ℝ) + 1)
+  have ha : 0 < a := by positivity
+  have hbase : IntegrableOn (fun t : ℝ => Real.exp (-a * t))
+      (Set.Ioi (0 : ℝ)) volume := by
+    simpa [Real.rpow_zero, Real.rpow_one, mul_comm] using
+      integrableOn_rpow_mul_exp_neg_mul_rpow
+        (s := 0) (p := 1) (b := a)
+        (by norm_num : (-1 : ℝ) < 0) (by norm_num : (1 : ℝ) ≤ 1) ha
+  have hmaj : IntegrableOn (fun t : ℝ => (1 / z.re) * Real.exp (-a * t))
+      (Set.Ioi (0 : ℝ)) volume := hbase.const_mul (1 / z.re)
+  have hmeas : AEStronglyMeasurable (binetTerm z n)
+      (volume.restrict (Set.Ioi (0 : ℝ))) := by
+    unfold binetTerm
+    exact (by fun_prop : Measurable (fun t : ℝ =>
+      (((2 * t : ℝ) : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ))) *
+        ((Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) : ℝ) : ℂ))).aestronglyMeasurable
+  exact hmaj.mono' hmeas (by
+    filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+    have htpos : 0 < t := ht
+    have hDlower : 2 * z.re * t ≤ ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ := by
+      exact two_mul_re_mul_le_norm_sq_add_real_sq (z := z) (t := t) hz.le htpos.le
+    have hDpos : 0 < ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ := by
+      have hleft : 0 < 2 * z.re * t := by positivity
+      exact lt_of_lt_of_le hleft hDlower
+    have hnum : ‖((2 * t : ℝ) : ℂ)‖ = 2 * t := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+    have hexp_nonneg : 0 ≤ Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) :=
+      (Real.exp_pos _).le
+    have hexp_norm :
+        ‖((Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) : ℝ) : ℂ)‖ =
+          Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hexp_nonneg]
+    have hquot : (2 * t) / ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ ≤ 1 / z.re := by
+      rw [div_le_iff₀ hDpos]
+      field_simp [hz.ne']
+      nlinarith [hDlower]
+    calc
+      ‖binetTerm z n t‖ =
+          ((2 * t) / ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖) *
+            Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+            rw [binetTerm, norm_mul, norm_div, hnum, hexp_norm]
+      _ ≤ (1 / z.re) * Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+            exact mul_le_mul_of_nonneg_right hquot hexp_nonneg
+      _ = (1 / z.re) * Real.exp (-a * t) := by
+            simp [a])
 
 lemma norm_sq_mul_norm_digammaBinetKernel_le {z : ℂ} {t : ℝ}
     (hx : 0 < z.re) (ht : 0 < t) :
@@ -700,6 +783,129 @@ lemma hasSum_integral_exp_neg_two_pi_nat_add_one_mul_sin (u : ℝ) :
         Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1) := rfl
   rw [hterms, hfint] at hswap
   exact hswap
+
+/-- A nonzero pure-imaginary complex number is not an integer. -/
+lemma pure_imag_mem_integerComplement {y : ℝ} (hy : y ≠ 0) :
+    (((y : ℂ) * Complex.I) ∈ Complex.integerComplement) := by
+  rw [Complex.mem_integerComplement_iff]
+  rintro ⟨m, hm⟩
+  have him := congrArg Complex.im hm
+  simp at him
+  exact hy him.symm
+
+/-- Imaginary part of one cotangent Mittag-Leffler term on the positive imaginary axis. -/
+lemma cot_term_pure_imag_im (y : ℝ) (n : ℕ) :
+    ((1 / (((y : ℂ) * Complex.I) - (n + 1 : ℂ)) +
+        1 / (((y : ℂ) * Complex.I) + (n + 1 : ℂ))).im) =
+      -2 * y / (((n : ℝ) + 1) ^ 2 + y ^ 2) := by
+  simp [Complex.inv_im, Complex.normSq_apply, Complex.add_re, Complex.add_im,
+    Complex.sub_re, Complex.sub_im, Complex.mul_re, Complex.mul_im]
+  ring_nf
+
+/-- Closed form for the imaginary part of `π cot(πiy) - 1/(iy)`. -/
+lemma cot_lhs_pure_imag_im (y : ℝ) (hy : 0 < y) :
+    (Real.pi * Complex.cot (Real.pi * ((y : ℂ) * Complex.I)) -
+        1 / ((y : ℂ) * Complex.I)).im =
+      -Real.pi - 2 * Real.pi / (Real.exp (2 * Real.pi * y) - 1) + 1 / y := by
+  have hEpos : 0 < Real.exp (2 * Real.pi * y) - 1 := by
+    rw [sub_pos]
+    exact Real.one_lt_exp_iff.mpr (by positivity)
+  have hEpos' : -1 + Real.exp (Real.pi * y * 2) ≠ 0 := by
+    have h : 0 < Real.exp (Real.pi * y * 2) - 1 := by
+      rw [sub_pos]
+      exact Real.one_lt_exp_iff.mpr (by positivity)
+    linarith
+  have hq : 1 - Real.exp (-(Real.pi * y * 2)) ≠ 0 := by
+    rw [ne_eq, sub_eq_zero]
+    intro h
+    have : Real.exp (-(Real.pi * y * 2)) < 1 := by
+      rw [Real.exp_lt_one_iff]
+      nlinarith [Real.pi_pos, hy]
+    linarith
+  rw [Complex.cot_pi_eq_exp_ratio]
+  simp [Complex.exp_re, Complex.exp_im, Complex.inv_im,
+    Complex.normSq_apply, Complex.div_re, Complex.div_im]
+  field_simp [hy.ne', hEpos.ne', hq, Real.exp_ne_zero (2 * Real.pi * y),
+    Real.exp_ne_zero (-(Real.pi * y * 2))]
+  ring_nf
+  rw [Real.exp_neg]
+  field_simp [Real.exp_ne_zero (Real.pi * y * 2), hEpos']
+  ring_nf
+  field_simp [hEpos']
+  ring
+
+/-- Cotangent summation on the positive imaginary axis, in real `HasSum` form. -/
+lemma hasSum_cot_pure_imag (y : ℝ) (hy : 0 < y) :
+    HasSum (fun n : ℕ => -2 * y / (((n : ℝ) + 1) ^ 2 + y ^ 2))
+      (-Real.pi - 2 * Real.pi / (Real.exp (2 * Real.pi * y) - 1) + 1 / y) := by
+  let z : ℂ := (y : ℂ) * Complex.I
+  have hz : z ∈ Complex.integerComplement := by
+    simpa [z] using pure_imag_mem_integerComplement hy.ne'
+  have hsumm : Summable (fun n : ℕ =>
+      1 / (z - (n + 1)) + 1 / (z + (n + 1))) := by
+    simpa [cotTerm] using summable_cotTerm hz
+  have hcot : HasSum (fun n : ℕ =>
+      1 / (z - (n + 1)) + 1 / (z + (n + 1)))
+      (Real.pi * Complex.cot (Real.pi * z) - 1 / z) := by
+    rw [cot_series_rep' (x := z) hz]
+    exact hsumm.hasSum
+  have him0 := Complex.imCLM.hasSum hcot
+  have him : HasSum
+      (fun b : ℕ => (1 / (z - (b + 1)) + 1 / (z + (b + 1))).im)
+      ((Real.pi * Complex.cot (Real.pi * z) - 1 / z).im) := by
+    simpa using him0
+  have htarget :
+      (Real.pi * Complex.cot (Real.pi * z) - 1 / z).im =
+        -Real.pi - 2 * Real.pi / (Real.exp (2 * Real.pi * y) - 1) + 1 / y := by
+    simpa [z] using cot_lhs_pure_imag_im y hy
+  rw [htarget] at him
+  have hterm :
+      (fun b : ℕ => (1 / (z - (b + 1)) + 1 / (z + (b + 1))).im) =
+        fun n : ℕ => -2 * y / (((n : ℝ) + 1) ^ 2 + y ^ 2) := by
+    funext n
+    simpa [z] using cot_term_pure_imag_im y n
+  rw [hterm] at him
+  exact him
+
+/-- Series form of the Planck sine transform. -/
+lemma hasSum_planck_sine_terms (u : ℝ) (hu : 0 < u) :
+    HasSum
+      (fun n : ℕ => u / ((2 * Real.pi * ((n : ℝ) + 1)) ^ 2 + u ^ 2))
+      ((1 / (Real.exp u - 1) + 1 / 2 - 1 / u) / 2) := by
+  let y : ℝ := u / (2 * Real.pi)
+  have hy : 0 < y := by positivity
+  have hA := hasSum_cot_pure_imag y hy
+  have hscaled := hA.mul_left (-(1 / (4 * Real.pi)))
+  have hterm :
+      (fun n : ℕ => u / ((2 * Real.pi * ((n : ℝ) + 1)) ^ 2 + u ^ 2)) =
+        fun n : ℕ => -(1 / (4 * Real.pi)) *
+          (-2 * y / (((n : ℝ) + 1) ^ 2 + y ^ 2)) := by
+    funext n
+    dsimp [y]
+    field_simp [Real.pi_ne_zero]
+    ring
+  have hconst :
+      ((1 / (Real.exp u - 1) + 1 / 2 - 1 / u) / 2) =
+        -(1 / (4 * Real.pi)) *
+          (-Real.pi - 2 * Real.pi / (Real.exp (2 * Real.pi * y) - 1) + 1 / y) := by
+    dsimp [y]
+    have hE : Real.exp (2 * Real.pi * (u / (2 * Real.pi))) = Real.exp u := by
+      congr 1
+      field_simp [Real.pi_ne_zero]
+    rw [hE]
+    field_simp [Real.pi_ne_zero, hu.ne',
+      sub_ne_zero.mpr (ne_of_gt (Real.one_lt_exp_iff.mpr hu)).symm]
+    ring
+  rw [hterm, hconst]
+  exact hscaled
+
+/-- The Planck sine transform on `(0, ∞)`. -/
+lemma integral_sin_div_exp_two_pi_sub_one_eq (u : ℝ) (hu : 0 < u) :
+    ∫ t : ℝ in Set.Ioi 0,
+        Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1) =
+      (1 / (Real.exp u - 1) + 1 / 2 - 1 / u) / 2 := by
+  exact (hasSum_integral_exp_neg_two_pi_nat_add_one_mul_sin u).unique
+    (hasSum_planck_sine_terms u hu)
 
 lemma integrableOn_mul_exp_neg_a0_mul_Ioi :
     IntegrableOn (fun t : ℝ => t * Real.exp (-(digammaBinetA0 * t)))
