@@ -6,6 +6,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.log_ne_zero_of_one_lt_re
 #check Backlund.shifted_mem_slitPlane_on_verticalClosedStrip
 #check Backlund.shifted_log_ne_zero_on_verticalClosedStrip
+#check Backlund.verticalStrip_closure_eq_verticalClosedStrip
+#check Backlund.shifted_log_diffContOnCl_on_verticalStrip
 #check Backlund.log_phragmen_lindelof_normalized
 
 #print axioms Backlund.eccentricHighRhs
@@ -14,4 +16,6 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.log_ne_zero_of_one_lt_re
 #print axioms Backlund.shifted_mem_slitPlane_on_verticalClosedStrip
 #print axioms Backlund.shifted_log_ne_zero_on_verticalClosedStrip
+#print axioms Backlund.verticalStrip_closure_eq_verticalClosedStrip
+#print axioms Backlund.shifted_log_diffContOnCl_on_verticalStrip
 #print axioms Backlund.log_phragmen_lindelof_normalized

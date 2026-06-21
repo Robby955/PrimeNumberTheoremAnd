@@ -83,6 +83,23 @@ theorem shifted_log_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : �
   have hpos : (1 : ℝ) < Q + z.re := by nlinarith
   simpa using hpos
 
+/-- The closure of a Hadamard open vertical strip is the corresponding closed strip. -/
+theorem verticalStrip_closure_eq_verticalClosedStrip {σ₀ σ₁ : ℝ} (hσ : σ₀ ≠ σ₁) :
+    closure (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) =
+      Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁ := by
+  rw [Complex.HadamardThreeLines.verticalStrip, Complex.HadamardThreeLines.verticalClosedStrip,
+    Complex.closure_preimage_re, closure_Ioo hσ]
+
+/-- The shifted principal log is differentiable on a positive-real-part vertical strip. -/
+theorem shifted_log_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : ℝ}
+    (hσ : σ₀ < σ₁) (hQ : (0 : ℝ) < Q + σ₀) :
+    DiffContOnCl ℂ (fun z : ℂ => Complex.log ((Q : ℂ) + z))
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
+  exact ((differentiableOn_const (Q : ℂ)).add differentiableOn_id).clog
+    (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ hz)
+
 /--
 Hadamard three-lines for a function after division by a supplied nonzero
 normalizer. This is the reusable PL-log shell: the concrete shifted log-power
