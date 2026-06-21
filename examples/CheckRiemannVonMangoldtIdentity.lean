@@ -18,6 +18,11 @@ open Complex
 #check im_logGamma_quarter_stirling_of_logGammaSeq_stirling_remainder
 #check logGammaBranch
 #check exp_logGammaBranch
+#check riemannVonMangoldtMainTerm
+#check riemannVonMangoldtS
+#check riemannZeta_N_eq_toFinset_sum_order
+#check riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero
+#check riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero
 
 example (z : ℂ) (hz : 0 < z.re) :
     Complex.exp (logGammaBranch z) = Complex.Gamma z :=
@@ -39,3 +44,8 @@ example (T : ℝ) (hT : 1 ≤ T)
 #print axioms riemannVonMangoldtGammaStirlingMain_im
 #print axioms im_logGamma_quarter_stirling_of_logGammaSeq_stirling_remainder
 #print axioms exp_logGammaBranch
+#print axioms riemannVonMangoldtMainTerm
+#print axioms riemannVonMangoldtS
+#print axioms riemannZeta_N_eq_toFinset_sum_order
+#print axioms riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero
+#print axioms riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero

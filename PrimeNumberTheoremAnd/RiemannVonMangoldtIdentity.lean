@@ -1,4 +1,6 @@
 import PrimeNumberTheoremAnd.RectangleArgumentPrinciple
+import PrimeNumberTheoremAnd.IEANTN.KadiriEq12Helpers
+import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.PhaseBounds
@@ -28,6 +30,74 @@ of the following shape, where the logarithm is the `logGammaSeq` limit branch:
 open Complex Set BigOperators Filter Topology
 
 noncomputable section
+
+/-- The classical main term in the Riemann-von Mangoldt zero-counting formula. -/
+def riemannVonMangoldtMainTerm (T : ℝ) : ℝ :=
+  T / (2 * Real.pi) * Real.log (T / (2 * Real.pi)) - T / (2 * Real.pi) + 7 / 8
+
+/--
+The zeta-argument term used by the L0 Riemann-von Mangoldt bridge.
+
+This is the normalization in which the remaining theorem should read
+`riemannZeta.N T - riemannVonMangoldtMainTerm T = riemannVonMangoldtS T + RΓ T`.
+-/
+def riemannVonMangoldtS (T : ℝ) : ℝ :=
+  (1 / Real.pi) *
+    (Complex.arg (riemannZeta ((1 / 2 : ℂ) + ((T : ℝ) : ℂ) * Complex.I)) -
+      Complex.arg (riemannZeta ((2 : ℂ) + ((T : ℝ) : ℂ) * Complex.I)))
+
+/-- `N(T)` as a finite order-weighted sum over the positive-height zero window. -/
+theorem riemannZeta_N_eq_toFinset_sum_order (T : ℝ) :
+    riemannZeta.N T =
+      ∑ ρ ∈ (Kadiri.zeroes_rect_univ_positive_height_finite T).toFinset,
+        (riemannZeta.order ρ : ℝ) := by
+  rw [riemannZeta.N]
+  rw [zeroes_sum_eq_toFinset_sum (fun _ : ℂ => (1 : ℝ))
+    (Kadiri.zeroes_rect_univ_positive_height_finite T)]
+  simp
+
+private lemma ne_zero_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) : s ≠ 0 := by
+  intro h
+  exact hs (by simp [h])
+
+private lemma ne_one_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) : s ≠ 1 := by
+  intro h
+  exact hs (by simp [h])
+
+private lemma Gammaℝ_ne_zero_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) :
+    Gammaℝ s ≠ 0 := by
+  rw [ne_eq, Gammaℝ_eq_zero_iff, not_exists]
+  intro n hn
+  exact hs (by simp [hn])
+
+/--
+Away from the real axis, `ξ` is `ζ` times the nonzero Gamma-polynomial factor appearing in
+the completed zeta function.
+-/
+theorem riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) :
+    riemannXi s = (s * (s - 1) * Gammaℝ s / 2) * riemannZeta s := by
+  have hs0 : s ≠ 0 := ne_zero_of_im_ne_zero hs
+  have hs1 : s ≠ 1 := ne_one_of_im_ne_zero hs
+  have hΓ : Gammaℝ s ≠ 0 := Gammaℝ_ne_zero_of_im_ne_zero hs
+  rw [riemannXi_eq_mul_completedRiemannZeta hs0 hs1]
+  rw [riemannZeta_def_of_ne_zero hs0]
+  field_simp [hΓ]
+
+/-- Away from the real axis, `ξ` and `ζ` have the same zero set. -/
+theorem riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero {s : ℂ}
+    (hs : s.im ≠ 0) :
+    riemannXi s = 0 ↔ riemannZeta s = 0 := by
+  have hs0 : s ≠ 0 := ne_zero_of_im_ne_zero hs
+  have hs1 : s ≠ 1 := ne_one_of_im_ne_zero hs
+  have hΓ : Gammaℝ s ≠ 0 := Gammaℝ_ne_zero_of_im_ne_zero hs
+  have hfactor : s * (s - 1) * Gammaℝ s / 2 ≠ 0 := by
+    exact div_ne_zero (mul_ne_zero (mul_ne_zero hs0 (sub_ne_zero.mpr hs1)) hΓ) (by norm_num)
+  rw [riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero hs]
+  constructor
+  · intro h
+    exact (mul_eq_zero.mp h).resolve_left hfactor
+  · intro h
+    simp [h]
 
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
