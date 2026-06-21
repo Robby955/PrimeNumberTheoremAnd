@@ -300,6 +300,17 @@ lemma two_mul_re_mul_le_norm_sq_add_real_sq {z : ℂ} {t : ℝ}
   have habs := sq_le_sq.mp hle_sq
   rwa [abs_of_nonneg hnonneg, abs_of_nonneg (norm_nonneg _)] at habs
 
+lemma re_sq_le_norm_sq_add_real_sq (z : ℂ) (t : ℝ) :
+    z.re ^ 2 ≤ ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ := by
+  have hsq := norm_sq_add_real_sq_sq z t
+  have hle_sq : (z.re ^ 2) ^ 2 ≤ ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ ^ 2 := by
+    rw [hsq]
+    rw [← Complex.normSq_eq_norm_sq z, Complex.normSq_apply]
+    nlinarith [sq_nonneg (t ^ 2 - z.im ^ 2), sq_nonneg z.re,
+      sq_nonneg z.im, sq_nonneg t]
+  have habs := sq_le_sq.mp hle_sq
+  rwa [abs_of_nonneg (sq_nonneg z.re), abs_of_nonneg (norm_nonneg _)] at habs
+
 lemma norm_sq_le_norm_sq_add_real_sq_add {z : ℂ} {t : ℝ} :
     ‖z‖ ^ 2 ≤ ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ + t ^ 2 := by
   have htri := norm_sub_le (z ^ 2 + ((t ^ 2 : ℝ) : ℂ)) (((t ^ 2 : ℝ) : ℂ))
@@ -447,6 +458,100 @@ lemma integral_Ioi_exp_neg_mul_sin_scaled (a b : ℝ) (ha : 0 < a) :
           simp [div_eq_mul_inv, z, Complex.inv_im, Complex.normSq_apply]
           field_simp [hden]
           simp
+
+/-- Pointwise complex-exponential form of the damped sine integrand. -/
+private lemma cexp_neg_mul_ofReal_sin_eq (z : ℂ) (t u : ℝ) :
+    Complex.exp ((-z) * u) * ((Real.sin (t * u) : ℝ) : ℂ) =
+      (Complex.exp ((-z + (t : ℂ) * Complex.I) * u) -
+        Complex.exp ((-z - (t : ℂ) * Complex.I) * u)) / (2 * Complex.I) := by
+  rw [Complex.ofReal_sin]
+  simp only [Complex.sin]
+  have hplus : (-z + (t : ℂ) * Complex.I) * (u : ℂ) =
+      (-z) * u + (t * u : ℝ) * Complex.I := by
+    norm_num
+    ring
+  have hminus : (-z - (t : ℂ) * Complex.I) * (u : ℂ) =
+      (-z) * u - (t * u : ℝ) * Complex.I := by
+    norm_num
+    ring
+  rw [hplus, hminus]
+  rw [Complex.exp_add, Complex.exp_sub]
+  field_simp [Complex.I_ne_zero, Complex.exp_ne_zero ((t * u : ℝ) * Complex.I)]
+  rw [show Complex.I ^ 2 = -1 by simp]
+  rw [mul_sub]
+  let w : ℂ := (t * u : ℝ) * Complex.I
+  have hprod : Complex.exp w * Complex.exp (-w) = 1 := by
+    rw [← Complex.exp_add]
+    simp
+  change -1 * Complex.exp w * Complex.exp (-w) -
+      -1 * Complex.exp w * Complex.exp w = Complex.exp w ^ 2 - 1
+  rw [mul_assoc, hprod]
+  ring
+
+/-- Complex damped sine moment on the positive half-line. -/
+lemma integral_Ioi_cexp_neg_mul_sin_scaled {z : ℂ} (hz : 0 < z.re) (t : ℝ) :
+    ∫ u : ℝ in Set.Ioi 0,
+        Complex.exp ((-z) * u) * ((Real.sin (t * u) : ℝ) : ℂ) =
+      (t : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ)) := by
+  let aplus : ℂ := -z + (t : ℂ) * Complex.I
+  let aminus : ℂ := -z - (t : ℂ) * Complex.I
+  have hplus_re : aplus.re < 0 := by simp [aplus, hz]
+  have hminus_re : aminus.re < 0 := by simp [aminus, hz]
+  have hplus_ne : aplus ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    simp [aplus] at hre
+    linarith
+  have hminus_ne : aminus ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    simp [aminus] at hre
+    linarith
+  have hden_ne : z ^ 2 + ((t ^ 2 : ℝ) : ℂ) ≠ 0 := by
+    intro hzero
+    have hre := congrArg Complex.re hzero
+    have him := congrArg Complex.im hzero
+    simp [pow_two, Complex.mul_re, Complex.mul_im] at hre him
+    have hzimp : z.im = 0 := by nlinarith [hz]
+    nlinarith [sq_pos_of_pos hz, sq_nonneg t]
+  calc
+    ∫ u : ℝ in Set.Ioi 0,
+        Complex.exp ((-z) * u) * ((Real.sin (t * u) : ℝ) : ℂ)
+        = ∫ u : ℝ in Set.Ioi 0,
+            (Complex.exp (aplus * u) - Complex.exp (aminus * u)) /
+              (2 * Complex.I) := by
+          refine setIntegral_congr_fun measurableSet_Ioi ?_
+          intro u _hu
+          simpa [aplus, aminus] using cexp_neg_mul_ofReal_sin_eq z t u
+    _ = ((∫ u : ℝ in Set.Ioi 0, Complex.exp (aplus * u)) -
+            (∫ u : ℝ in Set.Ioi 0, Complex.exp (aminus * u))) /
+          (2 * Complex.I) := by
+          rw [MeasureTheory.integral_div]
+          rw [MeasureTheory.integral_sub]
+          · exact integrableOn_exp_mul_complex_Ioi hplus_re 0
+          · exact integrableOn_exp_mul_complex_Ioi hminus_re 0
+    _ = ((-Complex.exp (aplus * (0 : ℝ)) / aplus) -
+            (-Complex.exp (aminus * (0 : ℝ)) / aminus)) / (2 * Complex.I) := by
+          rw [integral_exp_mul_complex_Ioi (a := aplus) hplus_re 0]
+          rw [integral_exp_mul_complex_Ioi (a := aminus) hminus_re 0]
+    _ = (t : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ)) := by
+          have hplus_ne' : -z + (t : ℂ) * Complex.I ≠ 0 := by
+            simpa [aplus] using hplus_ne
+          have hminus_ne' : -z - (t : ℂ) * Complex.I ≠ 0 := by
+            simpa [aminus] using hminus_ne
+          have hden_ne' : (t : ℂ) ^ 2 + z ^ 2 ≠ 0 := by
+            have ht2 : ((t ^ 2 : ℝ) : ℂ) = (t : ℂ) ^ 2 := by norm_num
+            rw [add_comm]
+            simpa [ht2] using hden_ne
+          simp [aplus, aminus]
+          field_simp [hplus_ne', hminus_ne', hden_ne, hden_ne', Complex.I_ne_zero]
+          ring_nf
+          have hI3 : Complex.I ^ 3 = -Complex.I := by
+            simp [pow_succ]
+          rw [hI3]
+          ring_nf
+          field_simp [hden_ne']
+          ring_nf
 
 /-- HasSum form of the geometric expansion of the positive Binet denominator. -/
 lemma hasSum_exp_neg_two_pi_nat_add_one (t : ℝ) (ht : 0 < t) :
@@ -623,6 +728,125 @@ lemma binetTerm_integrableOn (z : ℂ) (hz : 0 < z.re) (n : ℕ) :
             exact mul_le_mul_of_nonneg_right hquot hexp_nonneg
       _ = (1 / z.re) * Real.exp (-a * t) := by
             simp [a])
+
+lemma integral_Ioi_mul_exp_neg_eq_inv_sq (a : ℝ) (ha : 0 < a) :
+    ∫ t in Set.Ioi (0 : ℝ), t * Real.exp (-a * t) = 1 / a ^ 2 := by
+  have h := _root_.integral_rpow_mul_exp_neg_mul_rpow
+    (p := 1) (q := 1) (b := a)
+    (by norm_num : (0 : ℝ) < 1) (by norm_num : (-1 : ℝ) < 1) ha
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), t * Real.exp (-a * t)
+        = ∫ t in Set.Ioi (0 : ℝ),
+            t ^ (1 : ℝ) * Real.exp (-a * t ^ (1 : ℝ)) := by
+          refine setIntegral_congr_fun measurableSet_Ioi ?_
+          intro t ht
+          simp [Real.rpow_one]
+    _ = a ^ (-((1 : ℝ) + 1) / 1) * (1 / 1) *
+        Real.Gamma (((1 : ℝ) + 1) / 1) := h
+    _ = 1 / a ^ 2 := by
+          rw [show -((1 : ℝ) + 1) / 1 = (-(2 : ℝ)) by norm_num]
+          rw [show ((1 : ℝ) + 1) / 1 = (2 : ℝ) by norm_num]
+          rw [Real.Gamma_two]
+          rw [Real.rpow_neg ha.le, Real.rpow_two]
+          ring
+
+lemma integral_norm_binetTerm_le (z : ℂ) (hz : 0 < z.re) (n : ℕ) :
+    ∫ t in Set.Ioi (0 : ℝ), ‖binetTerm z n t‖ ≤
+      1 / (2 * z.re ^ 2 * Real.pi ^ 2 * ((n : ℝ) + 1) ^ 2) := by
+  let a : ℝ := 2 * Real.pi * ((n : ℝ) + 1)
+  have ha : 0 < a := by positivity
+  have hmaj_int : IntegrableOn (fun t : ℝ => (2 / z.re ^ 2) *
+        (t * Real.exp (-a * t))) (Set.Ioi (0 : ℝ)) volume := by
+    have hbase : IntegrableOn (fun t : ℝ => t * Real.exp (-a * t))
+        (Set.Ioi (0 : ℝ)) volume := by
+      simpa [Real.rpow_one, mul_comm, mul_left_comm, mul_assoc] using
+        integrableOn_rpow_mul_exp_neg_mul_rpow
+          (s := 1) (p := 1) (b := a)
+          (by norm_num : (-1 : ℝ) < 1) (by norm_num : (1 : ℝ) ≤ 1) ha
+    exact hbase.const_mul (2 / z.re ^ 2)
+  have hmono : ∫ t in Set.Ioi (0 : ℝ), ‖binetTerm z n t‖ ≤
+      ∫ t in Set.Ioi (0 : ℝ), (2 / z.re ^ 2) * (t * Real.exp (-a * t)) := by
+    refine MeasureTheory.integral_mono_of_nonneg
+      (Filter.Eventually.of_forall fun t => norm_nonneg (binetTerm z n t))
+      hmaj_int ?_
+    filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+    have htpos : 0 < t := ht
+    have hDlower : z.re ^ 2 ≤ ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ :=
+      re_sq_le_norm_sq_add_real_sq z t
+    have hnum : ‖((2 * t : ℝ) : ℂ)‖ = 2 * t := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+    have hexp_nonneg : 0 ≤ Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) :=
+      (Real.exp_pos _).le
+    have hexp_norm :
+        ‖((Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) : ℝ) : ℂ)‖ =
+          Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hexp_nonneg]
+    have hquot : (2 * t) / ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ ≤
+        (2 * t) / z.re ^ 2 := by
+      exact div_le_div_of_nonneg_left (by positivity : 0 ≤ 2 * t)
+        (sq_pos_of_pos hz) hDlower
+    calc
+      ‖binetTerm z n t‖ =
+          ((2 * t) / ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖) *
+            Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+            rw [binetTerm, norm_mul, norm_div, hnum, hexp_norm]
+      _ ≤ ((2 * t) / z.re ^ 2) *
+            Real.exp (-(2 * Real.pi * ((n : ℝ) + 1)) * t) := by
+            exact mul_le_mul_of_nonneg_right hquot hexp_nonneg
+      _ = (2 / z.re ^ 2) * (t * Real.exp (-a * t)) := by
+            simp [a]
+            ring
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), ‖binetTerm z n t‖
+        ≤ ∫ t in Set.Ioi (0 : ℝ), (2 / z.re ^ 2) * (t * Real.exp (-a * t)) := hmono
+    _ = (2 / z.re ^ 2) * (∫ t in Set.Ioi (0 : ℝ), t * Real.exp (-a * t)) := by
+          rw [MeasureTheory.integral_const_mul]
+    _ = 1 / (2 * z.re ^ 2 * Real.pi ^ 2 * ((n : ℝ) + 1) ^ 2) := by
+          rw [integral_Ioi_mul_exp_neg_eq_inv_sq a ha]
+          dsimp [a]
+          field_simp [hz.ne', Real.pi_ne_zero, show ((n : ℝ) + 1) ≠ 0 by positivity]
+
+lemma summable_integral_norm_binetTerm (z : ℂ) (hz : 0 < z.re) :
+    Summable (fun n : ℕ => ∫ t in Set.Ioi (0 : ℝ), ‖binetTerm z n t‖) := by
+  let C : ℝ := 1 / (2 * z.re ^ 2 * Real.pi ^ 2)
+  have hmajor : Summable (fun n : ℕ => C * (1 / |(n : ℝ) + 1| ^ (2 : ℝ))) := by
+    exact (Real.summable_one_div_nat_add_rpow 1 2).2 (by norm_num) |>.mul_left C
+  refine hmajor.of_nonneg_of_le ?_ ?_
+  · intro n
+    exact integral_nonneg (fun t => norm_nonneg (binetTerm z n t))
+  · intro n
+    have h := integral_norm_binetTerm_le z hz n
+    have hnpos : 0 < (n : ℝ) + 1 := by positivity
+    calc
+      ∫ t in Set.Ioi (0 : ℝ), ‖binetTerm z n t‖
+          ≤ 1 / (2 * z.re ^ 2 * Real.pi ^ 2 * ((n : ℝ) + 1) ^ 2) := h
+      _ = C * (1 / |(n : ℝ) + 1| ^ (2 : ℝ)) := by
+            rw [abs_of_pos hnpos, Real.rpow_two]
+            dsimp [C]
+            field_simp [hz.ne', Real.pi_ne_zero, show ((n : ℝ) + 1) ≠ 0 by positivity]
+
+lemma integral_Ioi_digammaBinetKernel_eq_tsum (z : ℂ) (hz : 0 < z.re) :
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t =
+      ∑' n : ℕ, ∫ t in Set.Ioi (0 : ℝ), binetTerm z n t := by
+  let μ : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  have hF_int : ∀ n : ℕ, Integrable (fun t : ℝ => binetTerm z n t) μ := by
+    intro n
+    exact binetTerm_integrableOn z hz n
+  have hF_sum : Summable (fun n : ℕ => ∫ t : ℝ, ‖binetTerm z n t‖ ∂μ) := by
+    simpa [μ] using summable_integral_norm_binetTerm z hz
+  have hswap := MeasureTheory.integral_tsum_of_summable_integral_norm
+    (μ := μ) (F := fun n : ℕ => fun t : ℝ => binetTerm z n t) hF_int hF_sum
+  have hpoint : (fun t : ℝ => digammaBinetKernel z t) =ᵐ[μ]
+      fun t : ℝ => ∑' n : ℕ, binetTerm z n t := by
+    filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+    exact digammaBinetKernel_eq_tsum_binetTerm z ht
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t
+        = ∫ t : ℝ, (∑' n : ℕ, binetTerm z n t) ∂μ := by
+          exact integral_congr_ae hpoint
+    _ = ∑' n : ℕ, ∫ t : ℝ, binetTerm z n t ∂μ := by
+          exact hswap.symm
+    _ = ∑' n : ℕ, ∫ t in Set.Ioi (0 : ℝ), binetTerm z n t := rfl
 
 lemma norm_sq_mul_norm_digammaBinetKernel_le {z : ℂ} {t : ℝ}
     (hx : 0 < z.re) (ht : 0 < t) :
