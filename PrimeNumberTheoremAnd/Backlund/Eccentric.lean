@@ -141,6 +141,14 @@ theorem shifted_log_cpow_const_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : �
 noncomputable def shiftedLogPowerNormalizer (Q : ℝ) (α β : ℂ) (z : ℂ) : ℂ :=
   ((Q : ℂ) + z) ^ α * (Complex.log ((Q : ℂ) + z)) ^ β
 
+/-- For real exponent weights, the normalizer norm is the expected product of real powers. -/
+theorem norm_shiftedLogPowerNormalizer_ofReal (Q α β : ℝ) (z : ℂ) :
+    ‖shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) z‖ =
+      ‖(Q : ℂ) + z‖ ^ α * ‖Complex.log ((Q : ℂ) + z)‖ ^ β := by
+  unfold shiftedLogPowerNormalizer
+  rw [norm_mul]
+  simp
+
 /-- The shifted log-power normalizer is nonzero on shifted strips with `Q + σ₀ > 1`. -/
 theorem shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ}
     (α β : ℂ) {z : ℂ} (hQ : (1 : ℝ) < Q + σ₀)

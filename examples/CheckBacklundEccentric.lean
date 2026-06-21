@@ -12,6 +12,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.shifted_cpow_const_diffContOnCl_on_verticalStrip
 #check Backlund.shifted_log_cpow_const_diffContOnCl_on_verticalStrip
 #check Backlund.shiftedLogPowerNormalizer
+#check Backlund.norm_shiftedLogPowerNormalizer_ofReal
 #check Backlund.shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
 #check Backlund.shiftedLogPowerNormalizer_diffContOnCl_on_verticalStrip
 #check Backlund.log_phragmen_lindelof_normalized
@@ -28,6 +29,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.shifted_cpow_const_diffContOnCl_on_verticalStrip
 #print axioms Backlund.shifted_log_cpow_const_diffContOnCl_on_verticalStrip
 #print axioms Backlund.shiftedLogPowerNormalizer
+#print axioms Backlund.norm_shiftedLogPowerNormalizer_ofReal
 #print axioms Backlund.shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
 #print axioms Backlund.shiftedLogPowerNormalizer_diffContOnCl_on_verticalStrip
 #print axioms Backlund.log_phragmen_lindelof_normalized
