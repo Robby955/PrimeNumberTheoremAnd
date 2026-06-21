@@ -19,6 +19,7 @@ import Mathlib.MeasureTheory.Function.Floor
 import Mathlib.MeasureTheory.Group.Integral
 import Mathlib.MeasureTheory.Integral.Gamma
 import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+import Mathlib.MeasureTheory.Integral.Prod
 
 /-!
 # Binet-type digamma remainder bounds
@@ -552,6 +553,197 @@ lemma integral_Ioi_cexp_neg_mul_sin_scaled {z : ℂ} (hz : 0 < z.re) (t : ℝ) :
           ring_nf
           field_simp [hden_ne']
           ring_nf
+
+/-- Integrability of the exponentially damped first Bernoulli kernel. -/
+lemma integrableOn_B1_mul_exp_neg_mul_Ioi {u : ℝ} (hu : 0 < u) :
+    IntegrableOn (fun t : ℝ => B1 t * Real.exp (-u * t))
+      (Set.Ioi (0 : ℝ)) volume := by
+  have hbase : IntegrableOn (fun t : ℝ => (1 / 2 : ℝ) * Real.exp (-u * t))
+      (Set.Ioi (0 : ℝ)) volume := by
+    exact (integrableOn_exp_mul_Ioi (a := -u) (by linarith) 0).const_mul (1 / 2 : ℝ)
+  have hmeas : AEStronglyMeasurable (fun t : ℝ => B1 t * Real.exp (-u * t))
+      (volume.restrict (Set.Ioi (0 : ℝ))) := by
+    have hexp_meas : Measurable (fun t : ℝ => Real.exp (-u * t)) := by fun_prop
+    exact (aestronglyMeasurable_B1.mul hexp_meas.aestronglyMeasurable).restrict
+  refine hbase.mono' hmeas ?_
+  filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+  have hB := abs_B1_le_half (x := t) ht.le
+  rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+  exact mul_le_mul_of_nonneg_right hB (Real.exp_pos _).le
+
+private lemma finite_exp_EM (u : ℝ) (N : ℕ) :
+    ∑ k ∈ Finset.Ioc 0 N, Real.exp (-u * k) =
+      (fun t : ℝ => Real.exp (-u * t)) 0 * B1 0 -
+        (fun t : ℝ => Real.exp (-u * t)) (N : ℝ) * B1 (N : ℝ) +
+        (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-u * t)) +
+        ∫ t in (0 : ℝ)..(N : ℝ),
+          deriv (fun x : ℝ => Real.exp (-u * x)) t * B1 t := by
+  have hNnonneg : (0 : ℝ) ≤ (N : ℝ) := Nat.cast_nonneg N
+  have hdiff : ∀ t ∈ Set.Icc (0 : ℝ) (N : ℝ),
+      DifferentiableAt ℝ (fun x : ℝ => Real.exp (-u * x)) t := by
+    intro t _ht
+    exact (((hasDerivAt_id t).const_mul (-u)).exp).differentiableAt
+  have hderiv_eq : ∀ t : ℝ, deriv (fun x : ℝ => Real.exp (-u * x)) t =
+      -u * Real.exp (-u * t) := by
+    intro t
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id t).const_mul (-u)).exp).deriv
+  have h_cont : ContinuousOn (deriv (fun x : ℝ => Real.exp (-u * x)))
+      [[(0 : ℝ), (N : ℝ)]] := by
+    have hbase : Continuous (fun t : ℝ => -u * Real.exp (-u * t)) := by fun_prop
+    exact hbase.continuousOn.congr (fun t _ht => hderiv_eq t)
+  have hEM := sum_eq_integral_add_integral_deriv
+    (𝕜 := ℝ) (f := fun x : ℝ => Real.exp (-u * x))
+    (a := (0 : ℝ)) (b := (N : ℝ)) (by norm_num) hNnonneg hdiff h_cont
+  rw [Nat.floor_natCast, Nat.floor_zero] at hEM
+  exact hEM
+
+lemma intervalIntegral_exp_mul_B1_eq (u : ℝ) (N : ℕ) :
+    u * (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-u * t) * B1 t) =
+      -(1 / 2 : ℝ) + Real.exp (-u * (N : ℝ)) / 2 +
+        (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-u * t)) -
+          ∑ k ∈ Finset.Ioc 0 N, Real.exp (-u * k) := by
+  have hEM := finite_exp_EM u N
+  have hderiv_eq : ∀ t : ℝ, deriv (fun x : ℝ => Real.exp (-u * x)) t =
+      -u * Real.exp (-u * t) := by
+    intro t
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id t).const_mul (-u)).exp).deriv
+  have hderiv_int :
+      (∫ t in (0 : ℝ)..(N : ℝ),
+          deriv (fun x : ℝ => Real.exp (-u * x)) t * B1 t) =
+        -u * (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-u * t) * B1 t) := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr_ae ?_
+    filter_upwards with t _ht
+    rw [hderiv_eq]
+    ring
+  have hB10 : B1 (0 : ℝ) = -(1 / 2 : ℝ) := by simp [B1]
+  have hB1N : B1 (N : ℝ) = -(1 / 2 : ℝ) := by simp [B1]
+  rw [hderiv_int, hB10, hB1N] at hEM
+  norm_num at hEM
+  simp_rw [neg_mul] at hEM ⊢
+  let I : ℝ := ∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t)) * B1 t
+  let J : ℝ := ∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t))
+  let S : ℝ := ∑ k ∈ Finset.Ioc 0 N, Real.exp (-(u * k))
+  change u * I = -(1 / 2 : ℝ) + Real.exp (-(u * (N : ℝ))) / 2 + J - S
+  change S = (-(1 / 2 : ℝ) + Real.exp (-(u * (N : ℝ))) * (1 / 2) + J) +
+      -(u * I) at hEM
+  linarith
+
+lemma hasSum_exp_neg_nat_add_one {u : ℝ} (hu : 0 < u) :
+    HasSum (fun n : ℕ => Real.exp (-(u * ((n : ℝ) + 1))))
+      (1 / (Real.exp u - 1)) := by
+  let q : ℝ := Real.exp (-u)
+  have hq_nonneg : 0 ≤ q := by positivity
+  have hq_lt_one : q < 1 := by
+    dsimp [q]
+    rw [Real.exp_lt_one_iff]
+    linarith
+  have hterm : (fun n : ℕ => Real.exp (-(u * ((n : ℝ) + 1)))) =
+      fun n : ℕ => q * q ^ n := by
+    funext n
+    dsimp [q]
+    rw [← Real.exp_nat_mul]
+    rw [← Real.exp_add]
+    congr 1
+    norm_num
+    ring
+  have hgeom : HasSum (fun n : ℕ => q * q ^ n) (q * (1 - q)⁻¹) := by
+    exact (hasSum_geometric_of_lt_one hq_nonneg hq_lt_one).mul_left q
+  have htarget : q * (1 - q)⁻¹ = 1 / (Real.exp u - 1) := by
+    dsimp [q]
+    rw [Real.exp_neg]
+    field_simp [Real.exp_ne_zero u,
+      sub_ne_zero.mpr (ne_of_gt (Real.one_lt_exp_iff.mpr hu)).symm]
+  rw [hterm]
+  rwa [htarget] at hgeom
+
+lemma sum_Ioc_exp_neg_eq_sum_range (u : ℝ) (N : ℕ) :
+    (∑ k ∈ Finset.Ioc 0 N, Real.exp (-(u * (k : ℝ)))) =
+      ∑ n ∈ Finset.range N, Real.exp (-(u * ((n : ℝ) + 1))) := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+      rw [Finset.sum_Ioc_succ_top (Nat.zero_le N)]
+      rw [ih]
+      rw [Finset.sum_range_succ]
+      congr 1
+      norm_num
+
+lemma tendsto_sum_Ioc_exp_neg {u : ℝ} (hu : 0 < u) :
+    Tendsto (fun N : ℕ => ∑ k ∈ Finset.Ioc 0 N, Real.exp (-(u * (k : ℝ))))
+      atTop (𝓝 (1 / (Real.exp u - 1))) := by
+  have h := (hasSum_exp_neg_nat_add_one hu).tendsto_sum_nat
+  simpa [sum_Ioc_exp_neg_eq_sum_range] using h
+
+/-- Laplace transform of the first Bernoulli sawtooth on `(0, ∞)`. -/
+lemma integral_Ioi_B1_mul_exp_neg_mul {u : ℝ} (hu : 0 < u) :
+    ∫ t in Set.Ioi (0 : ℝ), B1 t * Real.exp (-u * t) =
+      1 / u ^ 2 - 1 / (u * (Real.exp u - 1)) - 1 / (2 * u) := by
+  let Iinf : ℝ := ∫ t in Set.Ioi (0 : ℝ), Real.exp (-(u * t)) * B1 t
+  have hI_tend : Tendsto
+      (fun N : ℕ => ∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t)) * B1 t)
+      atTop (𝓝 Iinf) := by
+    have hint : IntegrableOn (fun t : ℝ => Real.exp (-(u * t)) * B1 t)
+        (Set.Ioi (0 : ℝ)) volume := by
+      simpa [neg_mul, mul_comm] using integrableOn_B1_mul_exp_neg_mul_Ioi hu
+    simpa [Iinf] using intervalIntegral_tendsto_integral_Ioi
+      (μ := volume) (a := (0 : ℝ)) hint
+      (show Tendsto (fun N : ℕ => (N : ℝ)) atTop atTop from
+        tendsto_natCast_atTop_atTop)
+  have hleft : Tendsto
+      (fun N : ℕ => u *
+        (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t)) * B1 t))
+      atTop (𝓝 (u * Iinf)) := hI_tend.const_mul u
+  have htail : Tendsto (fun N : ℕ => Real.exp (-(u * (N : ℝ))) / 2)
+      atTop (𝓝 0) := by
+    have harg : Tendsto (fun N : ℕ => (-u) * (N : ℝ)) atTop atBot := by
+      exact Filter.Tendsto.const_mul_atTop_of_neg (by linarith)
+        tendsto_natCast_atTop_atTop
+    have hexp : Tendsto (fun N : ℕ => Real.exp ((-u) * (N : ℝ))) atTop (𝓝 0) :=
+      Real.tendsto_exp_atBot.comp harg
+    have hdiv := hexp.div_const 2
+    simpa [neg_mul] using hdiv
+  have hJ_tend : Tendsto
+      (fun N : ℕ => ∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t)))
+      atTop (𝓝 (1 / u)) := by
+    have hint : IntegrableOn (fun t : ℝ => Real.exp (-(u * t)))
+        (Set.Ioi (0 : ℝ)) volume := by
+      simpa [neg_mul] using integrableOn_exp_mul_Ioi (a := -u) (by linarith) 0
+    have htend := intervalIntegral_tendsto_integral_Ioi (μ := volume) (a := (0 : ℝ))
+      hint (show Tendsto (fun N : ℕ => (N : ℝ)) atTop atTop from
+        tendsto_natCast_atTop_atTop)
+    have hval : (∫ t in Set.Ioi (0 : ℝ), Real.exp (-(u * t))) = 1 / u := by
+      have h := integral_exp_mul_Ioi (a := -u) (by linarith) 0
+      simpa [neg_mul] using h
+    simpa [hval] using htend
+  have hS_tend := tendsto_sum_Ioc_exp_neg hu
+  have hright : Tendsto
+      (fun N : ℕ => -(1 / 2 : ℝ) + Real.exp (-(u * (N : ℝ))) / 2 +
+        (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t))) -
+          ∑ k ∈ Finset.Ioc 0 N, Real.exp (-(u * (k : ℝ))))
+      atTop (𝓝 (-(1 / 2 : ℝ) + 0 + 1 / u - 1 / (Real.exp u - 1))) := by
+    exact (((tendsto_const_nhds.add htail).add hJ_tend).sub hS_tend)
+  have hfinite :
+      (fun N : ℕ => u *
+        (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t)) * B1 t)) =ᶠ[atTop]
+      fun N : ℕ => -(1 / 2 : ℝ) + Real.exp (-(u * (N : ℝ))) / 2 +
+        (∫ t in (0 : ℝ)..(N : ℝ), Real.exp (-(u * t))) -
+          ∑ k ∈ Finset.Ioc 0 N, Real.exp (-(u * (k : ℝ))) := by
+    filter_upwards with N
+    simpa [neg_mul] using intervalIntegral_exp_mul_B1_eq u N
+  have hleft' := hleft.congr' hfinite
+  have hlim : u * Iinf = -(1 / 2 : ℝ) + 0 + 1 / u - 1 / (Real.exp u - 1) :=
+    tendsto_nhds_unique hleft' hright
+  have htarget : Iinf =
+      1 / u ^ 2 - 1 / (u * (Real.exp u - 1)) - 1 / (2 * u) := by
+    have hune : u ≠ 0 := hu.ne'
+    have hexp_ne : Real.exp u - 1 ≠ 0 := by
+      exact sub_ne_zero.mpr (ne_of_gt (Real.one_lt_exp_iff.mpr hu))
+    field_simp [hune, hexp_ne] at hlim ⊢
+    linarith
+  simpa [Iinf, neg_mul, mul_comm] using htarget
 
 /-- HasSum form of the geometric expansion of the positive Binet denominator. -/
 lemma hasSum_exp_neg_two_pi_nat_add_one (t : ℝ) (ht : 0 < t) :
@@ -1130,6 +1322,19 @@ lemma integral_sin_div_exp_two_pi_sub_one_eq (u : ℝ) (hu : 0 < u) :
       (1 / (Real.exp u - 1) + 1 / 2 - 1 / u) / 2 := by
   exact (hasSum_integral_exp_neg_two_pi_nat_add_one_mul_sin u).unique
     (hasSum_planck_sine_terms u hu)
+
+/-- The Planck sine transform equals the negative sawtooth Laplace transform. -/
+lemma two_integral_sin_div_exp_eq_neg_mul_B1_laplace (u : ℝ) (hu : 0 < u) :
+    2 * (∫ t : ℝ in Set.Ioi 0,
+        Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1)) =
+      -u * (∫ v in Set.Ioi (0 : ℝ), B1 v * Real.exp (-u * v)) := by
+  rw [integral_sin_div_exp_two_pi_sub_one_eq u hu]
+  rw [integral_Ioi_B1_mul_exp_neg_mul hu]
+  have hune : u ≠ 0 := hu.ne'
+  have hexp_ne : Real.exp u - 1 ≠ 0 := by
+    exact sub_ne_zero.mpr (ne_of_gt (Real.one_lt_exp_iff.mpr hu))
+  field_simp [hune, hexp_ne]
+  ring
 
 lemma integrableOn_mul_exp_neg_a0_mul_Ioi :
     IntegrableOn (fun t : ℝ => t * Real.exp (-(digammaBinetA0 * t)))
@@ -1741,6 +1946,157 @@ theorem digamma_eq_log_sub_half_inv_add_integral {s : ℂ} (hs : 0 < s.re) :
   rw [hseq_eq] at hdig
   have hlim := tendsto_nhds_unique hdig hseq_lim
   simpa [C] using hlim
+
+private lemma integrableOn_complex_mul_cexp_neg_mul_Ioi {w : ℂ} (hw : 0 < w.re) :
+    IntegrableOn (fun u : ℝ => (u : ℂ) * Complex.exp (-w * u))
+      (Set.Ioi (0 : ℝ)) volume := by
+  have hbase : IntegrableOn (fun u : ℝ => u * Real.exp (-(w.re) * u))
+      (Set.Ioi (0 : ℝ)) volume := by
+    simpa [Real.rpow_one, mul_comm] using
+      integrableOn_rpow_mul_exp_neg_mul_rpow
+        (s := 1) (p := 1) (b := w.re)
+        (by norm_num : (-1 : ℝ) < 1) (by norm_num : (1 : ℝ) ≤ 1) hw
+  have hmeas : AEStronglyMeasurable
+      (fun u : ℝ => (u : ℂ) * Complex.exp (-w * u))
+      (volume.restrict (Set.Ioi (0 : ℝ))) := by
+    exact (by fun_prop : Measurable
+      (fun u : ℝ => (u : ℂ) * Complex.exp (-w * u))).aestronglyMeasurable
+  exact hbase.mono' hmeas (by
+    filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with u hu
+    have hupos : 0 < u := hu
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hupos, Complex.norm_exp]
+    simp [Complex.mul_re, mul_comm])
+
+private lemma laplace_square_antideriv_hasDerivAt {w : ℂ} (hw : w ≠ 0) (u : ℝ) :
+    HasDerivAt
+      (fun x : ℝ => -((x : ℂ) * Complex.exp (-w * x)) / w -
+        Complex.exp (-w * x) / w ^ (2 : ℕ))
+      ((u : ℂ) * Complex.exp (-w * u)) u := by
+  have hx : HasDerivAt (fun x : ℝ => (x : ℂ)) (1 : ℂ) u := by
+    change HasDerivAt (fun x : ℝ => Complex.ofRealCLM x) (Complex.ofRealCLM 1) u
+    exact Complex.ofRealCLM.hasDerivAt (x := u)
+  have hlin : HasDerivAt (fun x : ℝ => -w * (x : ℂ)) (-w) u := by
+    simpa using hx.const_mul (-w)
+  have hexp : HasDerivAt (fun x : ℝ => Complex.exp (-w * (x : ℂ)))
+      (Complex.exp (-w * (u : ℂ)) * (-w)) u := by
+    change HasDerivAt (Complex.exp ∘ fun x : ℝ => -w * (x : ℂ))
+      (Complex.exp (-w * (u : ℂ)) * (-w)) u
+    exact (Complex.hasDerivAt_exp (-w * (u : ℂ))).comp u hlin
+  have hprod : HasDerivAt (fun x : ℝ => (x : ℂ) * Complex.exp (-w * x))
+      ((1 : ℂ) * Complex.exp (-w * u) +
+        (u : ℂ) * (Complex.exp (-w * u) * (-w))) u := by
+    have hprod' := hx.mul hexp
+    change HasDerivAt (fun x : ℝ => (x : ℂ) * Complex.exp (-w * x))
+      ((1 : ℂ) * Complex.exp (-w * u) +
+        (u : ℂ) * (Complex.exp (-w * u) * (-w))) u at hprod'
+    exact hprod'
+  have h1 : HasDerivAt (fun x : ℝ => -((x : ℂ) * Complex.exp (-w * x)) / w)
+      (-( ((1 : ℂ) * Complex.exp (-w * u) +
+        (u : ℂ) * (Complex.exp (-w * u) * (-w))) ) / w) u := by
+    simpa using hprod.neg.div_const w
+  have h2 : HasDerivAt (fun x : ℝ => - Complex.exp (-w * x) / w ^ (2 : ℕ))
+      (-(Complex.exp (-w * u) * (-w)) / w ^ (2 : ℕ)) u := by
+    simpa using hexp.neg.div_const (w ^ (2 : ℕ))
+  have hsum := h1.add h2
+  have hfun_eq :
+      ((fun x : ℝ => -((x : ℂ) * Complex.exp (-w * x)) / w) +
+          fun x : ℝ => -Complex.exp (-w * x) / w ^ (2 : ℕ)) =
+        (fun x : ℝ => -((x : ℂ) * Complex.exp (-w * x)) / w -
+          Complex.exp (-w * x) / w ^ (2 : ℕ)) := by
+    funext x
+    simp [sub_eq_add_neg, neg_div]
+  have hder_eq :
+      (-(1 * Complex.exp (-w * u) +
+          (u : ℂ) * (Complex.exp (-w * u) * (-w))) / w +
+          -(Complex.exp (-w * u) * (-w)) / w ^ (2 : ℕ)) =
+        (u : ℂ) * Complex.exp (-w * u) := by
+    field_simp [hw]
+    ring
+  exact (hsum.congr_deriv hder_eq).congr_of_eventuallyEq
+    (EventuallyEq.of_eq hfun_eq.symm)
+
+private lemma tendsto_cexp_neg_mul_atTop {w : ℂ} (hw : 0 < w.re) :
+    Tendsto (fun u : ℝ => Complex.exp (-w * u)) atTop (𝓝 0) := by
+  have hneg : (-w).re < 0 := by simpa using neg_lt_zero.mpr hw
+  simpa [Complex.tendsto_exp_nhds_zero_iff] using
+    tendsto_const_nhds.neg_mul_atTop hneg tendsto_id
+
+private lemma tendsto_mul_cexp_neg_mul_atTop {w : ℂ} (hw : 0 < w.re) :
+    Tendsto (fun u : ℝ => (u : ℂ) * Complex.exp (-w * u)) atTop (𝓝 0) := by
+  have hreal : Tendsto (fun u : ℝ => u * Real.exp (-(w.re) * u))
+      atTop (𝓝 0) := by
+    simpa [Real.rpow_one, mul_comm] using
+      tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero (1 : ℝ) (w.re) hw
+  refine squeeze_zero_norm'
+    (f := fun u : ℝ => (u : ℂ) * Complex.exp (-w * u))
+    (a := fun u : ℝ => u * Real.exp (-(w.re) * u)) ?_ hreal
+  filter_upwards [eventually_ge_atTop (0 : ℝ)] with u hu
+  have hnorm : ‖(u : ℂ) * Complex.exp (-w * u)‖ =
+      u * Real.exp (-(w.re) * u) := by
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hu, Complex.norm_exp]
+    simp [Complex.mul_re, mul_comm]
+  rw [hnorm]
+
+private lemma laplace_square_antideriv_tendsto {w : ℂ} (hw : 0 < w.re) :
+    Tendsto
+      (fun x : ℝ => -((x : ℂ) * Complex.exp (-w * x)) / w -
+        Complex.exp (-w * x) / w ^ (2 : ℕ))
+      atTop (𝓝 0) := by
+  have hmul := tendsto_mul_cexp_neg_mul_atTop (w := w) hw
+  have hexp := tendsto_cexp_neg_mul_atTop (w := w) hw
+  have h1 : Tendsto (fun x : ℝ => -((x : ℂ) * Complex.exp (-w * x)) / w)
+      atTop (𝓝 0) := by
+    simpa using (hmul.neg.div_const w)
+  have h2 : Tendsto (fun x : ℝ => Complex.exp (-w * x) / w ^ (2 : ℕ))
+      atTop (𝓝 0) := by
+    simpa using (hexp.div_const (w ^ (2 : ℕ)))
+  simpa using h1.sub h2
+
+private lemma integral_complex_mul_cexp_neg_mul_Ioi {w : ℂ} (hw : 0 < w.re) :
+    ∫ u : ℝ in Set.Ioi (0 : ℝ), (u : ℂ) * Complex.exp (-w * u) =
+      w⁻¹ ^ (2 : ℕ) := by
+  have hwne : w ≠ 0 := by
+    intro h
+    have : w.re = 0 := by simp [h]
+    linarith
+  let F : ℝ → ℂ := fun x => -((x : ℂ) * Complex.exp (-w * x)) / w -
+    Complex.exp (-w * x) / w ^ (2 : ℕ)
+  have hderiv : ∀ x ∈ Set.Ici (0 : ℝ),
+      HasDerivAt F ((x : ℂ) * Complex.exp (-w * x)) x := by
+    intro x _hx
+    simpa [F] using laplace_square_antideriv_hasDerivAt (w := w) hwne x
+  have hint : IntegrableOn (fun u : ℝ => (u : ℂ) * Complex.exp (-w * u))
+      (Set.Ioi (0 : ℝ)) volume :=
+    integrableOn_complex_mul_cexp_neg_mul_Ioi (w := w) hw
+  have htend : Tendsto F atTop (𝓝 0) := by
+    simpa [F] using laplace_square_antideriv_tendsto (w := w) hw
+  have hFTC := MeasureTheory.integral_Ioi_of_hasDerivAt_of_tendsto' hderiv hint htend
+  calc
+    ∫ u : ℝ in Set.Ioi (0 : ℝ), (u : ℂ) * Complex.exp (-w * u)
+        = 0 - F 0 := hFTC
+    _ = w⁻¹ ^ (2 : ℕ) := by
+      dsimp [F]
+      field_simp [hwne]
+      simp
+
+lemma laplace_sq_resolvent {z : ℂ} {t : ℝ} (h : 0 < t + z.re) :
+    (((t : ℂ) + z)⁻¹) ^ (2 : ℕ) =
+      ∫ u : ℝ in Set.Ioi (0 : ℝ), (u : ℂ) *
+        Complex.exp (-(((t : ℂ) + z) * u)) := by
+  let w : ℂ := (t : ℂ) + z
+  have hw : 0 < w.re := by
+    dsimp [w]
+    simpa [add_comm, add_left_comm, add_assoc] using h
+  have hi := integral_complex_mul_cexp_neg_mul_Ioi (w := w) hw
+  calc
+    (((t : ℂ) + z)⁻¹) ^ (2 : ℕ) = w⁻¹ ^ (2 : ℕ) := by rfl
+    _ = ∫ u : ℝ in Set.Ioi (0 : ℝ), (u : ℂ) * Complex.exp (-w * u) := hi.symm
+    _ = ∫ u : ℝ in Set.Ioi (0 : ℝ), (u : ℂ) *
+          Complex.exp (-(((t : ℂ) + z) * u)) := by
+      refine setIntegral_congr_fun measurableSet_Ioi ?_
+      intro u _hu
+      dsimp [w]
+      ring_nf
 
 /--
 The positive second-Binet formula follows from the already proved first-order Binet identity
