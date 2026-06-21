@@ -5,6 +5,7 @@ Authors: Robby Sneiderman
 -/
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.ZetaBounds
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.CriticalLineDecay
 import Mathlib.Analysis.Complex.Hadamard
 import Mathlib.Analysis.Complex.PhragmenLindelof
 import Mathlib.Analysis.SpecialFunctions.Exp
@@ -47,6 +48,336 @@ theorem zeta_one_line_le_const_mul_log :
       linarith
     · norm_num
   simpa using hζ 1 t ht hσ
+
+noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
+
+private lemma sin_pi_one_add_mul_I (y : ℝ) :
+    Complex.sin ((Real.pi : ℂ) * ((1 : ℂ) + (y : ℂ) * Complex.I)) =
+      -((Real.sinh (Real.pi * y) : ℝ) : ℂ) * Complex.I := by
+  have harg : (Real.pi : ℂ) * ((1 : ℂ) + (y : ℂ) * Complex.I) =
+      (Real.pi : ℂ) + ((Real.pi * y : ℝ) : ℂ) * Complex.I := by
+    norm_num [Complex.ofReal_mul]
+    ring_nf
+  rw [harg]
+  simp [Complex.sin_add, Complex.sin_pi, Complex.cos_pi, Complex.sin_mul_I,
+    Complex.cos_mul_I, Complex.ofReal_sinh]
+
+private lemma gamma_pure_imag_norm_sq_pos {y : ℝ} (hy : 0 < y) :
+    ‖Complex.Gamma ((y : ℂ) * Complex.I)‖ ^ 2 =
+      Real.pi / (y * Real.sinh (Real.pi * y)) := by
+  let z : ℂ := (y : ℂ) * Complex.I
+  have hz_ne : z ≠ 0 := by
+    simp [z, hy.ne']
+  have hconj : (starRingEnd ℂ) z = -z := by
+    simp [z]
+  have hsin : Complex.sin ((Real.pi : ℂ) * ((1 : ℂ) + z)) =
+      -((Real.sinh (Real.pi * y) : ℝ) : ℂ) * Complex.I := by
+    simpa [z] using sin_pi_one_add_mul_I y
+  have hleft :
+      Complex.Gamma ((1 : ℂ) + z) * Complex.Gamma (1 - ((1 : ℂ) + z)) =
+        z * ((‖Complex.Gamma z‖ ^ 2 : ℝ) : ℂ) := by
+    have hΓadd : Complex.Gamma (z + 1) = z * Complex.Gamma z :=
+      Complex.Gamma_add_one z hz_ne
+    calc
+      Complex.Gamma ((1 : ℂ) + z) * Complex.Gamma (1 - ((1 : ℂ) + z))
+          = (z * Complex.Gamma z) * Complex.Gamma (-z) := by
+            rw [show (1 : ℂ) + z = z + 1 by ring, hΓadd]
+            ring_nf
+      _ = (z * Complex.Gamma z) * (starRingEnd ℂ) (Complex.Gamma z) := by
+            rw [← hconj, Complex.Gamma_conj]
+      _ = z * (Complex.Gamma z * (starRingEnd ℂ) (Complex.Gamma z)) := by ring
+      _ = z * ((‖Complex.Gamma z‖ ^ 2 : ℝ) : ℂ) := by
+            rw [Complex.mul_conj, Complex.normSq_eq_norm_sq]
+  have href := Complex.Gamma_mul_Gamma_one_sub ((1 : ℂ) + z)
+  rw [hleft, hsin] at href
+  have hsinh_pos : 0 < Real.sinh (Real.pi * y) := by
+    rw [Real.sinh_eq]
+    have harg : -(Real.pi * y) < Real.pi * y := by nlinarith [Real.pi_pos, hy]
+    have hexp : Real.exp (-(Real.pi * y)) < Real.exp (Real.pi * y) := Real.exp_lt_exp.mpr harg
+    nlinarith
+  have href' : ((y * ‖Complex.Gamma z‖ ^ 2 : ℝ) : ℂ) * Complex.I =
+      ((Real.pi / Real.sinh (Real.pi * y) : ℝ) : ℂ) * Complex.I := by
+    unfold z at href
+    calc
+      ((y * ‖Complex.Gamma z‖ ^ 2 : ℝ) : ℂ) * Complex.I
+          = ((y : ℂ) * Complex.I) * ((‖Complex.Gamma z‖ ^ 2 : ℝ) : ℂ) := by
+              push_cast
+              ring
+      _ = (Real.pi : ℂ) / (-((Real.sinh (Real.pi * y) : ℝ) : ℂ) * Complex.I) := href
+      _ = ((Real.pi / Real.sinh (Real.pi * y) : ℝ) : ℂ) * Complex.I := by
+              field_simp [Complex.I_ne_zero, Complex.ofReal_ne_zero.mpr hsinh_pos.ne']
+              simp
+  have hcomplex := mul_right_cancel₀ Complex.I_ne_zero href'
+  have hreal : y * ‖Complex.Gamma z‖ ^ 2 = Real.pi / Real.sinh (Real.pi * y) :=
+    Complex.ofReal_injective hcomplex
+  have hy_ne : y ≠ 0 := hy.ne'
+  calc
+    ‖Complex.Gamma ((y : ℂ) * Complex.I)‖ ^ 2
+        = (y * ‖Complex.Gamma z‖ ^ 2) / y := by
+          simp [z]
+          field_simp [hy_ne]
+    _ = (Real.pi / Real.sinh (Real.pi * y)) / y := by rw [hreal]
+    _ = Real.pi / (y * Real.sinh (Real.pi * y)) := by ring
+
+private lemma gamma_pure_imag_norm_sq {t : ℝ} (ht : t ≠ 0) :
+    ‖Complex.Gamma ((t : ℂ) * Complex.I)‖ ^ 2 =
+      Real.pi / (|t| * Real.sinh (Real.pi * |t|)) := by
+  by_cases hpos : 0 < t
+  · simpa [abs_of_pos hpos] using gamma_pure_imag_norm_sq_pos hpos
+  · have hneg : t < 0 := lt_of_le_of_ne (le_of_not_gt hpos) ht
+    have habs_pos : 0 < |t| := abs_pos.mpr ht
+    have harg : (t : ℂ) * Complex.I = (starRingEnd ℂ) (((|t| : ℝ) : ℂ) * Complex.I) := by
+      simp [abs_of_neg hneg]
+    have hnorm : ‖Complex.Gamma ((t : ℂ) * Complex.I)‖ =
+        ‖Complex.Gamma (((|t| : ℝ) : ℂ) * Complex.I)‖ := by
+      rw [harg, Complex.Gamma_conj]
+      simp
+    rw [hnorm]
+    simpa using gamma_pure_imag_norm_sq_pos habs_pos
+
+private lemma gammaReal_vertical_norm_sq {t : ℝ} (ht : t ≠ 0) :
+    ‖Complex.Gammaℝ ((t : ℂ) * Complex.I)‖ ^ 2 =
+      Real.pi / ((|t| / 2) * Real.sinh (Real.pi * (|t| / 2))) := by
+  have ht2_ne : t / 2 ≠ 0 := by exact div_ne_zero ht two_ne_zero
+  have hpow : ‖(Real.pi : ℂ) ^ (-((t : ℂ) * Complex.I) / 2)‖ = 1 := by
+    rw [Complex.norm_cpow_eq_rpow_re_of_pos Real.pi_pos]
+    simp [Complex.mul_re, Complex.ofReal_re, Complex.I_re]
+  have harg : ((t : ℂ) * Complex.I) / 2 = (((t / 2 : ℝ) : ℂ) * Complex.I) := by
+    norm_num [Complex.ofReal_div]
+    ring
+  rw [Complex.Gammaℝ_def, norm_mul, mul_pow, hpow]
+  norm_num
+  rw [harg]
+  convert gamma_pure_imag_norm_sq ht2_ne using 1
+  · rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+
+private lemma gammaReal_one_sub_vertical_norm_sq (t : ℝ) :
+    ‖Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I)‖ ^ 2 =
+      1 / Real.cosh (Real.pi * (t / 2)) := by
+  have hpow : ‖(Real.pi : ℂ) ^ (-((1 : ℂ) - (t : ℂ) * Complex.I) / 2)‖ =
+      Real.pi ^ (-(1 / 2 : ℝ)) := by
+    rw [Complex.norm_cpow_eq_rpow_re_of_pos Real.pi_pos]
+    congr 1
+    simp [Complex.sub_re, Complex.mul_re, Complex.ofReal_re, Complex.I_re]
+    norm_num
+  have harg : ((1 : ℂ) - (t : ℂ) * Complex.I) / 2 =
+      (((1 / 2 : ℝ) : ℂ) + ((-t / 2 : ℝ) : ℂ) * Complex.I) := by
+    norm_num [Complex.ofReal_div]
+    ring
+  rw [Complex.Gammaℝ_def, norm_mul, mul_pow, hpow, harg]
+  rw [Complex.gamma_half_vertical_norm_sq]
+  have hcosh : Real.cosh (Real.pi * (-t / 2)) = Real.cosh (Real.pi * (t / 2)) := by
+    rw [show Real.pi * (-t / 2) = -(Real.pi * (t / 2)) by ring, Real.cosh_neg]
+  rw [hcosh]
+  have hpi_pos : 0 < Real.pi := Real.pi_pos
+  have hcosh_pos : 0 < Real.cosh (Real.pi * (t / 2)) := Real.cosh_pos _
+  rw [Real.rpow_neg hpi_pos.le]
+  have hpi_half_sq : (Real.pi ^ (1 / 2 : ℝ)) ^ 2 = Real.pi := by
+    rw [← Real.sqrt_eq_rpow]
+    exact Real.sq_sqrt hpi_pos.le
+  field_simp [hpi_pos.ne', hcosh_pos.ne', hpi_half_sq]
+  exact hpi_half_sq.symm
+
+private lemma sinh_pos_of_pos {x : ℝ} (hx : 0 < x) : 0 < Real.sinh x := by
+  rw [Real.sinh_eq]
+  have hexp : Real.exp (-x) < Real.exp x := Real.exp_lt_exp.mpr (by linarith)
+  nlinarith
+
+private lemma sinh_le_cosh_of_nonneg {x : ℝ} (_hx : 0 ≤ x) : Real.sinh x ≤ Real.cosh x := by
+  rw [Real.sinh_eq, Real.cosh_eq]
+  nlinarith [Real.exp_pos x, Real.exp_pos (-x)]
+
+private lemma cosh_mul_half_abs (t : ℝ) :
+    Real.cosh (Real.pi * (t / 2)) = Real.cosh (Real.pi * (|t| / 2)) := by
+  by_cases ht : 0 ≤ t
+  · rw [abs_of_nonneg ht]
+  · have hneg : t < 0 := lt_of_not_ge ht
+    rw [abs_of_neg hneg]
+    have harg : Real.pi * (t / 2) = -(Real.pi * (-t / 2)) := by ring
+    rw [harg, Real.cosh_neg]
+
+private lemma gammaReal_one_sub_vertical_div_vertical_norm_sq_le {t : ℝ} (ht : t ≠ 0) :
+    ‖Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+        Complex.Gammaℝ ((t : ℂ) * Complex.I)‖ ^ 2 ≤ |t| / (2 * Real.pi) := by
+  have ht_abs_pos : 0 < |t| := abs_pos.mpr ht
+  have hx_pos : 0 < Real.pi * (|t| / 2) := by positivity
+  have hsinh_pos : 0 < Real.sinh (Real.pi * (|t| / 2)) := sinh_pos_of_pos hx_pos
+  have hcosh_pos : 0 < Real.cosh (Real.pi * (|t| / 2)) := Real.cosh_pos _
+  have hcosh_t_pos : 0 < Real.cosh (Real.pi * (t / 2)) := Real.cosh_pos _
+  have hsinh_le_cosh : Real.sinh (Real.pi * (|t| / 2)) ≤
+      Real.cosh (Real.pi * (|t| / 2)) := sinh_le_cosh_of_nonneg hx_pos.le
+  rw [norm_div, div_pow]
+  rw [gammaReal_one_sub_vertical_norm_sq, gammaReal_vertical_norm_sq ht]
+  rw [cosh_mul_half_abs]
+  field_simp [Real.pi_pos.ne', hsinh_pos.ne', hcosh_pos.ne', hcosh_t_pos.ne']
+  have hsinh_le_cosh' : Real.sinh (Real.pi * |t| / 2) ≤
+      Real.cosh (Real.pi * |t| / 2) := by
+    have harg : Real.pi * (|t| / 2) = Real.pi * |t| / 2 := by ring
+    simpa [harg] using hsinh_le_cosh
+  linarith
+
+private lemma gammaReal_one_sub_vertical_div_vertical_norm_le {t : ℝ} (ht : t ≠ 0) :
+    ‖Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+        Complex.Gammaℝ ((t : ℂ) * Complex.I)‖ ≤ Real.sqrt (|t| / (2 * Real.pi)) := by
+  refine (sq_le_sq₀ (norm_nonneg _) (Real.sqrt_nonneg _)).mp ?_
+  rw [Real.sq_sqrt]
+  · exact gammaReal_one_sub_vertical_div_vertical_norm_sq_le ht
+  · positivity
+
+private lemma riemannZeta_vertical_eq_one_sub_mul_gammaRatio {t : ℝ} (ht : t ≠ 0) :
+    riemannZeta ((t : ℂ) * Complex.I) =
+      riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I) *
+        (Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+          Complex.Gammaℝ ((t : ℂ) * Complex.I)) := by
+  let s : ℂ := (t : ℂ) * Complex.I
+  have hs_ne : s ≠ 0 := by simp [s, ht]
+  have hw_ne : (1 : ℂ) - s ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    simp [s] at hre
+  have hΓw : Complex.Gammaℝ ((1 : ℂ) - s) ≠ 0 := by
+    apply Complex.Gammaℝ_ne_zero_of_re_pos
+    simp [s]
+  have hζs := riemannZeta_def_of_ne_zero (s := s) hs_ne
+  have hζw := riemannZeta_def_of_ne_zero (s := (1 : ℂ) - s) hw_ne
+  have hcompleted_w : completedRiemannZeta ((1 : ℂ) - s) =
+      riemannZeta ((1 : ℂ) - s) * Complex.Gammaℝ ((1 : ℂ) - s) := by
+    rw [hζw]
+    field_simp [hΓw]
+  calc
+    riemannZeta s = completedRiemannZeta s / Complex.Gammaℝ s := hζs
+    _ = completedRiemannZeta ((1 : ℂ) - s) / Complex.Gammaℝ s := by
+      rw [completedRiemannZeta_one_sub]
+    _ = (riemannZeta ((1 : ℂ) - s) * Complex.Gammaℝ ((1 : ℂ) - s)) /
+          Complex.Gammaℝ s := by rw [hcompleted_w]
+    _ = riemannZeta ((1 : ℂ) - s) *
+          (Complex.Gammaℝ ((1 : ℂ) - s) / Complex.Gammaℝ s) := by ring
+
+private lemma norm_vertical_sub_one_eq_norm_one_add_vertical (t : ℝ) :
+    ‖(t : ℂ) * Complex.I - 1‖ = ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ := by
+  refine (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp ?_
+  rw [← Complex.normSq_eq_norm_sq, ← Complex.normSq_eq_norm_sq]
+  simp [Complex.normSq_apply]
+
+theorem backlundA_zero_line_le_const_mul_log_sqrt :
+    ∃ C > 0, ∀ t : ℝ, 3 < |t| →
+      ‖backlundA ((t : ℂ) * Complex.I)‖ ≤
+        C * ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ * Real.log |t| *
+          Real.sqrt (|t| / (2 * Real.pi)) := by
+  obtain ⟨C, hC, hζline⟩ := zeta_one_line_le_const_mul_log
+  refine ⟨C, hC, ?_⟩
+  intro t ht
+  have ht_ne : t ≠ 0 := by
+    intro h
+    rw [h, abs_zero] at ht
+    norm_num at ht
+  have hζsym := riemannZeta_vertical_eq_one_sub_mul_gammaRatio ht_ne
+  have hζline_t : ‖riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I)‖ ≤ C * Real.log |t| := by
+    have h := hζline (-t) (by simpa [abs_neg] using ht)
+    simpa [sub_eq_add_neg, neg_mul] using h
+  have hgamma := gammaReal_one_sub_vertical_div_vertical_norm_le ht_ne
+  have hlog_pos : 0 < Real.log |t| := Real.log_pos (by linarith)
+  have hClog_nonneg : 0 ≤ C * Real.log |t| := mul_nonneg hC.le hlog_pos.le
+  unfold backlundA
+  rw [hζsym]
+  calc
+    ‖(((t : ℂ) * Complex.I) - 1) *
+        (riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I) *
+          (Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+            Complex.Gammaℝ ((t : ℂ) * Complex.I)))‖
+        ≤ ‖((t : ℂ) * Complex.I) - 1‖ *
+            (‖riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I)‖ *
+              ‖Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+                Complex.Gammaℝ ((t : ℂ) * Complex.I)‖) := by
+          calc
+            ‖(((t : ℂ) * Complex.I) - 1) *
+                (riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I) *
+                  (Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+                    Complex.Gammaℝ ((t : ℂ) * Complex.I)))‖
+                ≤ ‖((t : ℂ) * Complex.I) - 1‖ *
+                    ‖riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I) *
+                      (Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+                        Complex.Gammaℝ ((t : ℂ) * Complex.I))‖ := norm_mul_le _ _
+            _ ≤ ‖((t : ℂ) * Complex.I) - 1‖ *
+                    (‖riemannZeta ((1 : ℂ) - (t : ℂ) * Complex.I)‖ *
+                      ‖Complex.Gammaℝ ((1 : ℂ) - (t : ℂ) * Complex.I) /
+                        Complex.Gammaℝ ((t : ℂ) * Complex.I)‖) := by
+              exact mul_le_mul_of_nonneg_left (norm_mul_le _ _) (norm_nonneg _)
+    _ ≤ ‖((t : ℂ) * Complex.I) - 1‖ *
+            ((C * Real.log |t|) * Real.sqrt (|t| / (2 * Real.pi))) := by
+          gcongr
+    _ = C * ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ * Real.log |t| *
+          Real.sqrt (|t| / (2 * Real.pi)) := by
+          rw [norm_vertical_sub_one_eq_norm_one_add_vertical]
+          ring
+
+private lemma sqrt_abs_div_two_pi_le_two_pi_neg_half_mul_norm_one_add_vertical (t : ℝ) :
+    Real.sqrt (|t| / (2 * Real.pi)) ≤
+      (2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
+        ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ^ (1 / 2 : ℝ) := by
+  let R : ℝ := ‖(1 : ℂ) + (t : ℂ) * Complex.I‖
+  have hbase_pos : 0 < 2 * Real.pi := by positivity
+  have hbase_nonneg : 0 ≤ 2 * Real.pi := hbase_pos.le
+  have hR_nonneg : 0 ≤ R := norm_nonneg _
+  have habs_le_R : |t| ≤ R := by
+    have h := Complex.abs_im_le_norm ((1 : ℂ) + (t : ℂ) * Complex.I)
+    simpa [R, Complex.add_im, Complex.mul_im] using h
+  refine (sq_le_sq₀ (Real.sqrt_nonneg _) (by positivity)).mp ?_
+  rw [Real.sq_sqrt]
+  · have hbase_half_sq : ((2 * Real.pi) ^ (1 / 2 : ℝ)) ^ 2 = 2 * Real.pi := by
+      rw [← Real.sqrt_eq_rpow]
+      exact Real.sq_sqrt hbase_nonneg
+    have hbase_neg_half_sq : ((2 * Real.pi) ^ (-(1 / 2 : ℝ))) ^ 2 = (2 * Real.pi)⁻¹ := by
+      rw [Real.rpow_neg hbase_nonneg]
+      field_simp [hbase_pos.ne', hbase_half_sq]
+      exact hbase_half_sq.symm
+    have hR_half_sq : (R ^ (1 / 2 : ℝ)) ^ 2 = R := by
+      rw [← Real.sqrt_eq_rpow]
+      exact Real.sq_sqrt hR_nonneg
+    rw [mul_pow, hbase_neg_half_sq, hR_half_sq]
+    field_simp [hbase_pos.ne']
+    nlinarith
+  · positivity
+
+theorem backlundA_zero_line_le_const_mul_log :
+    ∃ C > 0, ∀ t : ℝ, 3 < |t| →
+      ‖backlundA ((t : ℂ) * Complex.I)‖ ≤
+        C * ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
+          ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) * Real.log |t|) := by
+  obtain ⟨C, hC, hA⟩ := backlundA_zero_line_le_const_mul_log_sqrt
+  refine ⟨C, hC, ?_⟩
+  intro t ht
+  have h := hA t ht
+  have hlog_pos : 0 < Real.log |t| := Real.log_pos (by linarith)
+  have hsqrt := sqrt_abs_div_two_pi_le_two_pi_neg_half_mul_norm_one_add_vertical t
+  let R : ℝ := ‖(1 : ℂ) + (t : ℂ) * Complex.I‖
+  have hR_pos : 0 < R := by
+    apply norm_pos_iff.mpr
+    intro hzero
+    have hre := congrArg Complex.re hzero
+    simp at hre
+  calc
+    ‖backlundA ((t : ℂ) * Complex.I)‖
+        ≤ C * R * Real.log |t| * Real.sqrt (|t| / (2 * Real.pi)) := by
+          simpa [R] using h
+    _ ≤ C * R * Real.log |t| *
+          ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) * R ^ (1 / 2 : ℝ)) := by
+          gcongr
+    _ = C * ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) * R ^ (3 / 2 : ℝ) * Real.log |t|) := by
+          have hR_pow : R * R ^ (1 / 2 : ℝ) = R ^ (3 / 2 : ℝ) := by
+            calc
+              R * R ^ (1 / 2 : ℝ) = R ^ (1 : ℝ) * R ^ (1 / 2 : ℝ) := by rw [Real.rpow_one]
+              _ = R ^ ((1 : ℝ) + 1 / 2) := by rw [← Real.rpow_add hR_pos]
+              _ = R ^ (3 / 2 : ℝ) := by norm_num
+          calc
+            C * R * Real.log |t| *
+                ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) * R ^ (1 / 2 : ℝ))
+                = C * (2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
+                    (R * R ^ (1 / 2 : ℝ)) * Real.log |t| := by ring
+            _ = C * (2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
+                    R ^ (3 / 2 : ℝ) * Real.log |t| := by rw [hR_pow]
+            _ = C * ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
+                    R ^ (3 / 2 : ℝ) * Real.log |t|) := by ring
 
 /--
 At the high-height cutoff from the eccentric-Jensen route, the sharper local RHS is
