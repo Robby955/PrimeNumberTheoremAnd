@@ -396,6 +396,11 @@ theorem riemannXi_rectangle_divisor_sum_eq_riemannZeta_N (T : ℝ) (hT : 0 < T)
       riemannZeta.order, ← hn, WithTop.untop₀_coe, WithTop.untopD_coe]
   exact_mod_cast horder
 
+/-- The normalized ξ logarithmic-derivative integral over the counting rectangle. -/
+def riemannVonMangoldtXiCountingRectangleIntegral (T : ℝ) : ℂ :=
+  RectangleIntegral' (logDeriv riemannXi) riemannVonMangoldtCountingRectangleLower
+    (riemannVonMangoldtCountingRectangleUpper T)
+
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
   (1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I
@@ -1094,6 +1099,45 @@ theorem riemannXi_rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt {z w : �
       (riemannXi_logDeriv_meromorphicOn (Rectangle z w))
       (fun p _hp => riemannXi_meromorphicOrderAt_ne_top p)
       (riemannXi_no_boundary_divisor_support hboundary)
+
+theorem riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re (T : ℝ)
+    (hT : 0 < T)
+    (hboundary :
+      ∀ p ∈ RectangleBorder riemannVonMangoldtCountingRectangleLower
+        (riemannVonMangoldtCountingRectangleUpper T),
+        riemannXi p ≠ 0) :
+    riemannZeta.N T =
+      (riemannVonMangoldtXiCountingRectangleIntegral T).re := by
+  classical
+  let z := riemannVonMangoldtCountingRectangleLower
+  let w := riemannVonMangoldtCountingRectangleUpper T
+  let D := MeromorphicOn.divisor riemannXi (Rectangle z w)
+  let hXi := divisor_support_rectangle_finite riemannXi z w
+  have hxi_integral :
+      RectangleIntegral' (logDeriv riemannXi) z w =
+        ∑ p ∈ hXi.toFinset, ((D p : ℤ) : ℂ) := by
+    simpa [z, w, D, hXi] using
+      (riemannXi_rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
+        (z := z) (w := w)
+        (by simp [z, w, riemannVonMangoldtCountingRectangleLower,
+          riemannVonMangoldtCountingRectangleUpper])
+        (by simpa [z, w, riemannVonMangoldtCountingRectangleLower,
+          riemannVonMangoldtCountingRectangleUpper] using hT.le)
+        (by simpa [z, w] using hboundary))
+  have hsum_real :
+      (∑ p ∈ hXi.toFinset, ((D p : ℤ) : ℝ)) =
+        riemannZeta.N T := by
+    simpa [z, w, D, hXi] using
+      riemannXi_rectangle_divisor_sum_eq_riemannZeta_N T hT hboundary
+  have hsum_complex :
+      (∑ p ∈ hXi.toFinset, ((D p : ℤ) : ℂ)) =
+        (riemannZeta.N T : ℂ) := by
+    exact_mod_cast hsum_real
+  rw [riemannVonMangoldtXiCountingRectangleIntegral, show
+      riemannVonMangoldtCountingRectangleLower = z by rfl, show
+      riemannVonMangoldtCountingRectangleUpper T = w by rfl]
+  rw [hxi_integral, hsum_complex]
+  simp
 
 /-- Argument-change form of the xi-specialized rectangle count. -/
 theorem riemannXi_rectangle_argumentChange_eq_two_pi_sum_meromorphicOrderAt {z w : ℂ}

@@ -27,6 +27,8 @@ open Complex
 #check riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero
 #check meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero
 #check riemannXi_rectangle_divisor_sum_eq_riemannZeta_N
+#check riemannVonMangoldtXiCountingRectangleIntegral
+#check riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re
 
 example (z : ℂ) (hz : 0 < z.re) :
     Complex.exp (logGammaBranch z) = Complex.Gamma z :=
@@ -57,3 +59,5 @@ example (T : ℝ) (hT : 1 ≤ T)
 #print axioms riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero
 #print axioms meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero
 #print axioms riemannXi_rectangle_divisor_sum_eq_riemannZeta_N
+#print axioms riemannVonMangoldtXiCountingRectangleIntegral
+#print axioms riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re
