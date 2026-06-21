@@ -291,4 +291,67 @@ theorem log_phragmen_lindelof_shiftedLogPower {f : ℂ → ℂ}
       simpa [norm_shiftedLogPowerNormalizer_ofReal] using hright w hw)
   simpa [norm_shiftedLogPowerNormalizer_ofReal] using hmain
 
+/--
+Log-augmented Phragmen-Lindelöf in a vertical strip with shifted log-power
+weights. The normalized quotient is controlled by the usual PL growth condition,
+so no closed-strip boundedness hypothesis is required.
+-/
+theorem log_phragmen_lindelof {f : ℂ → ℂ}
+    {Q σ₀ σ₁ C₀ C₁ α β : ℝ} {z : ℂ} (hσ : σ₀ < σ₁)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)
+    (hQ : (1 : ℝ) < Q + σ₀)
+    (hd : DiffContOnCl ℂ
+      (fun w => f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁))
+    (hgrowth : ∃ c < Real.pi / (σ₁ - σ₀), ∃ B,
+      (fun w => f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w)
+        =O[Filter.comap (_root_.abs ∘ Complex.im) Filter.atTop ⊓
+            Filter.principal (Complex.re ⁻¹' Set.Ioo σ₀ σ₁)]
+          fun w => Real.exp (B * Real.exp (c * |w.im|)))
+    (hleft : ∀ w : ℂ, w.re = σ₀ →
+      ‖f w‖ ≤ C₀ * (‖(Q : ℂ) + w‖ ^ α * ‖Complex.log ((Q : ℂ) + w)‖ ^ β))
+    (hright : ∀ w : ℂ, w.re = σ₁ →
+      ‖f w‖ ≤ C₁ * (‖(Q : ℂ) + w‖ ^ α * ‖Complex.log ((Q : ℂ) + w)‖ ^ β)) :
+    ‖f z‖ ≤
+      (C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+        C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀))) *
+        (‖(Q : ℂ) + z‖ ^ α * ‖Complex.log ((Q : ℂ) + z)‖ ^ β) := by
+  let g : ℂ → ℂ := fun w => f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w
+  have hleft_g : ∀ w : ℂ, w.re = σ₀ → ‖g w‖ ≤ C₀ := by
+    intro w hw
+    have hwstrip : w ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁ := by
+      simp [Complex.HadamardThreeLines.verticalClosedStrip, hw, hσ.le]
+    have hnorm_pos : 0 < ‖shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w‖ :=
+      norm_pos_iff.mpr (shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
+        (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁) (α := (α : ℂ)) (β := (β : ℂ)) hQ hwstrip)
+    change ‖f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w‖ ≤ C₀
+    rw [norm_div]
+    exact (div_le_iff₀ hnorm_pos).2 (by
+      simpa [norm_shiftedLogPowerNormalizer_ofReal] using hleft w hw)
+  have hright_g : ∀ w : ℂ, w.re = σ₁ → ‖g w‖ ≤ C₁ := by
+    intro w hw
+    have hwstrip : w ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁ := by
+      simp [Complex.HadamardThreeLines.verticalClosedStrip, hw, hσ.le]
+    have hnorm_pos : 0 < ‖shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w‖ :=
+      norm_pos_iff.mpr (shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
+        (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁) (α := (α : ℂ)) (β := (β : ℂ)) hQ hwstrip)
+    change ‖f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w‖ ≤ C₁
+    rw [norm_div]
+    exact (div_le_iff₀ hnorm_pos).2 (by
+      simpa [norm_shiftedLogPowerNormalizer_ofReal] using hright w hw)
+  have hB : BddAbove (Set.image
+      (fun w => ‖f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w‖)
+      (Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)) := by
+    simpa [g] using
+      bddAbove_norm_on_verticalClosedStrip_of_phragmen_lindelof
+        (g := g) (σ₀ := σ₀) (σ₁ := σ₁) (C := max C₀ C₁)
+        (by simpa [g] using hd)
+        (by simpa [g] using hgrowth)
+        (fun w hw => (hleft_g w hw).trans (le_max_left C₀ C₁))
+        (fun w hw => (hright_g w hw).trans (le_max_right C₀ C₁))
+  exact log_phragmen_lindelof_shiftedLogPower
+    (f := f) (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁)
+    (C₀ := C₀) (C₁ := C₁) (α := α) (β := β)
+    hσ hz hQ hd hB hleft hright
+
 end Backlund
