@@ -2474,7 +2474,7 @@ lemma integral_digammaBinetKernel_eq_planck_laplace {z : ℂ} (hz : 0 < z.re) :
             ((t : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ)))) := by
             rw [digammaBinetKernel]
             field_simp [hEpos.ne', hDne]
-            push_cast
+            norm_num [div_eq_mul_inv]
             ring_nf
       _ = (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
             (∫ u : ℝ in Set.Ioi (0 : ℝ),
@@ -2517,7 +2517,7 @@ lemma integral_digammaBinetKernel_eq_planck_laplace {z : ℂ} (hz : 0 < z.re) :
                     Complex.exp (-z * (u : ℂ)) *
                       (((2 * Real.sin (u * t) /
                         (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ))
-                  rw [hsinarg]
+                  simp only [hsinarg]
                   push_cast
                   ring_nf
             _ = Complex.exp (-z * u) *
@@ -2560,6 +2560,204 @@ lemma integral_digammaBinetKernel_eq_planck_laplace {z : ℂ} (hz : 0 < z.re) :
                   push_cast
                   ring_nf
         simpa [ν] using hinner
+
+lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
+    Integrable
+      (Function.uncurry
+        (fun u v : ℝ =>
+          -((u : ℂ) * Complex.exp (-z * u)) *
+            (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))))
+      ((volume.restrict (Set.Ioi (0 : ℝ))).prod
+        (volume.restrict (Set.Ioi (0 : ℝ)))) := by
+  let μ : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  let ν : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  change Integrable
+      (Function.uncurry
+        (fun u v : ℝ =>
+          -((u : ℂ) * Complex.exp (-z * u)) *
+            (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)))) (μ.prod ν)
+  have hsm : AEStronglyMeasurable
+      (Function.uncurry
+        (fun u v : ℝ =>
+          -((u : ℂ) * Complex.exp (-z * u)) *
+            (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)))) (μ.prod ν) := by
+    have hBν : AEStronglyMeasurable B1 ν := by
+      dsimp [ν]
+      exact aestronglyMeasurable_B1.restrict
+    have hBprod : AEStronglyMeasurable (fun p : ℝ × ℝ => B1 p.2) (μ.prod ν) :=
+      hBν.comp_snd
+    have hexp : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => Real.exp (-(p.1 * p.2))) (μ.prod ν) :=
+      (by fun_prop : Measurable
+        (fun p : ℝ × ℝ => Real.exp (-(p.1 * p.2)))).aestronglyMeasurable
+    have hreal : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => B1 p.2 * Real.exp (-(p.1 * p.2))) (μ.prod ν) :=
+      hBprod.mul hexp
+    have hrealC : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => ((B1 p.2 * Real.exp (-(p.1 * p.2)) : ℝ) : ℂ))
+        (μ.prod ν) :=
+      hreal.aemeasurable.complex_ofReal.aestronglyMeasurable
+    have huC : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => (p.1 : ℂ))
+        (μ.prod ν) :=
+      (by fun_prop : Measurable
+        (fun p : ℝ × ℝ => (p.1 : ℂ)))
+        |>.aestronglyMeasurable
+    have hexpz : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => Complex.exp (-z * (p.1 : ℂ)))
+        (μ.prod ν) :=
+      (by fun_prop : Measurable
+        (fun p : ℝ × ℝ => Complex.exp (-z * (p.1 : ℂ))))
+        |>.aestronglyMeasurable
+    have hBC : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => ((B1 p.2 : ℝ) : ℂ)) (μ.prod ν) :=
+      hBprod.aemeasurable.complex_ofReal.aestronglyMeasurable
+    have hexpuv : AEStronglyMeasurable
+        (fun p : ℝ × ℝ => Complex.exp (-((p.1 : ℂ) * (p.2 : ℂ))))
+        (μ.prod ν) :=
+      (by fun_prop : Measurable
+        (fun p : ℝ × ℝ => Complex.exp (-((p.1 : ℂ) * (p.2 : ℂ)))))
+        |>.aestronglyMeasurable
+    change AEStronglyMeasurable
+      (fun p : ℝ × ℝ =>
+        -((p.1 : ℂ) * Complex.exp (-z * (p.1 : ℂ))) *
+          (((B1 p.2 * Real.exp (-(p.1 * p.2)) : ℝ) : ℂ)))
+      (μ.prod ν)
+    exact ((huC.mul hexpz).neg.mul hrealC)
+  rw [integrable_prod_iff hsm]
+  constructor
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+    have hupos : 0 < u := hu
+    change Integrable
+      (fun v : ℝ =>
+        -((u : ℂ) * Complex.exp (-z * u)) *
+          (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) ν
+    have hbase : IntegrableOn
+        (fun v : ℝ => (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)))
+        (Set.Ioi (0 : ℝ)) volume := by
+      have h0 : IntegrableOn (fun v : ℝ => Real.exp (-(u * v)))
+          (Set.Ioi (0 : ℝ)) volume := by
+        simpa [neg_mul] using integrableOn_exp_mul_Ioi (a := -u) (by linarith) 0
+      exact h0.const_mul (u * Real.exp (-(z.re * u)) / 2)
+    have hmeas : AEStronglyMeasurable
+        (fun v : ℝ =>
+          -((u : ℂ) * Complex.exp (-z * u)) *
+            (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) ν := by
+      exact ((by fun_prop : AEStronglyMeasurable
+        (fun v : ℝ =>
+          -((u : ℂ) * Complex.exp (-z * u)) *
+            (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))))).restrict
+    exact hbase.mono' hmeas (by
+      filter_upwards [ae_restrict_mem measurableSet_Ioi] with v hv
+      have hvpos : 0 < v := hv
+      have hB := abs_B1_le_half (x := v) hvpos.le
+      rw [norm_mul, norm_neg, norm_mul, Complex.norm_real, Complex.norm_exp,
+        Complex.norm_real, Real.norm_eq_abs, abs_of_pos hupos, Real.norm_eq_abs,
+        abs_mul, abs_of_nonneg (Real.exp_pos _).le]
+      have hexp_eq :
+          Real.exp ((-z * (u : ℂ)).re) = Real.exp (-(z.re * u)) := by
+        congr 1
+        simp [Complex.mul_re, mul_comm]
+      rw [hexp_eq]
+      calc
+        (u * Real.exp (-(z.re * u))) *
+            (|B1 v| * Real.exp (-(u * v)))
+            ≤ (u * Real.exp (-(z.re * u))) *
+                ((1 / 2 : ℝ) * Real.exp (-(u * v))) := by
+              exact mul_le_mul_of_nonneg_left
+                (mul_le_mul_of_nonneg_right hB (Real.exp_pos _).le) (by positivity)
+        _ = (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)) := by ring)
+  · have hmaj : Integrable (fun u : ℝ => Real.exp (-(z.re * u)) / 2) μ := by
+      dsimp [μ]
+      have hbase : IntegrableOn (fun u : ℝ => (1 / 2 : ℝ) * Real.exp (-(z.re * u)))
+          (Set.Ioi (0 : ℝ)) volume := by
+        have h0 : IntegrableOn (fun u : ℝ => Real.exp (-(z.re * u)))
+            (Set.Ioi (0 : ℝ)) volume := by
+          simpa [neg_mul] using integrableOn_exp_mul_Ioi (a := -z.re) (by linarith) 0
+        exact h0.const_mul (1 / 2 : ℝ)
+      refine hbase.congr_fun ?_ measurableSet_Ioi
+      intro u _hu
+      ring
+    refine hmaj.mono ?_ ?_
+    · exact hsm.norm.integral_prod_right'
+    · filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+      have hupos : 0 < u := hu
+      have hupper_int : Integrable
+          (fun v : ℝ => (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v))) ν := by
+        dsimp [ν]
+        have h0 : IntegrableOn (fun v : ℝ => Real.exp (-(u * v)))
+            (Set.Ioi (0 : ℝ)) volume := by
+          simpa [neg_mul] using integrableOn_exp_mul_Ioi (a := -u) (by linarith) 0
+        exact h0.const_mul (u * Real.exp (-(z.re * u)) / 2)
+      have hinner_le :
+          ∫ v : ℝ,
+              ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ ∂ν
+            ≤ ∫ v : ℝ,
+                (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)) ∂ν := by
+        exact MeasureTheory.integral_mono_of_nonneg
+          (Filter.Eventually.of_forall fun v => norm_nonneg _)
+          hupper_int
+          (by
+            filter_upwards [ae_restrict_mem measurableSet_Ioi] with v hv
+            have hvpos : 0 < v := hv
+            have hB := abs_B1_le_half (x := v) hvpos.le
+            rw [norm_mul, norm_neg, norm_mul, Complex.norm_real, Complex.norm_exp,
+              Complex.norm_real, Real.norm_eq_abs, abs_of_pos hupos, Real.norm_eq_abs,
+              abs_mul, abs_of_nonneg (Real.exp_pos _).le]
+            have hexp_eq :
+                Real.exp ((-z * (u : ℂ)).re) = Real.exp (-(z.re * u)) := by
+              congr 1
+              simp [Complex.mul_re, mul_comm]
+            rw [hexp_eq]
+            calc
+              (u * Real.exp (-(z.re * u))) *
+                  (|B1 v| * Real.exp (-(u * v)))
+                  ≤ (u * Real.exp (-(z.re * u))) *
+                      ((1 / 2 : ℝ) * Real.exp (-(u * v))) := by
+                    exact mul_le_mul_of_nonneg_left
+                      (mul_le_mul_of_nonneg_right hB (Real.exp_pos _).le) (by positivity)
+              _ = (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)) := by ring)
+      calc
+        ‖∫ v : ℝ,
+            ‖Function.uncurry
+              (fun u v : ℝ =>
+                -((u : ℂ) * Complex.exp (-z * u)) *
+                  (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) (u, v)‖ ∂ν‖
+            = ∫ v : ℝ,
+                ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                  (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ ∂ν := by
+              have huncurry :
+                  (fun v : ℝ =>
+                    ‖Function.uncurry
+                      (fun u v : ℝ =>
+                        -((u : ℂ) * Complex.exp (-z * u)) *
+                          (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) (u, v)‖) =
+                    fun v : ℝ =>
+                      ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                        (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ := by
+                funext v
+                rfl
+              rw [huncurry]
+              have hnonneg :
+                  0 ≤ ∫ v : ℝ,
+                    ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                      (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ ∂ν := by
+                exact integral_nonneg_of_ae
+                  (Filter.Eventually.of_forall fun v : ℝ => norm_nonneg
+                    (-((u : ℂ) * Complex.exp (-z * (u : ℂ))) *
+                      (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))))
+              rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
+        _ ≤ ∫ v : ℝ,
+              (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)) ∂ν := hinner_le
+        _ = (u * Real.exp (-(z.re * u)) / 2) * (1 / u) := by
+              rw [MeasureTheory.integral_const_mul]
+              rw [integral_exp_neg_mul_Ioi hupos]
+        _ = Real.exp (-(z.re * u)) / 2 := by
+              field_simp [hupos.ne']
+        _ ≤ ‖Real.exp (-(z.re * u)) / 2‖ := by
+              have hnonneg : 0 ≤ Real.exp (-(z.re * u)) / 2 := by positivity
+              rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
 
 /--
 The positive second-Binet formula follows from the already proved first-order Binet identity
