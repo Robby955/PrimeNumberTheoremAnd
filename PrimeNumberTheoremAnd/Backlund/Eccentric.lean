@@ -5,6 +5,7 @@ Authors: Robby Sneiderman
 -/
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import Mathlib.Analysis.Complex.Hadamard
+import Mathlib.Analysis.Complex.PhragmenLindelof
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
@@ -179,6 +180,30 @@ theorem shiftedLogPowerNormalizer_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ :
     ((((differentiableOn_const (Q : ℂ)).add differentiableOn_id).clog
       (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz)).cpow_const
       (fun z hz => shifted_log_mem_slitPlane_on_verticalClosedStrip hQ hz))
+
+/--
+Phragmen-Lindelöf growth and uniform boundary control imply boundedness of the
+norm on the corresponding closed vertical strip.
+-/
+theorem bddAbove_norm_on_verticalClosedStrip_of_phragmen_lindelof {g : ℂ → ℂ}
+    {σ₀ σ₁ C : ℝ}
+    (hd : DiffContOnCl ℂ g (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁))
+    (hgrowth : ∃ c < Real.pi / (σ₁ - σ₀), ∃ B,
+      g =O[Filter.comap (_root_.abs ∘ Complex.im) Filter.atTop ⊓
+          Filter.principal (Complex.re ⁻¹' Set.Ioo σ₀ σ₁)]
+        fun z => Real.exp (B * Real.exp (c * |z.im|)))
+    (hleft : ∀ z : ℂ, z.re = σ₀ → ‖g z‖ ≤ C)
+    (hright : ∀ z : ℂ, z.re = σ₁ → ‖g z‖ ≤ C) :
+    BddAbove (Set.image (fun z => ‖g z‖)
+      (Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)) := by
+  refine ⟨C, ?_⟩
+  rintro y ⟨z, hz, rfl⟩
+  exact PhragmenLindelof.vertical_strip
+    (f := g) (a := σ₀) (b := σ₁) (z := z)
+    (by simpa [Complex.HadamardThreeLines.verticalStrip] using hd)
+    hgrowth hleft hright
+    (by simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1)
+    (by simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.2)
 
 /--
 Hadamard three-lines for a function after division by a supplied nonzero
