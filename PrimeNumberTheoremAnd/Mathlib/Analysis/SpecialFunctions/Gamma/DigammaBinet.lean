@@ -1391,6 +1391,26 @@ lemma integral_exp_neg_a0_mul_Ioi :
           rw [Real.Gamma_one, Real.rpow_neg_one]
           ring
 
+lemma integral_exp_neg_mul_Ioi {x : ℝ} (hx : 0 < x) :
+    ∫ t in Set.Ioi (0 : ℝ), Real.exp (-(x * t)) = 1 / x := by
+  have h := _root_.integral_rpow_mul_exp_neg_mul_rpow
+    (p := 1) (q := 0) (b := x)
+    (by norm_num : (0 : ℝ) < 1) (by norm_num : (-1 : ℝ) < 0) hx
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), Real.exp (-(x * t))
+        = ∫ t in Set.Ioi (0 : ℝ),
+            t ^ (0 : ℝ) * Real.exp (-x * t ^ (1 : ℝ)) := by
+          refine setIntegral_congr_fun measurableSet_Ioi ?_
+          intro t ht
+          simp [Real.rpow_zero, Real.rpow_one, mul_comm]
+    _ = x ^ (-((0 : ℝ) + 1) / 1) * (1 / 1) *
+        Real.Gamma (((0 : ℝ) + 1) / 1) := h
+    _ = 1 / x := by
+          rw [show -((0 : ℝ) + 1) / 1 = (-1 : ℝ) by norm_num]
+          rw [show ((0 : ℝ) + 1) / 1 = (1 : ℝ) by norm_num]
+          rw [Real.Gamma_one, Real.rpow_neg_one]
+          ring
+
 lemma integral_mul_exp_neg_a0_mul_Ioi :
     ∫ t in Set.Ioi (0 : ℝ), t * Real.exp (-(digammaBinetA0 * t)) =
       1 / digammaBinetA0 ^ 2 := by
@@ -2216,6 +2236,330 @@ lemma laplace_sq_resolvent {z : ℂ} {t : ℝ} (h : 0 < t + z.re) :
       intro u _hu
       dsimp [w]
       ring_nf
+
+lemma integrable_planck_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
+    Integrable
+      (Function.uncurry
+        (fun t u : ℝ =>
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))))
+      ((volume.restrict (Set.Ioi (0 : ℝ))).prod
+        (volume.restrict (Set.Ioi (0 : ℝ)))) := by
+  let μ : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  let ν : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  change Integrable
+      (Function.uncurry
+        (fun t u : ℝ =>
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ))))) (μ.prod ν)
+  have hsm : AEStronglyMeasurable
+      (Function.uncurry
+        (fun t u : ℝ =>
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ))))) (μ.prod ν) := by
+    exact (by fun_prop : AEStronglyMeasurable
+      (Function.uncurry
+        (fun t u : ℝ =>
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ))))) (μ.prod ν))
+  rw [integrable_prod_iff hsm]
+  constructor
+  · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    change Integrable
+      (fun u : ℝ =>
+        (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+          (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))) ν
+    have hEpos := exp_two_pi_mul_sub_one_pos ht
+    have hcoef_nonneg : 0 ≤ 2 / (Real.exp (2 * Real.pi * t) - 1) := by
+      positivity
+    have hbase : IntegrableOn
+        (fun u : ℝ =>
+          (2 / (Real.exp (2 * Real.pi * t) - 1)) *
+            Real.exp (-(z.re * u)))
+        (Set.Ioi (0 : ℝ)) volume := by
+      have h0 : IntegrableOn (fun u : ℝ => Real.exp (-(z.re * u)))
+          (Set.Ioi (0 : ℝ)) volume := by
+        simpa [neg_mul] using integrableOn_exp_mul_Ioi
+          (a := -z.re) (by linarith) 0
+      exact h0.const_mul (2 / (Real.exp (2 * Real.pi * t) - 1))
+    have hmeas : AEStronglyMeasurable
+        (fun u : ℝ =>
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))) ν := by
+      exact (by fun_prop : Measurable
+        (fun u : ℝ =>
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))))
+        |>.aestronglyMeasurable
+    exact hbase.mono' hmeas (by
+      filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+      have hsin : ‖((Real.sin (t * u) : ℝ) : ℂ)‖ ≤ 1 := by
+        rw [Complex.norm_real, Real.norm_eq_abs]
+        exact Real.abs_sin_le_one _
+      rw [norm_mul, norm_mul, Complex.norm_real, Real.norm_eq_abs,
+        abs_of_nonneg hcoef_nonneg, Complex.norm_exp]
+      have hexp_eq :
+          Real.exp ((-z * (u : ℂ)).re) = Real.exp (-(z.re * u)) := by
+        congr 1
+        simp [Complex.mul_re, mul_comm]
+      rw [hexp_eq]
+      calc
+        (2 / (Real.exp (2 * Real.pi * t) - 1)) *
+            (Real.exp (-(z.re * u)) * ‖((Real.sin (t * u) : ℝ) : ℂ)‖)
+            ≤ (2 / (Real.exp (2 * Real.pi * t) - 1)) *
+                (Real.exp (-(z.re * u)) * 1) := by
+              exact mul_le_mul_of_nonneg_left
+                (mul_le_mul_of_nonneg_left hsin (Real.exp_pos _).le) hcoef_nonneg
+        _ = (2 / (Real.exp (2 * Real.pi * t) - 1)) *
+            Real.exp (-(z.re * u)) := by ring)
+  · have hmaj : Integrable
+        (fun t : ℝ => Real.exp (-(digammaBinetA0 * t)) /
+          (digammaBinetA0 * z.re ^ 2)) μ := by
+      dsimp [μ]
+      have hbase : IntegrableOn
+          (fun t : ℝ => (1 / (digammaBinetA0 * z.re ^ 2)) *
+            Real.exp (-(digammaBinetA0 * t)))
+          (Set.Ioi (0 : ℝ)) volume :=
+        integrableOn_exp_neg_a0_mul_Ioi.const_mul
+          (1 / (digammaBinetA0 * z.re ^ 2))
+      refine hbase.congr_fun ?_ measurableSet_Ioi
+      intro t _ht
+      ring
+    refine hmaj.mono ?_ ?_
+    · exact hsm.norm.integral_prod_right'
+    · filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+      have htpos : 0 < t := ht
+      have hEpos := exp_two_pi_mul_sub_one_pos htpos
+      have hcoef_nonneg : 0 ≤ 2 / (Real.exp (2 * Real.pi * t) - 1) := by
+        positivity
+      have hupper_int : Integrable
+          (fun u : ℝ =>
+            (2 * t / (Real.exp (2 * Real.pi * t) - 1)) *
+              (u * Real.exp (-(z.re * u)))) ν := by
+        dsimp [ν]
+        have hbase : IntegrableOn (fun u : ℝ => u * Real.exp (-(z.re * u)))
+            (Set.Ioi (0 : ℝ)) volume := by
+          simpa [Real.rpow_one, mul_comm, mul_left_comm, mul_assoc] using
+            integrableOn_rpow_mul_exp_neg_mul_rpow
+              (s := 1) (p := 1) (b := z.re)
+              (by norm_num : (-1 : ℝ) < 1) (by norm_num : (1 : ℝ) ≤ 1) hz
+        exact hbase.const_mul (2 * t / (Real.exp (2 * Real.pi * t) - 1))
+      have hinner_le :
+          ∫ u : ℝ, ‖(((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+              (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))‖ ∂ν
+            ≤ ∫ u : ℝ,
+                (2 * t / (Real.exp (2 * Real.pi * t) - 1)) *
+                  (u * Real.exp (-(z.re * u))) ∂ν := by
+        exact MeasureTheory.integral_mono_of_nonneg
+          (Filter.Eventually.of_forall fun u => norm_nonneg _)
+          hupper_int
+          (by
+            filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+            have hupos : 0 < u := hu
+            have hsin : ‖((Real.sin (t * u) : ℝ) : ℂ)‖ ≤ t * u := by
+              rw [Complex.norm_real, Real.norm_eq_abs]
+              calc
+                |Real.sin (t * u)| ≤ |t * u| :=
+                  (show |Real.sin (t * u)| ≤ |t * u| from Real.abs_sin_le_abs)
+                _ = t * u := by rw [abs_mul, abs_of_pos htpos, abs_of_pos hupos]
+            rw [norm_mul, norm_mul, Complex.norm_real, Real.norm_eq_abs,
+              abs_of_nonneg hcoef_nonneg, Complex.norm_exp]
+            have hexp_eq :
+                Real.exp ((-z * (u : ℂ)).re) = Real.exp (-(z.re * u)) := by
+              congr 1
+              simp [Complex.mul_re, mul_comm]
+            rw [hexp_eq]
+            calc
+              (2 / (Real.exp (2 * Real.pi * t) - 1)) *
+                  (Real.exp (-(z.re * u)) * ‖((Real.sin (t * u) : ℝ) : ℂ)‖)
+                  ≤ (2 / (Real.exp (2 * Real.pi * t) - 1)) *
+                      (Real.exp (-(z.re * u)) * (t * u)) := by
+                    exact mul_le_mul_of_nonneg_left
+                      (mul_le_mul_of_nonneg_left hsin (Real.exp_pos _).le) hcoef_nonneg
+              _ = (2 * t / (Real.exp (2 * Real.pi * t) - 1)) *
+                    (u * Real.exp (-(z.re * u))) := by ring)
+      calc
+        ‖∫ u : ℝ,
+            ‖Function.uncurry
+              (fun t u : ℝ =>
+                (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                  (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))) (t, u)‖ ∂ν‖
+            = ∫ u : ℝ,
+                ‖(((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                  (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))‖ ∂ν := by
+              have huncurry :
+                  (fun u : ℝ =>
+                    ‖Function.uncurry
+                      (fun t u : ℝ =>
+                        (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                          (Complex.exp (-z * u) *
+                            ((Real.sin (t * u) : ℝ) : ℂ)))) (t, u)‖) =
+                    fun u : ℝ =>
+                      ‖(((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                        (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))‖ := by
+                funext u
+                rfl
+              rw [huncurry]
+              have hnonneg :
+                  0 ≤ ∫ u : ℝ,
+                    ‖(((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                      (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))‖ ∂ν := by
+                exact integral_nonneg_of_ae
+                  (Filter.Eventually.of_forall fun u : ℝ => norm_nonneg
+                    (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                      (Complex.exp (-z * (u : ℂ)) *
+                        ((Real.sin ((t : ℝ) * u) : ℝ) : ℂ))))
+              rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
+        _ ≤ ∫ u : ℝ,
+              (2 * t / (Real.exp (2 * Real.pi * t) - 1)) *
+                (u * Real.exp (-(z.re * u))) ∂ν := hinner_le
+        _ = (2 * t / (Real.exp (2 * Real.pi * t) - 1)) *
+              (1 / z.re ^ 2) := by
+              rw [MeasureTheory.integral_const_mul]
+              rw [integral_mul_exp_neg_mul_Ioi hz]
+        _ ≤ Real.exp (-(digammaBinetA0 * t)) /
+              (digammaBinetA0 * z.re ^ 2) := by
+              have hk := two_mul_div_exp_two_pi_sub_one_le (t := t) htpos
+              have hx2_nonneg : 0 ≤ 1 / z.re ^ 2 := by positivity
+              calc
+                (2 * t / (Real.exp (2 * Real.pi * t) - 1)) *
+                    (1 / z.re ^ 2)
+                    ≤ (Real.exp (-(digammaBinetA0 * t)) / digammaBinetA0) *
+                        (1 / z.re ^ 2) := by
+                      exact mul_le_mul_of_nonneg_right hk hx2_nonneg
+                _ = Real.exp (-(digammaBinetA0 * t)) /
+                    (digammaBinetA0 * z.re ^ 2) := by
+                      field_simp [digammaBinetA0_pos.ne', hz.ne']
+        _ ≤ ‖Real.exp (-(digammaBinetA0 * t)) /
+              (digammaBinetA0 * z.re ^ 2)‖ := by
+              have hnonneg : 0 ≤ Real.exp (-(digammaBinetA0 * t)) /
+                  (digammaBinetA0 * z.re ^ 2) :=
+                div_nonneg (Real.exp_pos _).le
+                  (mul_nonneg digammaBinetA0_pos.le (sq_nonneg z.re))
+              rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
+
+lemma integral_digammaBinetKernel_eq_planck_laplace {z : ℂ} (hz : 0 < z.re) :
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t =
+      ∫ u in Set.Ioi (0 : ℝ),
+        Complex.exp (-z * u) *
+          (((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+            Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1)) : ℂ) := by
+  let μ : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  let ν : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  let F : ℝ → ℝ → ℂ := fun t u =>
+    (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+      (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))
+  have hprod : Integrable (Function.uncurry F) (μ.prod ν) := by
+    simpa [F, μ, ν] using integrable_planck_laplace_kernel_prod (z := z) hz
+  have hswap :
+      (∫ t : ℝ, ∫ u : ℝ, F t u ∂ν ∂μ) =
+        ∫ u : ℝ, ∫ t : ℝ, F t u ∂μ ∂ν := by
+    simpa [Function.uncurry] using MeasureTheory.integral_integral_swap hprod
+  have hleft :
+      ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t =
+        ∫ t : ℝ, ∫ u : ℝ, F t u ∂ν ∂μ := by
+    refine integral_congr_ae ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    have htpos : 0 < t := ht
+    have hEpos := exp_two_pi_mul_sub_one_pos htpos
+    have hDlower : 2 * z.re * t ≤ ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ := by
+      exact two_mul_re_mul_le_norm_sq_add_real_sq (z := z) (t := t) hz.le htpos.le
+    have hDpos : 0 < ‖z ^ 2 + ((t ^ 2 : ℝ) : ℂ)‖ := by
+      have hleftpos : 0 < 2 * z.re * t := by positivity
+      exact lt_of_lt_of_le hleftpos hDlower
+    have hDne : z ^ 2 + ((t ^ 2 : ℝ) : ℂ) ≠ 0 := norm_pos_iff.mp hDpos
+    calc
+      digammaBinetKernel z t =
+          (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            ((t : ℂ) / (z ^ 2 + ((t ^ 2 : ℝ) : ℂ)))) := by
+            rw [digammaBinetKernel]
+            field_simp [hEpos.ne', hDne]
+            push_cast
+            ring_nf
+      _ = (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+            (∫ u : ℝ in Set.Ioi (0 : ℝ),
+              Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ))) := by
+            rw [integral_Ioi_cexp_neg_mul_sin_scaled (z := z) hz (t := t)]
+      _ = ∫ u : ℝ, F t u ∂ν := by
+            dsimp [F, ν]
+            rw [MeasureTheory.integral_const_mul]
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t
+        = ∫ t : ℝ, ∫ u : ℝ, F t u ∂ν ∂μ := hleft
+    _ = ∫ u : ℝ, ∫ t : ℝ, F t u ∂μ ∂ν := hswap
+    _ = ∫ u in Set.Ioi (0 : ℝ),
+        Complex.exp (-z * u) *
+          (((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+            Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1)) : ℂ) := by
+        refine integral_congr_ae ?_
+        filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+        have hinner :
+            ∫ t : ℝ, F t u ∂μ =
+              Complex.exp (-z * u) *
+                (((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+                  Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1)) : ℂ) := by
+          dsimp [F, μ]
+          calc
+            ∫ t in Set.Ioi (0 : ℝ),
+                (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                  (Complex.exp (-z * u) * ((Real.sin (t * u) : ℝ) : ℂ)))
+                = ∫ t in Set.Ioi (0 : ℝ),
+                    Complex.exp (-z * u) *
+                      (((2 * Real.sin (u * t) /
+                        (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ)) := by
+                  refine setIntegral_congr_fun measurableSet_Ioi ?_
+                  intro t ht
+                  have hsinarg : Real.sin (t * u) = Real.sin (u * t) := by
+                    rw [mul_comm]
+                  change (((2 / (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ) *
+                      (Complex.exp (-z * (u : ℂ)) *
+                        ((Real.sin (t * u) : ℝ) : ℂ))) =
+                    Complex.exp (-z * (u : ℂ)) *
+                      (((2 * Real.sin (u * t) /
+                        (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ))
+                  rw [hsinarg]
+                  push_cast
+                  ring_nf
+            _ = Complex.exp (-z * u) *
+                  (∫ t in Set.Ioi (0 : ℝ),
+                    (((2 * Real.sin (u * t) /
+                      (Real.exp (2 * Real.pi * t) - 1) : ℝ) : ℂ))) := by
+                  rw [MeasureTheory.integral_const_mul]
+            _ = Complex.exp (-z * u) *
+                (((∫ t in Set.Ioi (0 : ℝ),
+                  2 * Real.sin (u * t) /
+                    (Real.exp (2 * Real.pi * t) - 1) : ℝ)) : ℂ) := by
+                  congr 1
+                  exact integral_ofReal
+            _ = Complex.exp (-z * u) *
+                (((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+                  Real.sin (u * t) /
+                    (Real.exp (2 * Real.pi * t) - 1)) : ℂ) := by
+                  have htwo :
+                      (∫ t in Set.Ioi (0 : ℝ),
+                        2 * Real.sin (u * t) /
+                          (Real.exp (2 * Real.pi * t) - 1) : ℝ) =
+                        (2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+                          Real.sin (u * t) /
+                            (Real.exp (2 * Real.pi * t) - 1) := by
+                    calc
+                      (∫ t in Set.Ioi (0 : ℝ),
+                        2 * Real.sin (u * t) /
+                          (Real.exp (2 * Real.pi * t) - 1) : ℝ)
+                          = ∫ t in Set.Ioi (0 : ℝ),
+                              (2 : ℝ) * (Real.sin (u * t) /
+                                (Real.exp (2 * Real.pi * t) - 1)) := by
+                            refine setIntegral_congr_fun measurableSet_Ioi ?_
+                            intro t ht
+                            ring
+                      _ = (2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+                          Real.sin (u * t) /
+                            (Real.exp (2 * Real.pi * t) - 1) := by
+                            rw [MeasureTheory.integral_const_mul]
+                  rw [htwo]
+                  push_cast
+                  ring_nf
+        simpa [ν] using hinner
 
 /--
 The positive second-Binet formula follows from the already proved first-order Binet identity
