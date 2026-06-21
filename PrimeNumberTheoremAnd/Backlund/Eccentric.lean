@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robby Sneiderman
 -/
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
+import PrimeNumberTheoremAnd.ZetaBounds
 import Mathlib.Analysis.Complex.Hadamard
 import Mathlib.Analysis.Complex.PhragmenLindelof
 import Mathlib.Analysis.SpecialFunctions.Exp
@@ -28,6 +29,24 @@ noncomputable def eccentricHighRhs (T : ℝ) : ℝ :=
 /-- Kadiri's published Backlund RHS in the project convention. -/
 noncomputable def kadiriRhs (T : ℝ) : ℝ :=
   riemannZeta.RvM 0.137 0.443 6.1 T
+
+/--
+On the `σ = 1` edge, the in-tree Euler-Maclaurin estimate gives
+`|ζ(1+it)| ≤ C log |t|` for some fixed positive constant.
+-/
+theorem zeta_one_line_le_const_mul_log :
+    ∃ C > 0, ∀ t : ℝ, 3 < |t| →
+      ‖riemannZeta ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤ C * Real.log |t| := by
+  obtain ⟨A, hA, C, hC, hζ⟩ := ZetaUpperBnd
+  refine ⟨C, hC, ?_⟩
+  intro t ht
+  have hlog_pos : 0 < Real.log |t| := Real.log_pos (by linarith)
+  have hσ : (1 : ℝ) ∈ Set.Icc (1 - A / Real.log |t|) 2 := by
+    constructor
+    · have hdiv_nonneg : 0 ≤ A / Real.log |t| := div_nonneg hA.1.le hlog_pos.le
+      linarith
+    · norm_num
+  simpa using hζ 1 t ht hσ
 
 /--
 At the high-height cutoff from the eccentric-Jensen route, the sharper local RHS is
