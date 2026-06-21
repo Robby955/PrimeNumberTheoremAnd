@@ -36,15 +36,29 @@ def riemannVonMangoldtMainTerm (T : ℝ) : ℝ :=
   T / (2 * Real.pi) * Real.log (T / (2 * Real.pi)) - T / (2 * Real.pi) + 7 / 8
 
 /--
-The zeta-argument term used by the L0 Riemann-von Mangoldt bridge.
+The unwrapped zeta log-derivative integral along the top edge used in the
+Riemann-von Mangoldt bridge.
 
-This is the normalization in which the remaining theorem should read
-`riemannZeta.N T - riemannVonMangoldtMainTerm T = riemannVonMangoldtS T + RΓ T`.
+The orientation is from `2 + iT` to `1 / 2 + iT`, matching the classical
+argument variation `arg ζ(1 / 2 + iT) - arg ζ(2 + iT)` but without taking
+principal endpoint arguments.
+-/
+def riemannVonMangoldtZetaTopLogDerivIntegral (T : ℝ) : ℂ :=
+  HIntegral (logDeriv riemannZeta) 2 (1 / 2) T
+
+/--
+The unwrapped zeta-argument term used by the L0 Riemann-von Mangoldt bridge.
+
+This is the contour argument contribution, not a principal `Complex.arg`
+endpoint difference.
 -/
 def riemannVonMangoldtS (T : ℝ) : ℝ :=
-  (1 / Real.pi) *
-    (Complex.arg (riemannZeta ((1 / 2 : ℂ) + ((T : ℝ) : ℂ) * Complex.I)) -
-      Complex.arg (riemannZeta ((2 : ℂ) + ((T : ℝ) : ℂ) * Complex.I)))
+  (1 / Real.pi) * (riemannVonMangoldtZetaTopLogDerivIntegral T).im
+
+theorem riemannVonMangoldtS_eq_zetaTopLogDerivIntegral_im (T : ℝ) :
+    riemannVonMangoldtS T =
+      (1 / Real.pi) * (riemannVonMangoldtZetaTopLogDerivIntegral T).im :=
+  rfl
 
 /-- `N(T)` as a finite order-weighted sum over the positive-height zero window. -/
 theorem riemannZeta_N_eq_toFinset_sum_order (T : ℝ) :
