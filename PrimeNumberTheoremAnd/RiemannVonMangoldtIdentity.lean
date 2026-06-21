@@ -140,6 +140,28 @@ private lemma analyticAt_Gammaℝ_of_im_ne_zero {s : ℂ} (hs : s.im ≠ 0) :
         (analyticAt_id.div_const (c := (2 : ℂ)))
         rfl
 
+/-- The Gamma-polynomial prefactor in `ξ(s) = G(s) ζ(s)` away from the real axis. -/
+def riemannVonMangoldtXiPrefactor (s : ℂ) : ℂ :=
+  s * (s - 1) * Gammaℝ s / 2
+
+private lemma analyticAt_riemannVonMangoldtXiPrefactor_of_im_ne_zero {s : ℂ}
+    (hs : s.im ≠ 0) :
+    AnalyticAt ℂ riemannVonMangoldtXiPrefactor s := by
+  unfold riemannVonMangoldtXiPrefactor
+  exact (((analyticAt_id.mul (analyticAt_id.sub analyticAt_const)).mul
+    (analyticAt_Gammaℝ_of_im_ne_zero hs)).div_const (c := (2 : ℂ)))
+
+private lemma riemannVonMangoldtXiPrefactor_ne_zero_of_im_ne_zero {s : ℂ}
+    (hs : s.im ≠ 0) :
+    riemannVonMangoldtXiPrefactor s ≠ 0 := by
+  unfold riemannVonMangoldtXiPrefactor
+  exact div_ne_zero
+    (mul_ne_zero
+      (mul_ne_zero (ne_zero_of_im_ne_zero hs)
+        (sub_ne_zero.mpr (ne_one_of_im_ne_zero hs)))
+      (Gammaℝ_ne_zero_of_im_ne_zero hs))
+    (by norm_num)
+
 /--
 Away from the real axis, `ξ` is `ζ` times the nonzero Gamma-polynomial factor appearing in
 the completed zeta function.
@@ -152,6 +174,34 @@ theorem riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero {s : ℂ} (hs : s.im �
   rw [riemannXi_eq_mul_completedRiemannZeta hs0 hs1]
   rw [riemannZeta_def_of_ne_zero hs0]
   field_simp [hΓ]
+
+/--
+Pointwise logarithmic-derivative split for `ξ = G ζ` away from the real axis and away
+from zeros of `ζ`.
+-/
+theorem logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero {s : ℂ}
+    (hs : s.im ≠ 0) (hzeta : riemannZeta s ≠ 0) :
+    logDeriv riemannXi s =
+      logDeriv riemannVonMangoldtXiPrefactor s + logDeriv riemannZeta s := by
+  let G : ℂ → ℂ := riemannVonMangoldtXiPrefactor
+  have hG_ne : G s ≠ 0 :=
+    riemannVonMangoldtXiPrefactor_ne_zero_of_im_ne_zero hs
+  have hG_diff : DifferentiableAt ℂ G s :=
+    (analyticAt_riemannVonMangoldtXiPrefactor_of_im_ne_zero hs).differentiableAt
+  have hzeta_diff : DifferentiableAt ℂ riemannZeta s :=
+    differentiableAt_riemannZeta (ne_one_of_im_ne_zero hs)
+  have him_nhds : ∀ᶠ z in 𝓝 s, z.im ≠ 0 :=
+    (continuous_im.continuousAt.ne_iff_eventually_ne continuousAt_const).mp hs
+  have hxi_eq : riemannXi =ᶠ[𝓝 s] fun z => G z * riemannZeta z := by
+    filter_upwards [him_nhds] with z hz
+    simpa [G, riemannVonMangoldtXiPrefactor] using
+      riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero hz
+  calc
+    logDeriv riemannXi s = logDeriv (fun z => G z * riemannZeta z) s := by
+      rw [logDeriv_apply, logDeriv_apply]
+      rw [hxi_eq.deriv_eq, hxi_eq.eq_of_nhds]
+    _ = logDeriv G s + logDeriv riemannZeta s :=
+      logDeriv_mul s hG_ne hzeta hG_diff hzeta_diff
 
 /-- Away from the real axis, `ξ` and `ζ` have the same zero set. -/
 theorem riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero {s : ℂ}
@@ -173,25 +223,17 @@ theorem riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero {s : ℂ}
 theorem meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero {s : ℂ}
     (hs : s.im ≠ 0) :
     meromorphicOrderAt riemannXi s = meromorphicOrderAt riemannZeta s := by
-  let G : ℂ → ℂ := fun z => z * (z - 1) * Gammaℝ z / 2
-  have hG_an : AnalyticAt ℂ G s := by
-    dsimp [G]
-    exact (((analyticAt_id.mul (analyticAt_id.sub analyticAt_const)).mul
-      (analyticAt_Gammaℝ_of_im_ne_zero hs)).div_const (c := (2 : ℂ)))
-  have hG_ne : G s ≠ 0 := by
-    dsimp [G]
-    exact div_ne_zero
-      (mul_ne_zero
-        (mul_ne_zero (ne_zero_of_im_ne_zero hs)
-          (sub_ne_zero.mpr (ne_one_of_im_ne_zero hs)))
-        (Gammaℝ_ne_zero_of_im_ne_zero hs))
-      (by norm_num)
+  let G : ℂ → ℂ := riemannVonMangoldtXiPrefactor
+  have hG_an : AnalyticAt ℂ G s :=
+    analyticAt_riemannVonMangoldtXiPrefactor_of_im_ne_zero hs
+  have hG_ne : G s ≠ 0 :=
+    riemannVonMangoldtXiPrefactor_ne_zero_of_im_ne_zero hs
   have him_nhds : ∀ᶠ z in 𝓝 s, z.im ≠ 0 :=
     (continuous_im.continuousAt.ne_iff_eventually_ne continuousAt_const).mp hs
   have hxi_eq : riemannXi =ᶠ[𝓝[≠] s] fun z => G z * riemannZeta z := by
     filter_upwards [him_nhds.filter_mono nhdsWithin_le_nhds] with z hz
-    dsimp [G]
-    exact riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero hz
+    simpa [G, riemannVonMangoldtXiPrefactor] using
+      riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero hz
   calc
     meromorphicOrderAt riemannXi s =
         meromorphicOrderAt (fun z => G z * riemannZeta z) s :=
