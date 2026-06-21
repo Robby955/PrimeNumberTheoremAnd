@@ -1,4 +1,7 @@
-import PrimeNumberTheoremAnd.IEANTN.Kadiri
+import PrimeNumberTheoremAnd.Defs
+import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.NumberTheory.LSeries.RiemannZeta
 
 /-!
 # Kadiri horizontal PV surface

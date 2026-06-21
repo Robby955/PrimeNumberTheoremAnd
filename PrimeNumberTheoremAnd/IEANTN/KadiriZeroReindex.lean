@@ -1,5 +1,6 @@
 import PrimeNumberTheoremAnd.IEANTN.KadiriFinalBoundGlue
 import PrimeNumberTheoremAnd.IEANTN.KadiriEq12Helpers
+import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
 
 /-!
 # Kadiri horizontal zero-set reindexing: the order-transport bridge

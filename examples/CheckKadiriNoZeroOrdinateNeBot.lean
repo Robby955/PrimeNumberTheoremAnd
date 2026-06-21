@@ -1,0 +1,7 @@
+import PrimeNumberTheoremAnd.IEANTN.KadiriNoZeroOrdinateNeBot
+
+#print axioms Kadiri.riemannZeta_setOf_zero_countable
+#print axioms Kadiri.kadiriNoZeroOrdinate_frequently_atTop
+#print axioms Kadiri.instNeBot_atTop_inf_principal_kadiriNoZeroOrdinate
+#print axioms Kadiri.instNeBot_atTop_inf_principal_kadiriNoZeroOrdinate_neg
+#print axioms Kadiri.instNeBot_atTop_inf_principal_kadiriNoZeroOrdinate_twoSided

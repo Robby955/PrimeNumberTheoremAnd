@@ -8,6 +8,10 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.IEANTN.KadiriEq13
+import PrimeNumberTheoremAnd.IEANTN.KadiriEq11Reduction
+import PrimeNumberTheoremAnd.IEANTN.KadiriEq14
+import PrimeNumberTheoremAnd.IEANTN.KadiriEq15Node
+import PrimeNumberTheoremAnd.IEANTN.KadiriNoZeroOrdinateNeBot
 import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 
@@ -189,57 +193,26 @@ theorem kadiri_thm_3_1_q1_laplace_inversion {φ : ℝ → ℂ} (_hφ : ContDiff 
   (title := "Equation (11) of \\cite{Kadiri2005}: LHS as a Mellin contour integral")
   (statement := /-- For $\varphi$ satisfying (A) and (B) of \ref{kadiri-thm-3-1-q1},
   and any real $a$ with $0 < a < b$ and $a < 1$,
-  $$ \sum_{n \geq 1} \Lambda(n)\, \varphi(\log n)
-     = \frac{1}{2 \pi i}
-       \int_{1 + a - i\infty}^{1 + a + i\infty}
-         \left(-\frac{\zeta'}{\zeta}\right)(s)\, \Phi(-s)\, ds, $$
+  $$ I(T) \xrightarrow[T \to \infty]{}
+     \sum_{n \geq 1} \Lambda(n)\, \varphi(\log n), $$
   with $\Phi$ as in \ref{kadiri-thm-3-1-q1-laplace-inversion}. This is equation~(11) of
-  \cite{Kadiri2005}, page~11, specialized to $q = 1$. -/)
-  (proof := /-- Corollary of \ref{kadiri-thm-3-1-q1-laplace-inversion}: multiply that
-  identity by $\Lambda(n)$, sum over $n \geq 1$, and exchange sum and integral
-  (justified by absolute convergence of the Dirichlet series for $-\zeta'/\zeta$ on
-  $\sigma > 1$ combined with the $O(1/|t|)$ decay of $\Phi$ from (B)). The Dirichlet
-  series identity $-\zeta'/\zeta(s) = \sum_n \Lambda(n) n^{-s}$ converts the sum into a
-  factor of $-\zeta'/\zeta(s)$ in the integrand. Finally, change of variable
-  $s \mapsto -s$ maps the contour $\sigma = -(1 + a)$ to $\sigma = 1 + a$ (with the
-  orientation-flip cancelling the sign from $ds$). To be formalised. -/)
+  \cite{Kadiri2005}, page~11, specialized to $q = 1$, in truncated-limit form. -/)
+  (proof := /-- This follows from pointwise Laplace inversion, the finite-window sum and
+  integral exchange, and the limiting argument for the truncated contour integral $I(T)$. -/)
   (latexEnv := "sublemma")
   (discussion := 1536)]
-theorem kadiri_thm_3_1_q1_eq_11 {φ : ℝ → ℂ} (_hφ : ContDiff ℝ 1 φ)
-    {b : ℝ} (_hb : 0 < b)
-    (_hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
+theorem kadiri_thm_3_1_q1_eq_11
+    {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
+    {b : ℝ} (hb : 0 < b)
+    (hφ_decay : (fun x : ℝ ↦ φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    (_hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
+    (hφ'_decay : (fun x : ℝ ↦ deriv φ x * exp ((x : ℂ) / 2))
         =O[Filter.cocompact ℝ] fun x : ℝ ↦ Real.exp (-(1/2 + b) * |x|))
-    {a : ℝ} (_ha : 0 < a) (_hab : a < b) (_ha1 : a < 1) :
-    let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-    (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n)) =
-      (1 / (2 * (Real.pi : ℂ))) *
-        ∫ t : ℝ,
-          (-deriv riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I) /
-              riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) *
-            Φ (-(((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) := by
-  sorry
-
-@[blueprint
-  "kadiri-thm-3-1-q1-I"
-  (title := "Truncated contour integral $I(T)$ on $\\sigma = 1 + a$")
-  (statement := /-- Kadiri's $I(T)$ from \cite[p.~12]{Kadiri2005}: the truncated contour
-  integral
-  $$ I(T) \;:=\; \frac{1}{2\pi i} \int_{1+a-iT}^{1+a+iT}
-              \!\!\!\! \left(-\frac{\zeta'}{\zeta}\right)\!(s)\, \Phi(-s)\, ds, $$
-  where $\Phi(s) := \int_0^\infty \varphi(y) e^{-sy}\, dy$ is the Laplace transform of
-  $\varphi$. The $T \to \infty$ limit of $I(T)$ is the Mellin-contour identity of
-  \ref{kadiri-thm-3-1-q1-eq-11}, and its rectangle decomposition is equation~(12) of
-  \cite{Kadiri2005} (\ref{kadiri-thm-3-1-q1-eq-12}). -/)
-  (latexEnv := "definition")]
-noncomputable def kadiri_thm_3_1_q1_I (φ : ℝ → ℂ) (a T : ℝ) : ℂ :=
-  let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-  (1 / (2 * (Real.pi : ℂ))) *
-    ∫ t in Set.Ioo (-T) T,
-      (-deriv riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I) /
-          riemannZeta (((1 + a : ℝ) : ℂ) + (t : ℂ) * I)) *
-        Φ (-(((1 + a : ℝ) : ℂ) + (t : ℂ) * I))
+    {a : ℝ} (ha : 0 < a) (hab : a < b) (ha1 : a < 1) :
+    Tendsto (fun T : ℝ => kadiri_thm_3_1_q1_I φ a T) atTop
+      (𝓝 (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) :=
+  kadiri_thm_3_1_q1_eq_11_truncated_limit
+    (φ := φ) hφ (b := b) hb hφ_decay hφ'_decay (a := a) ha hab ha1
 
 @[blueprint
   "kadiri-thm-3-1-q1-eq-12"
@@ -813,32 +786,6 @@ private theorem kadiri_thm_3_1_q1_shifted_pointwise_functional_eq
       ring
 
 @[blueprint
-  "kadiri-thm-3-1-q1-I-2"
-  (title := "Kadiri's $I_2(T)$: the reflected Dirichlet-series piece")
-  (statement := /-- Kadiri's $I_2(T)$ from \cite[p.~12]{Kadiri2005}: the reflected
-  Dirichlet-series piece of the functional-equation rewrite of the $\sigma = -a$
-  integral,
-  $$ I_2(T) \;:=\; \frac{1}{2\pi i} \int_{-a - iT}^{-a + iT}
-                  \frac{\zeta'}{\zeta}(1-s)\, \Phi(-s)\, ds. $$
-
-  \emph{Sign:} the $+\zeta'/\zeta(1-s)$ integrand comes from substituting the
-  (corrected) functional equation
-  $-\zeta'/\zeta(s) = -\log\pi + \zeta'/\zeta(1-s) + \tfrac{1}{2}\{\Gamma'/\Gamma(s/2)
-  + \Gamma'/\Gamma((1-s)/2)\}$ (see \ref{kadiri-thm-3-1-q1-functional-eq}) into the
-  integrand of the $\sigma = -a$ integral and reading off the middle term. The paper
-  states the integrand with a leading minus, which is a typo (matching the sign typo
-  in the functional equation on \cite[p.~12]{Kadiri2005}). Its $T \to \infty$ limit
-  is given by \ref{kadiri-thm-3-1-q1-eq-14}. -/)
-  (latexEnv := "definition")]
-noncomputable def kadiri_thm_3_1_q1_I_2 (φ : ℝ → ℂ) (a T : ℝ) : ℂ :=
-  let Φ : ℂ → ℂ := fun s ↦ ∫ y, φ y * exp (-s * (y : ℂ)) ∂volume
-  (1 / (2 * (Real.pi : ℂ))) *
-    ∫ t in Set.Ioo (-T) T,
-      (deriv riemannZeta (1 - (((-a : ℝ) : ℂ) + (t : ℂ) * I)) /
-          riemannZeta (1 - (((-a : ℝ) : ℂ) + (t : ℂ) * I))) *
-        Φ (-(((-a : ℝ) : ℂ) + (t : ℂ) * I))
-
-@[blueprint
   "kadiri-thm-3-1-q1-I-3"
   (title := "Kadiri's $I_3(T)$: the gamma-factor piece")
   (statement := /-- Kadiri's $I_3(T)$ from \cite[p.~12]{Kadiri2005}: the gamma-factor
@@ -1387,7 +1334,7 @@ theorem kadiri_thm_3_1_q1_eq_14
     Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I_2 φ a T)
       Filter.atTop
       (nhds (-∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n))) := by
-  sorry
+  exact kadiri_thm_3_1_q1_eq_14_core _hφ _hb _hφ_decay _hφ'_decay _ha _hab _ha1
 
 /-- The digamma function commutes with complex conjugation. Mathlib's junk-value
 conventions make this unconditional: `Complex.Gamma_conj` holds at every point,
@@ -1482,7 +1429,88 @@ theorem kadiri_thm_3_1_q1_eq_15
             ∫ t : ℝ,
               ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
                 Φ (-(1 / 2 + (t : ℂ) * I)))) := by
-  sorry
+  simpa [kadiri_thm_3_1_q1_I_3, kadiri_eq15_I_3] using
+    kadiri_thm_3_1_q1_eq_15_core
+      (φ := φ) _hφ _hb _hφ_decay _hφ'_decay _ha _hab _ha1 _hΓ_int
+
+private theorem tendsto_kadiri_zeroes_sum_Ioo_vertical_atTop
+    {F : ℂ → ℂ}
+    (hF_sum : Summable
+      (fun ρ : riemannZeta.zeroes_rect (.Ioo 0 1) (.univ : Set ℝ) =>
+        F ρ.val * (riemannZeta.order ρ.val : ℂ))) :
+    Filter.Tendsto
+      (fun T : ℝ => riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) F)
+      Filter.atTop
+      (nhds (riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) F)) := by
+  classical
+  let Z : Set ℂ := riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ)
+  let term : Z → ℂ := fun ρ => F ρ.val * (riemannZeta.order ρ.val : ℂ)
+  have hsum : Summable (fun ρ : Z => ‖term ρ‖) := by
+    simpa [Z, term] using hF_sum.norm
+  have hpoint : ∀ ρ : Z,
+      Filter.Tendsto
+        (fun T : ℝ =>
+          if ρ.val.im ∈ Set.Ioo (-T) T then term ρ else 0)
+        Filter.atTop (nhds (term ρ)) := by
+    intro ρ
+    refine tendsto_const_nhds.congr' ?_
+    filter_upwards [Filter.eventually_gt_atTop (|ρ.val.im| + 1)] with T hT
+    have him_lt : ρ.val.im < T := by
+      have hle : ρ.val.im ≤ |ρ.val.im| := le_abs_self ρ.val.im
+      linarith
+    have hneg_lt : -T < ρ.val.im := by
+      have hle : -|ρ.val.im| ≤ ρ.val.im := by
+        have hle' : -ρ.val.im ≤ |ρ.val.im| := neg_le_abs ρ.val.im
+        linarith
+      linarith
+    simp [Set.mem_Ioo, hneg_lt, him_lt]
+  have hbound : ∀ᶠ _T : ℝ in Filter.atTop, ∀ ρ : Z,
+      ‖if ρ.val.im ∈ Set.Ioo (-_T) _T then term ρ else 0‖ ≤ ‖term ρ‖ := by
+    exact Filter.Eventually.of_forall fun _T ρ => by
+      by_cases hmem : ρ.val.im ∈ Set.Ioo (-_T) _T <;> simp [hmem]
+  have hlim :=
+    tendsto_tsum_of_dominated_convergence (α := ℝ) (β := Z) (G := ℂ)
+      hsum hpoint hbound
+  have htrunc_eq : ∀ T : ℝ,
+      riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T) F =
+        ∑' ρ : Z, if ρ.val.im ∈ Set.Ioo (-T) T then term ρ else 0 := by
+    intro T
+    rw [riemannZeta.zeroes_sum]
+    rw [tsum_subtype
+      (riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T))
+      (fun ρ : ℂ => F ρ * (riemannZeta.order ρ : ℂ))]
+    rw [tsum_subtype Z
+      (fun ρ : ℂ =>
+        if ρ.im ∈ Set.Ioo (-T) T then F ρ * (riemannZeta.order ρ : ℂ) else 0)]
+    apply tsum_congr
+    intro ρ
+    by_cases hZ : ρ ∈ Z
+    · by_cases hJ : ρ.im ∈ Set.Ioo (-T) T
+      · have hrect : ρ ∈ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) := by
+          have hZ' : ρ ∈ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ) := by
+            simpa [Z] using hZ
+          rw [riemannZeta.zeroes_rect] at hZ'
+          rw [riemannZeta.zeroes_rect]
+          exact ⟨hZ'.1, hJ, hZ'.2.2⟩
+        rw [Set.indicator_of_mem hrect, Set.indicator_of_mem hZ]
+        simp [hJ]
+      · have hrect : ρ ∉ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) := by
+          intro h
+          rw [riemannZeta.zeroes_rect] at h
+          exact hJ h.2.1
+        rw [Set.indicator_of_notMem hrect, Set.indicator_of_mem hZ]
+        simp [hJ]
+    · have hrect : ρ ∉ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.Ioo (-T) T) := by
+        intro h
+        apply hZ
+        have hfull : ρ ∈ riemannZeta.zeroes_rect (.Ioo (0 : ℝ) 1) (.univ : Set ℝ) := by
+          rw [riemannZeta.zeroes_rect]
+          rw [riemannZeta.zeroes_rect] at h
+          exact ⟨h.1, trivial, h.2.2⟩
+        simpa [Z] using hfull
+      rw [Set.indicator_of_notMem hrect, Set.indicator_of_notMem hZ]
+  exact (hlim.congr' (Filter.Eventually.of_forall fun T => (htrunc_eq T).symm)).trans_eq
+    (by simp [riemannZeta.zeroes_sum, Z, term])
 
 /-! ## Theorem 3.1 of \cite{Kadiri2005}, specialized to $q = 1$, $\chi$ trivial
 
@@ -1592,8 +1620,59 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
     kadiri_thm_3_1_q1_eq_14 hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1
   have h15 :=
     kadiri_thm_3_1_q1_eq_15 hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1 hΓ_int
-  -- The two intermediate limit facts; both are technical limit-management steps left as
-  -- `sorry` for now (dominated convergence + summability across the $T \to \infty$ limit).
+  let L : Filter ℝ :=
+    Filter.atTop ⊓
+      Filter.principal {T : ℝ | KadiriNoZeroOrdinate T ∧ KadiriNoZeroOrdinate (-T)}
+  haveI : L.NeBot := by
+    dsimp [L]
+    infer_instance
+  have hL_atTop : L ≤ Filter.atTop := by
+    dsimp [L]
+    exact inf_le_left
+  have hL_top :
+      L ≤ Filter.atTop ⊓ Filter.principal {T : ℝ | KadiriNoZeroOrdinate T} := by
+    dsimp [L]
+    refine le_inf inf_le_left ?_
+    rw [Filter.le_principal_iff]
+    change ∀ᶠ T : ℝ in
+      Filter.atTop ⊓
+        Filter.principal {T : ℝ | KadiriNoZeroOrdinate T ∧ KadiriNoZeroOrdinate (-T)},
+        KadiriNoZeroOrdinate T
+    rw [Filter.eventually_inf_principal]
+    exact Filter.Eventually.of_forall fun T hT => hT.1
+  have hL_bot :
+      L ≤ Filter.atTop ⊓ Filter.principal {T : ℝ | KadiriNoZeroOrdinate (-T)} := by
+    dsimp [L]
+    refine le_inf inf_le_left ?_
+    rw [Filter.le_principal_iff]
+    change ∀ᶠ T : ℝ in
+      Filter.atTop ⊓
+        Filter.principal {T : ℝ | KadiriNoZeroOrdinate T ∧ KadiriNoZeroOrdinate (-T)},
+        KadiriNoZeroOrdinate (-T)
+    rw [Filter.eventually_inf_principal]
+    exact Filter.Eventually.of_forall fun T hT => hT.2
+  let left : ℝ → ℂ := fun T =>
+    (1 / (2 * (Real.pi : ℂ))) *
+      (∫ t in Set.Ioo (-T) T,
+        (-deriv riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I) /
+            riemannZeta (((-a : ℝ) : ℂ) + (t : ℂ) * I)) *
+          ∫ y, φ y * exp ((((-a : ℝ) : ℂ) + (t : ℂ) * I) * (y : ℂ)))
+  let top : ℝ → ℂ := fun T => kadiriTopHorizontalIntegral φ a T
+  let bot : ℝ → ℂ := fun T => kadiriBotHorizontalIntegral φ a T
+  let pole : ℂ := ∫ y, φ y * exp ((y : ℂ))
+  let ztrunc : ℝ → ℂ := fun T =>
+    riemannZeta.zeroes_sum (.Ioo 0 1) (.Ioo (-T) T)
+      (fun ρ => ∫ y, φ y * exp (ρ * (y : ℂ)))
+  let zfull : ℂ := riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ)
+    (fun ρ => ∫ y, φ y * exp (ρ * (y : ℂ)))
+  let l13 : ℂ := φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
+  let l14 : ℂ := -∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n)
+  let l15 : ℂ :=
+    (∫ y, φ y)
+      + (1 / (2 * (Real.pi : ℂ))) *
+          ∫ t : ℝ,
+            ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+              ∫ y, φ y * exp ((1 / 2 + (t : ℂ) * I) * (y : ℂ))
 
   -- (i) `lim_{T → ∞} I(T) = ∑' Λ(n) φ(log n)`. The truncated integral defining `I(T)`
   -- approaches the un-truncated integral on $\sigma = 1 + a$ by dominated convergence on
@@ -1601,7 +1680,7 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
   have lim_I_from_eq11 :
       Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) Filter.atTop
         (nhds (∑' n : ℕ, (Λ n : ℂ) * φ (Real.log n))) := by
-    sorry
+    exact heq11
 
   -- (ii) `lim_{T → ∞} I(T) = (the assembled RHS pieces)`. By `heq12` (the rectangle
   -- decomposition), `I(T)` splits into the $\sigma = -a$ integral + the two horizontals
@@ -1609,8 +1688,100 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
   -- (`htop`, `hbot`), the $\sigma = -a$ piece splits as $I_1 + I_2 + I_3$
   -- (`kadiri_thm_3_1_q1_shifted_eq_I123`) whose limits are given by `h13, h14, h15`,
   -- and the truncated $\rho$-sum extends to the full sum (by summability).
+  have h13L : Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I_1 φ a T) L
+      (nhds l13) := by
+    simpa [l13] using h13.mono_left hL_atTop
+  have h14L : Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I_2 φ a T) L
+      (nhds l14) := by
+    simpa [l14] using h14.mono_left hL_atTop
+  have h15L : Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I_3 φ a T) L
+      (nhds l15) := by
+    simpa [l15] using h15.mono_left hL_atTop
+  have hleft : Filter.Tendsto left L (nhds (l13 + l14 + l15)) := by
+    have hsum := (h13L.add h14L).add h15L
+    refine hsum.congr' ?_
+    exact Filter.Eventually.of_forall fun T => by
+      have hs := kadiri_thm_3_1_q1_shifted_eq_I123
+        hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1 T
+      simpa [left, add_assoc] using hs.symm
+  have htop : Filter.Tendsto top L (nhds 0) := by
+    simpa [top] using
+      (top_horizontal_integral_vanishes_avoiding_zeros
+        hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1).mono_left hL_top
+  have hbot : Filter.Tendsto bot L (nhds 0) := by
+    simpa [bot] using
+      (bot_horizontal_integral_vanishes_avoiding_zeros
+        hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1).mono_left hL_bot
+  have hzero : Filter.Tendsto ztrunc L (nhds zfull) := by
+    simpa [ztrunc, zfull] using
+      (tendsto_kadiri_zeroes_sum_Ioo_vertical_atTop
+        (F := fun ρ => ∫ y, φ y * exp (ρ * (y : ℂ))) hΦ_sum).mono_left hL_atTop
+  have hI_eq :
+      (fun T : ℝ => kadiri_thm_3_1_q1_I φ a T)
+        =ᶠ[L]
+      (fun T : ℝ => left T + top T - bot T + pole - ztrunc T) := by
+    have hpos : ∀ᶠ T : ℝ in L, 0 < T :=
+      (Filter.eventually_gt_atTop (0 : ℝ)).filter_mono hL_atTop
+    have hnoz :
+        ∀ᶠ T : ℝ in L, KadiriNoZeroOrdinate T ∧ KadiriNoZeroOrdinate (-T) := by
+      dsimp [L]
+      rw [Filter.eventually_inf_principal]
+      exact Filter.Eventually.of_forall fun T hT => hT
+    filter_upwards [hpos, hnoz] with T hTpos hTnoz
+    have hT_noz : ∀ ρ : ℂ, riemannZeta ρ = 0 → |ρ.im| ≠ T := by
+      intro ρ hρ hρ_abs
+      rcases (abs_eq hTpos.le).1 hρ_abs with hρT | hρT
+      · exact hTnoz.1 ρ hρ hρT
+      · exact hTnoz.2 ρ hρ hρT
+    have h12 := kadiri_thm_3_1_q1_eq_12
+      hφ hb hφ_decay hφ'_decay ha_pos ha_lt_b ha_lt_1 hTpos hT_noz
+    simpa [left, top, bot, pole, ztrunc, kadiriTopHorizontalIntegral,
+      kadiriBotHorizontalIntegral, kadiriTopHorizontalPoint, kadiriBotHorizontalPoint,
+      kadiriHorizontalPhi, sub_eq_add_neg, add_assoc] using h12
+  have hpieces :
+      Filter.Tendsto
+        (fun T : ℝ => left T + top T - bot T + pole - ztrunc T) L
+        (nhds (l13 + l14 + l15 + 0 - 0 + pole - zfull)) := by
+    simpa [sub_eq_add_neg, add_assoc] using
+      ((((hleft.add htop).sub hbot).add tendsto_const_nhds).sub hzero)
+  have hpole_eq : pole = Φ (-1) := by
+    dsimp [pole, Φ]
+    apply integral_congr_ae
+    filter_upwards with y
+    congr 1
+    ring
+  have hzfull_eq :
+      zfull = riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ Φ (-ρ)) := by
+    dsimp [zfull, Φ, riemannZeta.zeroes_sum]
+    apply tsum_congr
+    intro ρ
+    congr 1
+    apply integral_congr_ae
+    filter_upwards with y
+    congr 1
+    ring
+  have hl15_eq :
+      l15 =
+        Φ 0
+        + (1 / (2 * (Real.pi : ℂ))) *
+            ∫ t : ℝ,
+              ((digamma ((1 / 2 + (t : ℂ) * I) / 2)).re : ℂ) *
+                Φ (-(1 / 2 + (t : ℂ) * I)) := by
+    dsimp [l15, Φ]
+    congr 1
+    · apply integral_congr_ae
+      filter_upwards with y
+      simp
+    · congr 1
+      apply integral_congr_ae
+      filter_upwards with t
+      congr 1
+      apply integral_congr_ae
+      filter_upwards with y
+      congr 1
+      ring
   have lim_I_from_pieces :
-      Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) Filter.atTop
+      Filter.Tendsto (fun T : ℝ ↦ kadiri_thm_3_1_q1_I φ a T) L
         (nhds
           (φ 0 * ((-Real.log Real.pi : ℝ) : ℂ)
           + (-∑' n : ℕ, ((Λ n : ℂ) / (n : ℂ)) * φ (-Real.log n))
@@ -1621,10 +1792,14 @@ theorem kadiri_thm_3_1_q1 {φ : ℝ → ℂ} (hφ : ContDiff ℝ 1 φ)
                     Φ (-(1 / 2 + (t : ℂ) * I)))
           + Φ (-1)
           - riemannZeta.zeroes_sum (.Ioo 0 1) (.univ : Set ℝ) (fun ρ ↦ Φ (-ρ)))) := by
-    sorry
+    refine (hpieces.congr' hI_eq.symm).trans_eq ?_
+    rw [hl15_eq, hpole_eq, hzfull_eq]
+    dsimp [l13, l14]
+    simp_rw [show ∀ (t : ℝ), (t : ℂ) * I = I * (t : ℂ) from fun _ => mul_comm _ _]
+    ring_nf
 
   -- The two limits agree (both are `lim I(T)`), giving the desired equation.
-  have heq := tendsto_nhds_unique lim_I_from_eq11 lim_I_from_pieces
+  have heq := tendsto_nhds_unique (lim_I_from_eq11.mono_left hL_atTop) lim_I_from_pieces
   rw [heq]
   push_cast
   -- `ring_nf` normalizes the outer arithmetic, but cannot reach inside the opaque
@@ -3518,17 +3693,6 @@ theorem identity_16 {d : ℝ} (hd : 0 < d) {f : ℝ → ℝ}
   rw [htsum_re, tsum_congr hpt, hsplit, Complex.re_ofReal_mul, Complex.sub_re,
     re_shifted_sum_eq_paired_sub_re_inv s]
   ring
-
-
-/-- The raw von Mangoldt Dirichlet sum is `-ζ'/ζ` on `1 < Re s` (the tsum form of
-`ArithmeticFunction.LSeries_vonMangoldt_eq_deriv_riemannZeta_div`). -/
-lemma tsum_vonMangoldt_eq {s : ℂ} (hs : 1 < s.re) :
-    (∑' n : ℕ, (Λ n : ℂ) / (n : ℂ) ^ s) = -deriv riemannZeta s / riemannZeta s := by
-  rw [← ArithmeticFunction.LSeries_vonMangoldt_eq_deriv_riemannZeta_div hs, LSeries]
-  refine tsum_congr fun n ↦ ?_
-  rcases eq_or_ne n 0 with rfl | hn
-  · simp
-  · rw [LSeries.term_of_ne_zero hn]
 
 @[blueprint
   "kadiri-re-inner-eq"
