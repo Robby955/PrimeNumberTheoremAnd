@@ -745,6 +745,30 @@ lemma integral_Ioi_B1_mul_exp_neg_mul {u : ℝ} (hu : 0 < u) :
     linarith
   simpa [Iinf, neg_mul, mul_comm] using htarget
 
+lemma integral_abs_B1_mul_exp_neg_mul_le {u : ℝ} (hu : 0 < u) :
+    ∫ t in Set.Ioi (0 : ℝ), |B1 t| * Real.exp (-u * t) ≤ 1 / (2 * u) := by
+  have hmaj_int : IntegrableOn (fun t : ℝ => (1 / 2 : ℝ) * Real.exp (-u * t))
+      (Set.Ioi (0 : ℝ)) volume := by
+    exact (integrableOn_exp_mul_Ioi (a := -u) (by linarith) 0).const_mul (1 / 2 : ℝ)
+  have hmono : ∫ t in Set.Ioi (0 : ℝ), |B1 t| * Real.exp (-u * t) ≤
+      ∫ t in Set.Ioi (0 : ℝ), (1 / 2 : ℝ) * Real.exp (-u * t) := by
+    refine MeasureTheory.integral_mono_of_nonneg ?_ hmaj_int ?_
+    · filter_upwards with t
+      positivity
+    · filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+      have hB := abs_B1_le_half (x := t) ht.le
+      exact mul_le_mul_of_nonneg_right hB (Real.exp_pos _).le
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), |B1 t| * Real.exp (-u * t)
+        ≤ ∫ t in Set.Ioi (0 : ℝ), (1 / 2 : ℝ) * Real.exp (-u * t) := hmono
+    _ = (1 / 2 : ℝ) * (∫ t in Set.Ioi (0 : ℝ), Real.exp (-u * t)) := by
+      rw [MeasureTheory.integral_const_mul]
+    _ = 1 / (2 * u) := by
+      have h := integral_exp_mul_Ioi (a := -u) (by linarith) 0
+      rw [h]
+      simp
+      field_simp [hu.ne']
+
 /-- HasSum form of the geometric expansion of the positive Binet denominator. -/
 lemma hasSum_exp_neg_two_pi_nat_add_one (t : ℝ) (ht : 0 < t) :
     HasSum (fun n : ℕ => Real.exp (-(2 * Real.pi * ((n : ℝ) + 1) * t)))
