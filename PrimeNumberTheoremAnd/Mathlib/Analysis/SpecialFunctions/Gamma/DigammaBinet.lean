@@ -2565,7 +2565,7 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
     Integrable
       (Function.uncurry
         (fun u v : ℝ =>
-          -((u : ℂ) * Complex.exp (-z * u)) *
+          (-((u : ℂ) * Complex.exp (-z * u))) *
             (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))))
       ((volume.restrict (Set.Ioi (0 : ℝ))).prod
         (volume.restrict (Set.Ioi (0 : ℝ)))) := by
@@ -2574,12 +2574,12 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
   change Integrable
       (Function.uncurry
         (fun u v : ℝ =>
-          -((u : ℂ) * Complex.exp (-z * u)) *
+          (-((u : ℂ) * Complex.exp (-z * u))) *
             (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)))) (μ.prod ν)
   have hsm : AEStronglyMeasurable
       (Function.uncurry
         (fun u v : ℝ =>
-          -((u : ℂ) * Complex.exp (-z * u)) *
+          (-((u : ℂ) * Complex.exp (-z * u))) *
             (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)))) (μ.prod ν) := by
     have hBν : AEStronglyMeasurable B1 ν := by
       dsimp [ν]
@@ -2620,7 +2620,7 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
         |>.aestronglyMeasurable
     change AEStronglyMeasurable
       (fun p : ℝ × ℝ =>
-        -((p.1 : ℂ) * Complex.exp (-z * (p.1 : ℂ))) *
+        (-((p.1 : ℂ) * Complex.exp (-z * (p.1 : ℂ)))) *
           (((B1 p.2 * Real.exp (-(p.1 * p.2)) : ℝ) : ℂ)))
       (μ.prod ν)
     exact ((huC.mul hexpz).neg.mul hrealC)
@@ -2630,7 +2630,7 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
     have hupos : 0 < u := hu
     change Integrable
       (fun v : ℝ =>
-        -((u : ℂ) * Complex.exp (-z * u)) *
+        (-((u : ℂ) * Complex.exp (-z * u))) *
           (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) ν
     have hbase : IntegrableOn
         (fun v : ℝ => (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)))
@@ -2641,11 +2641,11 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
       exact h0.const_mul (u * Real.exp (-(z.re * u)) / 2)
     have hmeas : AEStronglyMeasurable
         (fun v : ℝ =>
-          -((u : ℂ) * Complex.exp (-z * u)) *
+          (-((u : ℂ) * Complex.exp (-z * u))) *
             (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) ν := by
       exact ((by fun_prop : AEStronglyMeasurable
         (fun v : ℝ =>
-          -((u : ℂ) * Complex.exp (-z * u)) *
+          (-((u : ℂ) * Complex.exp (-z * u))) *
             (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))))).restrict
     exact hbase.mono' hmeas (by
       filter_upwards [ae_restrict_mem measurableSet_Ioi] with v hv
@@ -2691,7 +2691,7 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
         exact h0.const_mul (u * Real.exp (-(z.re * u)) / 2)
       have hinner_le :
           ∫ v : ℝ,
-              ‖-((u : ℂ) * Complex.exp (-z * u)) *
+              ‖(-((u : ℂ) * Complex.exp (-z * u))) *
                 (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ ∂ν
             ≤ ∫ v : ℝ,
                 (u * Real.exp (-(z.re * u)) / 2) * Real.exp (-(u * v)) ∂ν := by
@@ -2722,30 +2722,30 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
         ‖∫ v : ℝ,
             ‖Function.uncurry
               (fun u v : ℝ =>
-                -((u : ℂ) * Complex.exp (-z * u)) *
+                (-((u : ℂ) * Complex.exp (-z * u))) *
                   (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) (u, v)‖ ∂ν‖
             = ∫ v : ℝ,
-                ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                ‖(-((u : ℂ) * Complex.exp (-z * u))) *
                   (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ ∂ν := by
               have huncurry :
                   (fun v : ℝ =>
                     ‖Function.uncurry
                       (fun u v : ℝ =>
-                        -((u : ℂ) * Complex.exp (-z * u)) *
+                        (-((u : ℂ) * Complex.exp (-z * u))) *
                           (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))) (u, v)‖) =
                     fun v : ℝ =>
-                      ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                      ‖(-((u : ℂ) * Complex.exp (-z * u))) *
                         (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ := by
                 funext v
                 rfl
               rw [huncurry]
               have hnonneg :
                   0 ≤ ∫ v : ℝ,
-                    ‖-((u : ℂ) * Complex.exp (-z * u)) *
+                    ‖(-((u : ℂ) * Complex.exp (-z * u))) *
                       (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))‖ ∂ν := by
                 exact integral_nonneg_of_ae
                   (Filter.Eventually.of_forall fun v : ℝ => norm_nonneg
-                    (-((u : ℂ) * Complex.exp (-z * (u : ℂ))) *
+                    ((-((u : ℂ) * Complex.exp (-z * (u : ℂ)))) *
                       (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))))
               rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
         _ ≤ ∫ v : ℝ,
@@ -2758,6 +2758,148 @@ lemma integrable_sawtooth_laplace_kernel_prod {z : ℂ} (hz : 0 < z.re) :
         _ ≤ ‖Real.exp (-(z.re * u)) / 2‖ := by
               have hnonneg : 0 ≤ Real.exp (-(z.re * u)) / 2 := by positivity
               rw [Real.norm_eq_abs, abs_of_nonneg hnonneg]
+
+theorem digammaBinetKernel_integral_eq_neg_remainder {z : ℂ} (hz : 0 < z.re) :
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t =
+      -∫ t in Set.Ioi (0 : ℝ), digammaBinetRemainderKernel z t := by
+  let μ : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  let ν : Measure ℝ := volume.restrict (Set.Ioi (0 : ℝ))
+  let F : ℝ → ℝ → ℂ := fun u v =>
+    (-((u : ℂ) * Complex.exp (-z * u))) *
+      (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))
+  have hprod : Integrable (Function.uncurry F) (μ.prod ν) := by
+    simpa [F, μ, ν] using integrable_sawtooth_laplace_kernel_prod (z := z) hz
+  have hswap :
+      (∫ u : ℝ, ∫ v : ℝ, F u v ∂ν ∂μ) =
+        ∫ v : ℝ, ∫ u : ℝ, F u v ∂μ ∂ν := by
+    simpa [Function.uncurry] using MeasureTheory.integral_integral_swap hprod
+  have hkernel_to_double :
+      ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t =
+        ∫ u : ℝ, ∫ v : ℝ, F u v ∂ν ∂μ := by
+    rw [integral_digammaBinetKernel_eq_planck_laplace (z := z) hz]
+    refine integral_congr_ae ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+    have hu_pos : 0 < u := hu
+    have hplanck := two_integral_sin_div_exp_eq_neg_mul_B1_laplace u hu_pos
+    calc
+      Complex.exp (-z * u) *
+          (((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+            Real.sin (u * t) / (Real.exp (2 * Real.pi * t) - 1)) : ℂ)
+          = (-((u : ℂ) * Complex.exp (-z * u))) *
+              (((∫ v in Set.Ioi (0 : ℝ),
+                B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)) := by
+            have hcast := congrArg (fun x : ℝ => (x : ℂ)) hplanck
+            have hplanckC :
+                ((2 : ℂ) * (((∫ t in Set.Ioi (0 : ℝ),
+                  Real.sin (u * t) /
+                    (Real.exp (2 * Real.pi * t) - 1)) : ℝ) : ℂ)) =
+                  ((((-u) * ∫ v in Set.Ioi (0 : ℝ),
+                    B1 v * Real.exp (-(u * v))) : ℝ) : ℂ) := by
+              calc
+                ((2 : ℂ) * (((∫ t in Set.Ioi (0 : ℝ),
+                  Real.sin (u * t) /
+                    (Real.exp (2 * Real.pi * t) - 1)) : ℝ) : ℂ))
+                    = ((((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+                      Real.sin (u * t) /
+                        (Real.exp (2 * Real.pi * t) - 1)) : ℝ) : ℂ) := by
+                      rw [Complex.ofReal_mul]
+                      norm_num
+                _ = ((((-u) * ∫ v in Set.Ioi (0 : ℝ),
+                    B1 v * Real.exp (-(u * v))) : ℝ) : ℂ) := by
+                      simpa [neg_mul] using hcast
+            calc
+              Complex.exp (-z * u) *
+                  (((2 : ℝ) * ∫ t in Set.Ioi (0 : ℝ),
+                    Real.sin (u * t) /
+                      (Real.exp (2 * Real.pi * t) - 1)) : ℂ)
+                  = Complex.exp (-z * u) *
+                      ((((-u) * ∫ v in Set.Ioi (0 : ℝ),
+                        B1 v * Real.exp (-(u * v))) : ℝ) : ℂ) := by
+                    exact congrArg (fun w : ℂ => Complex.exp (-z * u) * w) hplanckC
+              _ = Complex.exp (-z * u) *
+                    ((-u : ℂ) * (((∫ v in Set.Ioi (0 : ℝ),
+                      B1 v * Real.exp (-(u * v))) : ℝ) : ℂ)) := by
+                    push_cast
+                    ring
+              _ = (-((u : ℂ) * Complex.exp (-z * u))) *
+                    (((∫ v in Set.Ioi (0 : ℝ),
+                      B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)) := by
+                    ring
+      _ = ∫ v : ℝ, F u v ∂ν := by
+            dsimp [F, ν]
+            rw [MeasureTheory.integral_const_mul]
+            have hofReal :
+                (∫ v : ℝ in Set.Ioi (0 : ℝ),
+                    ((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ)) =
+                  (((∫ v : ℝ in Set.Ioi (0 : ℝ),
+                    B1 v * Real.exp (-(u * v))) : ℝ) : ℂ) := by
+              exact integral_ofReal
+            rw [hofReal]
+  have hdouble_to_remainder :
+      ∫ v : ℝ, ∫ u : ℝ, F u v ∂μ ∂ν =
+        -∫ v in Set.Ioi (0 : ℝ), digammaBinetRemainderKernel z v := by
+    calc
+      ∫ v : ℝ, ∫ u : ℝ, F u v ∂μ ∂ν
+          = ∫ v in Set.Ioi (0 : ℝ), -digammaBinetRemainderKernel z v := by
+            refine integral_congr_ae ?_
+            filter_upwards [ae_restrict_mem measurableSet_Ioi] with v hv
+            have hv_pos : 0 < v := hv
+            have hinner :
+                ∫ u : ℝ, F u v ∂μ = -digammaBinetRemainderKernel z v := by
+              dsimp [F, μ]
+              calc
+                ∫ u in Set.Ioi (0 : ℝ),
+                    (-((u : ℂ) * Complex.exp (-z * u))) *
+                      (((B1 v * Real.exp (-(u * v)) : ℝ) : ℂ))
+                    = ∫ u in Set.Ioi (0 : ℝ),
+                        (-(B1 v : ℂ)) *
+                          ((u : ℂ) *
+                            Complex.exp (-(((v : ℂ) + z) * u))) := by
+                      refine setIntegral_congr_fun measurableSet_Ioi ?_
+                      intro u hu
+                      have hexp_split :
+                          Complex.exp (-(((v : ℂ) + z) * (u : ℂ))) =
+                            Complex.exp (-z * (u : ℂ)) *
+                              Complex.exp (-((u : ℂ) * (v : ℂ))) := by
+                        have harg :
+                            -(((v : ℂ) + z) * (u : ℂ)) =
+                              -z * (u : ℂ) + -((u : ℂ) * (v : ℂ)) := by
+                          ring
+                        rw [harg, Complex.exp_add]
+                      dsimp
+                      push_cast
+                      calc
+                        -(↑u * Complex.exp (-z * ↑u)) *
+                            (↑(B1 v) * Complex.exp (-(↑u * ↑v)))
+                            = -↑(B1 v) *
+                                (↑u * (Complex.exp (-z * ↑u) *
+                                  Complex.exp (-(↑u * ↑v)))) := by
+                              ring
+                        _ = -↑(B1 v) *
+                              (↑u * Complex.exp (-((↑v + z) * ↑u))) := by
+                              rw [← hexp_split]
+                _ = (-(B1 v : ℂ)) *
+                      (∫ u in Set.Ioi (0 : ℝ),
+                        (u : ℂ) * Complex.exp (-(((v : ℂ) + z) * u))) := by
+                      rw [MeasureTheory.integral_const_mul]
+                _ = (-(B1 v : ℂ)) * ((((v : ℂ) + z)⁻¹) ^ (2 : ℕ)) := by
+                      rw [laplace_sq_resolvent (z := z) (t := v) (by linarith)]
+                _ = -digammaBinetRemainderKernel z v := by
+                      rw [digammaBinetRemainderKernel, B1_eq_fract_sub_half_of_nonneg hv_pos.le]
+                      ring
+            simpa [ν] using hinner
+      _ = -∫ v in Set.Ioi (0 : ℝ), digammaBinetRemainderKernel z v := by
+            rw [MeasureTheory.integral_neg]
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t
+        = ∫ u : ℝ, ∫ v : ℝ, F u v ∂ν ∂μ := hkernel_to_double
+    _ = ∫ v : ℝ, ∫ u : ℝ, F u v ∂μ ∂ν := hswap
+    _ = -∫ v in Set.Ioi (0 : ℝ), digammaBinetRemainderKernel z v := hdouble_to_remainder
+
+theorem hkernel {z : ℂ} (hz : 0 < z.re) :
+    ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t =
+      -∫ t in Set.Ioi (0 : ℝ), digammaBinetRemainderKernel z t :=
+  digammaBinetKernel_integral_eq_neg_remainder hz
 
 /--
 The positive second-Binet formula follows from the already proved first-order Binet identity
@@ -2805,6 +2947,21 @@ theorem digamma_second_order_full_norm_of_kernel_eq_neg_remainder {z : ℂ}
   have hzpos : 0 < z.re := by linarith
   exact digamma_second_order_full_norm_of_binet_kernel_identity hz
     (digamma_binet_second_of_kernel_eq_neg_remainder hzpos hkernel)
+
+/-- Positive second-Binet formula for `digamma` on the right half-plane. -/
+theorem digamma_binet_second {z : ℂ} (hz : 0 < z.re) :
+    digamma z =
+      Complex.log z - z⁻¹ / 2 -
+        ∫ t in Set.Ioi (0 : ℝ), digammaBinetKernel z t :=
+  digamma_binet_second_of_kernel_eq_neg_remainder hz
+    (digammaBinetKernel_integral_eq_neg_remainder hz)
+
+/-- Sharp full-norm digamma second-order Binet bound on `Re z ≥ 1 / 4`. -/
+theorem digamma_second_order_full_norm {z : ℂ} (hz : (1 / 4 : ℝ) ≤ z.re) :
+    ‖digamma z - (Complex.log z - z⁻¹ / 2)‖ ≤ 1 / (6 * ‖z‖ ^ 2) := by
+  have hzpos : 0 < z.re := by linarith
+  exact digamma_second_order_full_norm_of_binet_kernel_identity hz
+    (digamma_binet_second hzpos)
 
 private lemma integrableOn_lorentzian_shift {x y : ℝ} (hy : y ≠ 0) :
     IntegrableOn (fun t : ℝ => (1 / ((t + x) ^ 2 + y ^ 2) : ℝ))
