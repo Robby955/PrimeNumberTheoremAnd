@@ -511,6 +511,35 @@ theorem HIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
   rw [intervalIntegral.integral_congr hcongr]
   exact intervalIntegral.integral_add hpref_int hzeta_int
 
+theorem VIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
+    {x y₁ y₂ : ℝ}
+    (hy_ne : ∀ y ∈ Set.uIcc y₁ y₂, y ≠ 0)
+    (hzeta : ∀ y ∈ Set.uIcc y₁ y₂,
+      riemannZeta (((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I) ≠ 0)
+    (hpref_int : IntervalIntegrable
+      (fun y : ℝ => logDeriv riemannVonMangoldtXiPrefactor
+        (((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I)) MeasureTheory.volume y₁ y₂)
+    (hzeta_int : IntervalIntegrable
+      (fun y : ℝ => logDeriv riemannZeta
+        (((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I)) MeasureTheory.volume y₁ y₂) :
+    VIntegral (logDeriv riemannXi) x y₁ y₂ =
+      VIntegral (logDeriv riemannVonMangoldtXiPrefactor) x y₁ y₂ +
+        VIntegral (logDeriv riemannZeta) x y₁ y₂ := by
+  unfold VIntegral
+  have hcongr : Set.EqOn
+      (fun y : ℝ => logDeriv riemannXi (((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I))
+      (fun y : ℝ =>
+        logDeriv riemannVonMangoldtXiPrefactor (((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I) +
+          logDeriv riemannZeta (((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I))
+      (Set.uIcc y₁ y₂) := by
+    intro y hy
+    have him : ((((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * I).im) ≠ 0 := by
+      simpa using hy_ne y hy
+    exact logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero him (hzeta y hy)
+  rw [intervalIntegral.integral_congr hcongr]
+  rw [intervalIntegral.integral_add hpref_int hzeta_int]
+  ring
+
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
   (1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I

@@ -41,6 +41,7 @@ open Complex
 #check riemannVonMangoldtXiLeftIntegral
 #check riemannVonMangoldtXiCountingRectangleIntegral_eq_edges
 #check HIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
+#check VIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
 #check riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re
 
 example (z : ℂ) (hz : 0 < z.re) :
@@ -86,4 +87,5 @@ example (T : ℝ) (hT : 1 ≤ T)
 #print axioms riemannVonMangoldtXiLeftIntegral
 #print axioms riemannVonMangoldtXiCountingRectangleIntegral_eq_edges
 #print axioms HIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
+#print axioms VIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
 #print axioms riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re
