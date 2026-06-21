@@ -15,6 +15,15 @@ namespace Table4Ext
 
 open Real
 
+/-- A numerical theta bound at an earlier start point can be reused at a later
+start point if the step function value has not decreased. -/
+theorem etheta_numericalBound_mono_start {x₀ x₁ : ℝ} {epsTheta : ℝ → ℝ}
+    (h : Eθ.numericalBound x₀ epsTheta) (hx₀x₁ : x₀ ≤ x₁)
+    (heps : epsTheta x₀ ≤ epsTheta x₁) :
+    Eθ.numericalBound x₁ epsTheta := by
+  intro x hx
+  exact le_trans (h x (le_trans hx₀x₁ hx)) heps
+
 /-- Data needed to derive one extended Table 4 row from `FKS2.corollary_8`.
 
 The remaining generator work is to fill these fields from the fine theta

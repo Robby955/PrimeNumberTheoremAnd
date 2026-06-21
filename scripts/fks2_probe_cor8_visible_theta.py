@@ -2,13 +2,14 @@
 
 This is a diagnostic for Table4Ext.allCells_trusted.  It evaluates the Lean
 definitions of delta, mu_num, and eps_pi_num for a few small Table 4 rows using
-only the theta values printed in the public ancillary PDF.  It also evaluates
-the first integer row where corollary_14_normalized can be converted to an
-Etheta numerical bound by Etheta.classicalBound.to_numericalBound.
+the theta values printed in the public ancillary PDF.  It also evaluates the
+first integer row where corollary_14_normalized can be converted to an Etheta
+numerical bound by Etheta.classicalBound.to_numericalBound.
 
-The expected result is failure: the public theta rows and the classical bound
-are too coarse to prove the printed Table 4 eps_pi_num values.  The missing
-input is the finer theta mesh used by the authors.
+The integer public theta rows fail for early rows, but subdividing and reusing
+the previous integer theta bound can already certify the first representative
+rows numerically.  The remaining proof work is to turn that inherited-bound
+pattern into Lean certificates and extend it across all Table 4 rows.
 
 Requires: mpmath
 """
@@ -58,7 +59,13 @@ VISIBLE_EPS_THETA = {
 # First rows of Table4ExtData_00.lean, as exact decimals.
 TABLE4_EPS_PI = {
     10: mp.mpf("0.016251"),
+    11: mp.mpf("0.0098536"),
+    12: mp.mpf("0.0057149"),
     13: mp.mpf("0.0034755"),
+    14: mp.mpf("0.0020222"),
+    15: mp.mpf("0.0012356"),
+    16: mp.mpf("0.0007503"),
+    17: mp.mpf("0.00044264"),
 }
 
 
@@ -96,26 +103,48 @@ def delta_at_exp(log_x0: int) -> mp.mpf:
     return value
 
 
-def li_exp_interval(a: int, b: int) -> mp.mpf:
-    return li_interval_from_2(mp.e**b) - li_interval_from_2(mp.e**a)
+def _key(x: mp.mpf | int | str) -> str:
+    return mp.nstr(mp.mpf(x), 80)
+
+
+_exp_cache: dict[str, mp.mpf] = {}
+_li_cache: dict[str, mp.mpf] = {}
+
+
+def exp_log_node(node: mp.mpf | int | str) -> mp.mpf:
+    key = _key(node)
+    if key not in _exp_cache:
+        _exp_cache[key] = mp.e ** mp.mpf(key)
+    return _exp_cache[key]
+
+
+def li_at_log_node(node: mp.mpf | int | str) -> mp.mpf:
+    key = _key(node)
+    if key not in _li_cache:
+        _li_cache[key] = li_interval_from_2(exp_log_node(key))
+    return _li_cache[key]
+
+
+def li_exp_interval(a: mp.mpf | int | str, b: mp.mpf | int | str) -> mp.mpf:
+    return li_at_log_node(b) - li_at_log_node(a)
 
 
 def mu_num_1(
-    nodes: Sequence[int],
-    eps_theta: Callable[[int], mp.mpf],
+    nodes: Sequence[mp.mpf],
+    eps_theta: Callable[[mp.mpf], mp.mpf],
     log_x0: int,
     i: int,
 ) -> mp.mpf:
     x0 = mp.e**log_x0
-    x1 = mp.e ** nodes[i]
-    x2 = mp.e ** nodes[i + 1]
+    x1 = exp_log_node(nodes[i])
+    x2 = exp_log_node(nodes[i + 1])
     eps_x1 = eps_theta(nodes[i])
     integral_sum = mp.fsum(
         eps_theta(nodes[k])
         * (
             li_exp_interval(nodes[k], nodes[k + 1])
-            + mp.e ** nodes[k] / nodes[k]
-            - mp.e ** nodes[k + 1] / nodes[k + 1]
+            + exp_log_node(nodes[k]) / nodes[k]
+            - exp_log_node(nodes[k + 1]) / nodes[k + 1]
         )
         for k in range(i)
     )
@@ -123,25 +152,25 @@ def mu_num_1(
         (x0 * mp.log(x1)) / (eps_x1 * x1 * mp.log(x0)) * delta_at_exp(log_x0)
         + (mp.log(x1)) / (eps_x1 * x1) * integral_sum
         + (mp.log(x2) / x2)
-        * (li_interval_from_2(x2) - x2 / mp.log(x2) - li_interval_from_2(x1) + x1 / mp.log(x1))
+        * (li_at_log_node(nodes[i + 1]) - x2 / nodes[i + 1] - li_at_log_node(nodes[i]) + x1 / nodes[i])
     )
 
 
 def mu_num_2(
-    nodes: Sequence[int],
-    eps_theta: Callable[[int], mp.mpf],
+    nodes: Sequence[mp.mpf],
+    eps_theta: Callable[[mp.mpf], mp.mpf],
     log_x0: int,
     i: int,
 ) -> mp.mpf:
     x0 = mp.e**log_x0
-    x1 = mp.e ** nodes[i]
+    x1 = exp_log_node(nodes[i])
     eps_x1 = eps_theta(nodes[i])
     integral_sum = mp.fsum(
         eps_theta(nodes[k])
         * (
             li_exp_interval(nodes[k], nodes[k + 1])
-            + mp.e ** nodes[k] / nodes[k]
-            - mp.e ** nodes[k + 1] / nodes[k + 1]
+            + exp_log_node(nodes[k]) / nodes[k]
+            - exp_log_node(nodes[k + 1]) / nodes[k + 1]
         )
         for k in range(i)
     )
@@ -153,13 +182,13 @@ def mu_num_2(
 
 
 def eps_pi_num(
-    nodes: Sequence[int],
-    eps_theta: Callable[[int], mp.mpf],
+    nodes: Sequence[mp.mpf],
+    eps_theta: Callable[[mp.mpf], mp.mpf],
     log_x0: int,
     i: int,
 ) -> mp.mpf:
-    x1 = mp.e ** nodes[i]
-    x2 = mp.e ** nodes[i + 1]
+    x1 = exp_log_node(nodes[i])
+    x2 = exp_log_node(nodes[i + 1])
     mu = (
         mu_num_1(nodes, eps_theta, log_x0, i)
         if x2 <= x1 * mp.log(x1)
@@ -168,22 +197,34 @@ def eps_pi_num(
     return eps_theta(nodes[i]) * (1 + mu)
 
 
-def eps_theta_visible(log_x: int) -> mp.mpf:
-    return VISIBLE_EPS_THETA[log_x]
+def eps_theta_visible(log_x: mp.mpf) -> mp.mpf:
+    return VISIBLE_EPS_THETA[int(log_x)]
 
 
-def eps_theta_classical_normalized(log_x: int) -> mp.mpf:
+def eps_theta_inherited_visible(log_x: mp.mpf) -> mp.mpf:
+    return VISIBLE_EPS_THETA[int(mp.floor(log_x))]
+
+
+def eps_theta_classical_normalized(log_x: mp.mpf) -> mp.mpf:
     """corollary_14_normalized admissible bound at x = exp(log_x)."""
     b = mp.mpf(log_x)
     return mp.mpf("9.22023") * b**mp.mpf("1.5") * mp.e ** (-mp.mpf("0.8476") * mp.sqrt(b))
 
 
+def integer_nodes(row: int, end: int = 36) -> list[mp.mpf]:
+    return [mp.mpf(n) for n in range(row, end + 1)]
+
+
+def uniform_nodes(row: int, denominator: int, end: int = 36) -> list[mp.mpf]:
+    step = mp.mpf(1) / denominator
+    return [mp.mpf(row) + step * j for j in range((end - row) * denominator + 1)]
+
+
 def max_eps_pi_term(
     row: int,
-    eps_theta: Callable[[int], mp.mpf],
-    end: int = 36,
-) -> tuple[int, int, int, mp.mpf]:
-    nodes = list(range(row, end + 1))
+    eps_theta: Callable[[mp.mpf], mp.mpf],
+    nodes: Sequence[mp.mpf],
+) -> tuple[int, mp.mpf, mp.mpf, mp.mpf]:
     values = [
         (i, nodes[i], nodes[i + 1], eps_pi_num(nodes, eps_theta, row, i))
         for i in range(len(nodes) - 1)
@@ -191,8 +232,8 @@ def max_eps_pi_term(
     return max(values, key=lambda item: item[3])
 
 
-def report(row: int, label: str, eps_theta: Callable[[int], mp.mpf]) -> None:
-    i, left, right, value = max_eps_pi_term(row, eps_theta)
+def report(row: int, label: str, eps_theta: Callable[[mp.mpf], mp.mpf], nodes: Sequence[mp.mpf]) -> None:
+    i, left, right, value = max_eps_pi_term(row, eps_theta, nodes)
     target = TABLE4_EPS_PI[row]
     print(f"{label} row b={row}")
     print(f"  delta(exp({row})) = {mp.nstr(delta_at_exp(row), 30)}")
@@ -203,15 +244,43 @@ def report(row: int, label: str, eps_theta: Callable[[int], mp.mpf]) -> None:
     print(f"  passes = {value <= target}")
 
 
+def first_passing_denominator(row: int, denominators: Sequence[int]) -> tuple[int, mp.mpf] | None:
+    target = TABLE4_EPS_PI[row]
+    for denominator in denominators:
+        _, _, _, value = max_eps_pi_term(
+            row, eps_theta_inherited_visible, uniform_nodes(row, denominator)
+        )
+        if value <= target:
+            return denominator, value / target
+    return None
+
+
+def report_denominator_search() -> None:
+    print("visible theta inherited-grid search rows 10..17")
+    for row in range(10, 18):
+        found = first_passing_denominator(row, [1, 2, 3, 4, 5, 8, 10, 12, 16, 20])
+        if found is None:
+            print(f"  b={row}: no pass through denominator 20")
+            continue
+        denominator, ratio = found
+        print(f"  b={row}: denominator {denominator}, ratio {mp.nstr(ratio, 12)}")
+
+
 def main() -> None:
     threshold_log = (mp.mpf(3) / mp.mpf("0.8476")) ** 2
     print(f"classical-to-numeric threshold log = {mp.nstr(threshold_log, 30)}")
     print()
-    report(10, "visible theta", eps_theta_visible)
+    report(10, "visible theta integer grid", eps_theta_visible, integer_nodes(10))
     print()
-    report(13, "visible theta", eps_theta_visible)
+    report(10, "visible theta inherited quarter grid", eps_theta_inherited_visible, uniform_nodes(10, 4))
     print()
-    report(13, "corollary_14_normalized theta", eps_theta_classical_normalized)
+    report(13, "visible theta integer grid", eps_theta_visible, integer_nodes(13))
+    print()
+    report(13, "visible theta inherited half grid", eps_theta_inherited_visible, uniform_nodes(13, 2))
+    print()
+    report(13, "corollary_14_normalized theta", eps_theta_classical_normalized, integer_nodes(13))
+    print()
+    report_denominator_search()
 
 
 if __name__ == "__main__":
