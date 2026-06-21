@@ -1,6 +1,8 @@
 import PrimeNumberTheoremAnd.RectangleArgumentPrinciple
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.PhaseBounds
+import Mathlib.Analysis.SpecialFunctions.Stirling
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 
 /-!
@@ -56,6 +58,253 @@ theorem exp_logGammaBranch {z : ℂ} (hz : 0 < z.re) :
     filter_upwards [eventually_ne_atTop 0] with n hn
     exact Complex.exp_logGammaSeq hz hn
   exact tendsto_nhds_unique hgamma_to_exp (Complex.GammaSeq_tendsto_Gamma z)
+
+/-- On positive reals, the local complex branch is the real Bohr-Mollerup branch. -/
+theorem logGammaBranch_ofReal_eq_realLogGamma {x : ℝ} (hx : 0 < x) :
+    logGammaBranch (x : ℂ) = (Real.log (Real.Gamma x) : ℂ) := by
+  have hseq : ∀ n : ℕ,
+      Complex.logGammaSeq (x : ℂ) n = (Real.BohrMollerup.logGammaSeq x n : ℂ) := by
+    intro n
+    have hsum :
+        (∑ m ∈ Finset.range (n + 1), Complex.log ((x : ℂ) + m)) =
+          ((∑ m ∈ Finset.range (n + 1), Real.log (x + m)) : ℂ) := by
+      refine Finset.sum_congr rfl ?_
+      intro m hm
+      have hxm_nonneg : 0 ≤ x + (m : ℝ) := by positivity
+      rw [Complex.ofReal_log hxm_nonneg]
+      simp
+    rw [Complex.logGammaSeq, Real.BohrMollerup.logGammaSeq, hsum]
+    norm_num
+  have hcomplex :
+      Tendsto (fun n : ℕ => Complex.logGammaSeq (x : ℂ) n) atTop
+        (𝓝 (logGammaBranch (x : ℂ))) :=
+    (Complex.cauchySeq_logGammaSeq (by simpa using hx)).tendsto_limUnder
+  have hreal :
+      Tendsto (fun n : ℕ => (Real.BohrMollerup.logGammaSeq x n : ℂ)) atTop
+        (𝓝 ((Real.log (Real.Gamma x) : ℂ))) :=
+    (continuous_ofReal.tendsto _).comp (Real.BohrMollerup.tendsto_log_gamma hx)
+  exact tendsto_nhds_unique hcomplex (hreal.congr' (by
+    filter_upwards with n
+    exact (hseq n).symm))
+
+/-- The unwrapped `logGammaSeq` branch has logarithmic derivative `digamma`. -/
+theorem hasDerivAt_logGammaBranch {z : ℂ} (hz : 0 < z.re) :
+    HasDerivAt logGammaBranch (Complex.digamma z) z := by
+  change HasDerivAt (fun w => Filter.limUnder Filter.atTop (Complex.logGammaSeq w))
+    (Complex.digamma z) z
+  exact Complex.hasDerivAt_logGammaSeq_limUnder hz
+
+/-- Derivative of the Stirling main term on the right half-plane. -/
+theorem hasDerivAt_riemannVonMangoldtGammaStirlingMain {z : ℂ} (hz : 0 < z.re) :
+    HasDerivAt riemannVonMangoldtGammaStirlingMain
+      (Complex.log z - z⁻¹ / 2) z := by
+  have hslit : z ∈ Complex.slitPlane := Or.inl hz
+  have hz0 : z ≠ 0 := Complex.slitPlane_ne_zero hslit
+  have hsub : HasDerivAt (fun w : ℂ => w - (1 / 2 : ℂ)) 1 z :=
+    (hasDerivAt_id z).sub_const _
+  have hlog : HasDerivAt Complex.log z⁻¹ z := Complex.hasDerivAt_log hslit
+  have hprod := hsub.mul hlog
+  have hmain :
+      HasDerivAt
+        (fun w : ℂ => (w - (1 / 2 : ℂ)) * Complex.log w - w +
+          ((Real.log (2 * Real.pi) / 2 : ℝ) : ℂ))
+        (1 * Complex.log z + (z - (1 / 2 : ℂ)) * z⁻¹ - 1) z :=
+    (hprod.sub (hasDerivAt_id z)).add_const _
+  convert hmain using 1
+  · ext w
+    simp [riemannVonMangoldtGammaStirlingMain]
+  · field_simp [hz0]
+    ring
+
+/-- The Stirling remainder has derivative equal to the sharp digamma remainder. -/
+theorem hasDerivAt_logGammaBranch_sub_stirlingMain {z : ℂ} (hz : 0 < z.re) :
+    HasDerivAt (fun w => logGammaBranch w - riemannVonMangoldtGammaStirlingMain w)
+      (Complex.digammaRem z) z := by
+  have hbranch := hasDerivAt_logGammaBranch (z := z) hz
+  have hmain := hasDerivAt_riemannVonMangoldtGammaStirlingMain (z := z) hz
+  change HasDerivAt (logGammaBranch - riemannVonMangoldtGammaStirlingMain)
+    (Complex.digammaRem z) z
+  simpa [Complex.digammaRem] using hbranch.sub hmain
+
+/-- Real derivative of the Stirling remainder along the radial ray `t ↦ t z`. -/
+theorem hasDerivAt_logGammaBranch_stirlingRemainder_ray {z : ℂ}
+    (hz : (1 / 4 : ℝ) ≤ z.re) {t : ℝ} (ht : 1 ≤ t) :
+    HasDerivAt
+      (fun u : ℝ =>
+        logGammaBranch ((u : ℂ) * z) -
+          riemannVonMangoldtGammaStirlingMain ((u : ℂ) * z))
+      (Complex.digammaRem ((t : ℂ) * z) * z) t := by
+  have hray : (1 / 4 : ℝ) ≤ (((t : ℂ) * z).re) := Complex.ray_re_ge_quarter hz ht
+  have hray_pos : 0 < (((t : ℂ) * z).re) := by linarith
+  have hrem := hasDerivAt_logGammaBranch_sub_stirlingMain (z := (t : ℂ) * z) hray_pos
+  have hlin : HasDerivAt (fun u : ℝ => (u : ℂ) * z) z t := by
+    simpa using (Complex.ofRealCLM.hasDerivAt (x := t)).mul_const z
+  have hcomp := HasFDerivAt.comp_hasDerivAt t (hrem.hasFDerivAt.restrictScalars ℝ) hlin
+  change HasDerivAt
+    ((fun w : ℂ => logGammaBranch w - riemannVonMangoldtGammaStirlingMain w) ∘
+      fun u : ℝ => (u : ℂ) * z)
+    (Complex.digammaRem ((t : ℂ) * z) * z) t
+  simpa [Function.comp, ContinuousLinearMap.restrictScalars, mul_comm] using hcomp
+
+/--
+If the Stirling remainder tends to zero along the radial ray, then it equals the
+negative integral of the digamma remainder on that ray.
+-/
+theorem logGammaBranch_sub_stirlingMain_eq_neg_integral_of_tendsto {z : ℂ}
+    (hz : (1 / 4 : ℝ) ≤ z.re)
+    (htend :
+      Tendsto
+        (fun t : ℝ =>
+          logGammaBranch ((t : ℂ) * z) -
+            riemannVonMangoldtGammaStirlingMain ((t : ℂ) * z))
+        atTop (𝓝 0)) :
+    logGammaBranch z - riemannVonMangoldtGammaStirlingMain z =
+      -∫ t in Set.Ici (1 : ℝ), Complex.digammaRem ((t : ℂ) * z) * z := by
+  let F : ℝ → ℂ := fun t =>
+    logGammaBranch ((t : ℂ) * z) -
+      riemannVonMangoldtGammaStirlingMain ((t : ℂ) * z)
+  let F' : ℝ → ℂ := fun t => Complex.digammaRem ((t : ℂ) * z) * z
+  have hderiv : ∀ t ∈ Set.Ici (1 : ℝ), HasDerivAt F (F' t) t := by
+    intro t ht
+    exact hasDerivAt_logGammaBranch_stirlingRemainder_ray (z := z) hz ht
+  have hintIoi : MeasureTheory.IntegrableOn F' (Set.Ioi (1 : ℝ)) MeasureTheory.volume :=
+    (Complex.integrableOn_digammaRem_ray (z := z) hz).mono_set Set.Ioi_subset_Ici_self
+  have hFTC := MeasureTheory.integral_Ioi_of_hasDerivAt_of_tendsto'
+    (a := (1 : ℝ)) (f := F) (f' := F') (m := (0 : ℂ)) hderiv hintIoi (by simpa [F] using htend)
+  have hFTC_Ici : ∫ t in Set.Ici (1 : ℝ), F' t = -F 1 := by
+    rw [MeasureTheory.integral_Ici_eq_integral_Ioi]
+    simpa using hFTC
+  calc
+    logGammaBranch z - riemannVonMangoldtGammaStirlingMain z = F 1 := by
+      simp [F]
+    _ = -∫ t in Set.Ici (1 : ℝ), F' t := by
+      rw [hFTC_Ici]
+      simp
+    _ = -∫ t in Set.Ici (1 : ℝ), Complex.digammaRem ((t : ℂ) * z) * z := by
+      rfl
+
+/--
+Conditional form of the sharp radial-ray Stirling bound. The only remaining
+input is the tail limit of the `logGammaSeq` branch remainder along the ray.
+-/
+theorem norm_logGammaBranch_sub_stirling_le_of_tendsto {z : ℂ}
+    (hz : (1 / 4 : ℝ) ≤ z.re)
+    (htend :
+      Tendsto
+        (fun t : ℝ =>
+          logGammaBranch ((t : ℂ) * z) -
+            riemannVonMangoldtGammaStirlingMain ((t : ℂ) * z))
+        atTop (𝓝 0)) :
+    ‖logGammaBranch z - riemannVonMangoldtGammaStirlingMain z‖ ≤
+      1 / (6 * ‖z‖) := by
+  rw [logGammaBranch_sub_stirlingMain_eq_neg_integral_of_tendsto (z := z) hz htend]
+  simpa [norm_neg] using Complex.norm_integral_rem_le (z := z) hz
+
+private lemma log_factorial_stirling_remainder_tendsto_zero :
+    Tendsto
+      (fun n : ℕ =>
+        Real.log (n.factorial : ℝ) -
+          (((n : ℝ) + 1 / 2) * Real.log n - n + (1 / 2) * Real.log (2 * Real.pi)))
+      atTop (𝓝 0) := by
+  have hlogSt :
+      Tendsto (fun n : ℕ => Real.log (Stirling.stirlingSeq n)) atTop
+        (𝓝 (Real.log (Real.sqrt Real.pi))) :=
+    (Real.continuousAt_log (Real.sqrt_pos.2 Real.pi_pos).ne').tendsto.comp
+      Stirling.tendsto_stirlingSeq_sqrt_pi
+  have hpi : Real.log (Real.sqrt Real.pi) = (1 / 2 : ℝ) * Real.log Real.pi := by
+    rw [Real.log_sqrt Real.pi_pos.le]
+    ring
+  have hlim :
+      Tendsto (fun n : ℕ => Real.log (Stirling.stirlingSeq n) - Real.log (Real.sqrt Real.pi))
+        atTop (𝓝 0) := by
+    simpa using hlogSt.sub (tendsto_const_nhds (x := Real.log (Real.sqrt Real.pi)))
+  refine hlim.congr' ?_
+  filter_upwards [eventually_ge_atTop 1] with n hn
+  have hnpos : 0 < (n : ℝ) := by exact_mod_cast hn
+  have hnne : (n : ℝ) ≠ 0 := hnpos.ne'
+  rw [Stirling.log_stirlingSeq_formula, hpi]
+  rw [Real.log_mul (by norm_num : (2 : ℝ) ≠ 0) hnne]
+  rw [Real.log_mul (by norm_num : (2 : ℝ) ≠ 0) Real.pi_pos.ne']
+  rw [Real.log_div hnne (Real.exp_pos 1).ne', Real.log_exp]
+  ring
+
+private lemma stirling_nat_shift_tendsto_zero :
+    Tendsto
+      (fun n : ℕ =>
+        (((n : ℝ) + 1 / 2) * (Real.log ((n : ℝ) + 1) - Real.log n) - 1))
+      atTop (𝓝 0) := by
+  have hg : Tendsto (fun n : ℕ => (n : ℝ) * (1 / (n : ℝ))) atTop (𝓝 (1 : ℝ)) := by
+    refine tendsto_const_nhds.congr' ?_
+    filter_upwards [eventually_ne_atTop 0] with n hn
+    field_simp [Nat.cast_ne_zero.mpr hn]
+  have hmain0 :=
+    Real.tendsto_nat_mul_log_one_add_of_tendsto (g := fun n : ℕ => 1 / (n : ℝ)) hg
+  have hmain :
+      Tendsto (fun n : ℕ => (n : ℝ) * (Real.log ((n : ℝ) + 1) - Real.log n)) atTop
+        (𝓝 (1 : ℝ)) := by
+    refine hmain0.congr' ?_
+    filter_upwards [eventually_ge_atTop 1] with n hn
+    have hnpos : 0 < (n : ℝ) := by exact_mod_cast hn
+    have hnne : (n : ℝ) ≠ 0 := hnpos.ne'
+    have harg : 1 + 1 / (n : ℝ) = ((n : ℝ) + 1) / (n : ℝ) := by
+      field_simp [hnne]
+    rw [harg, Real.log_div (by positivity) hnne]
+  have hdiff :
+      Tendsto (fun n : ℕ => Real.log ((n : ℝ) + 1) - Real.log n) atTop
+        (𝓝 (0 : ℝ)) := by
+    simpa [Nat.cast_add, Nat.cast_one] using Real.tendsto_log_nat_add_one_sub_log
+  have hshift :
+      Tendsto
+        (fun n : ℕ => ((n : ℝ) + 1 / 2) * (Real.log ((n : ℝ) + 1) - Real.log n))
+        atTop (𝓝 (1 : ℝ)) := by
+    have hhalf := (tendsto_const_nhds (x := (1 / 2 : ℝ))).mul hdiff
+    convert hmain.add hhalf using 1
+    · ext n
+      ring_nf
+    · ring_nf
+  simpa using hshift.sub (tendsto_const_nhds (x := (1 : ℝ)))
+
+/-- The log-Gamma branch Stirling remainder tends to zero on positive integers. -/
+theorem logGammaBranch_stirling_int_tendsto_zero :
+    Tendsto
+      (fun n : ℕ =>
+        logGammaBranch (((n + 1 : ℕ) : ℝ) : ℂ) -
+          riemannVonMangoldtGammaStirlingMain (((n + 1 : ℕ) : ℝ) : ℂ))
+      atTop (𝓝 0) := by
+  let realRem : ℕ → ℝ := fun n =>
+    Real.log (n.factorial : ℝ) -
+      ((((n : ℝ) + 1 / 2) * Real.log ((n : ℝ) + 1) - ((n : ℝ) + 1) +
+        (1 / 2) * Real.log (2 * Real.pi)))
+  have hreal : Tendsto realRem atTop (𝓝 0) := by
+    have hbase := log_factorial_stirling_remainder_tendsto_zero
+    have hshift := stirling_nat_shift_tendsto_zero
+    convert hbase.sub hshift using 1
+    · ext n
+      dsimp [realRem]
+      ring_nf
+    · ring_nf
+  have hcomplex : Tendsto (fun n : ℕ => (realRem n : ℂ)) atTop (𝓝 (0 : ℂ)) := by
+    change Tendsto (Complex.ofReal ∘ realRem) atTop (𝓝 (0 : ℂ))
+    exact (Complex.continuous_ofReal.tendsto (0 : ℝ)).comp hreal
+  refine hcomplex.congr' ?_
+  filter_upwards with n
+  have hx : 0 < (((n + 1 : ℕ) : ℝ)) := by positivity
+  have hx_nonneg : 0 ≤ (((n + 1 : ℕ) : ℝ)) := hx.le
+  have hbranch := logGammaBranch_ofReal_eq_realLogGamma (x := (((n + 1 : ℕ) : ℝ))) hx
+  have hgamma : Real.Gamma (((n + 1 : ℕ) : ℝ)) = (n.factorial : ℝ) := by
+    simpa [Nat.cast_add, Nat.cast_one] using Real.Gamma_nat_eq_factorial n
+  have hmain :
+      riemannVonMangoldtGammaStirlingMain (((n + 1 : ℕ) : ℝ) : ℂ) =
+        (((((n : ℝ) + 1 / 2) * Real.log ((n : ℝ) + 1) - ((n : ℝ) + 1) +
+          (1 / 2) * Real.log (2 * Real.pi))) : ℂ) := by
+    rw [riemannVonMangoldtGammaStirlingMain]
+    rw [← Complex.ofReal_log hx_nonneg]
+    push_cast
+    ring
+  rw [hbranch, hmain, hgamma]
+  dsimp [realRem]
+  push_cast
+  ring
 
 /-- The explicit phase appearing at `z = 1 / 4 + iT / 2`. -/
 def riemannVonMangoldtGammaPhase (T : ℝ) : ℝ :=

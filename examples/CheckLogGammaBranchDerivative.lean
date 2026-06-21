@@ -1,0 +1,12 @@
+import PrimeNumberTheoremAnd.RiemannVonMangoldtIdentity
+
+open Complex
+
+#check hasDerivAt_logGammaSeq_limUnder
+#check hasDerivAt_logGammaBranch
+#check hasDerivAt_logGammaBranch_sub_stirlingMain
+#check hasDerivAt_logGammaBranch_stirlingRemainder_ray
+#check logGammaBranch_sub_stirlingMain_eq_neg_integral_of_tendsto
+#check norm_logGammaBranch_sub_stirling_le_of_tendsto
+#check logGammaBranch_ofReal_eq_realLogGamma
+#check logGammaBranch_stirling_int_tendsto_zero

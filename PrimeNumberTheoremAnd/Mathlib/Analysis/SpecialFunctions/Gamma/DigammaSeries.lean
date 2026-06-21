@@ -530,6 +530,116 @@ lemma tendsto_log_sub_sum_inv_add_of_re_pos {z : ℂ} (hz : 0 < z.re) :
   rw [hfun] at hadd
   simpa using hadd
 
+/--
+The `logGammaSeq` limit branch has derivative `digamma` throughout the open
+right half-plane.
+-/
+theorem hasDerivAt_logGammaSeq_limUnder {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
+    HasDerivAt (fun w => limUnder atTop (logGammaSeq w)) (digamma z₀) z₀ := by
+  set a : ℝ := min (z₀.re / 2) 1 with ha_def
+  set R : ℝ := ‖z₀‖ + 1 with hR_def
+  have ha : 0 < a := lt_min (by linarith) one_pos
+  have ha1 : a ≤ 1 := min_le_right _ _
+  set s : Set ℂ := {w : ℂ | a < w.re} ∩ {w : ℂ | ‖w‖ < R} with hs_def
+  have hs_open : IsOpen s :=
+    (isOpen_lt continuous_const continuous_re).inter (isOpen_lt continuous_norm continuous_const)
+  have haz : a < z₀.re := by
+    rw [ha_def]
+    exact lt_of_le_of_lt (min_le_left _ _) (by linarith)
+  have hz₀R : ‖z₀‖ < R := by rw [hR_def]; linarith
+  have hz₀s : z₀ ∈ s := ⟨haz, hz₀R⟩
+  have hmem : ∀ w ∈ s, a ≤ w.re ∧ ‖w‖ ≤ R := fun w hw =>
+    ⟨le_of_lt hw.1, le_of_lt hw.2⟩
+  have hre_pos : ∀ w ∈ s, 0 < w.re := fun w hw => lt_trans ha hw.1
+  have hu : Summable (fun m : ℕ => (R + 1) / (a * ((m : ℝ) + 1) ^ 2)) := by
+    refine (summable_one_div_natCast_add_one_sq.mul_left ((R + 1) / a)).congr fun m => ?_
+    rw [mul_one_div, div_div]
+  have hM : TendstoUniformlyOn
+      (fun (N : ℕ) (w : ℂ) => ∑ m ∈ Finset.range N,
+        (((m : ℂ) + 1)⁻¹ - (w + m)⁻¹))
+      (fun (w : ℂ) => ∑' m : ℕ, (((m : ℂ) + 1)⁻¹ - (w + m)⁻¹)) atTop s :=
+    tendstoUniformlyOn_tsum_nat hu fun m w hw =>
+      norm_inv_add_one_sub_inv_le ha ha1 (hmem w hw).1 (hmem w hw).2 m
+  have hM1 : TendstoUniformlyOn
+      (fun (n : ℕ) (w : ℂ) => ∑ m ∈ Finset.range (n + 1),
+        (((m : ℂ) + 1)⁻¹ - (w + m)⁻¹))
+      (fun (w : ℂ) => ∑' m : ℕ, (((m : ℂ) + 1)⁻¹ - (w + m)⁻¹)) atTop s := by
+    intro u hu'
+    exact (tendsto_add_atTop_nat 1).eventually (hM u hu')
+  have hcR : Tendsto (fun n : ℕ => Real.log n - (harmonic n : ℝ) - ((n : ℝ) + 1)⁻¹)
+      atTop (𝓝 (-Real.eulerMascheroniConstant)) := by
+    have h1 : Tendsto (fun n : ℕ => Real.log n - (harmonic n : ℝ)) atTop
+        (𝓝 (-Real.eulerMascheroniConstant)) :=
+      Real.tendsto_harmonic_sub_log.neg.congr fun n => by ring
+    have h2 : Tendsto (fun n : ℕ => ((n : ℝ) + 1)⁻¹) atTop (𝓝 0) := by
+      apply Filter.Tendsto.inv_tendsto_atTop
+      exact tendsto_atTop_add_const_right atTop 1 tendsto_natCast_atTop_atTop
+    simpa using h1.sub h2
+  have hcC : Tendsto
+      (fun n : ℕ => ((Real.log n - (harmonic n : ℝ) - ((n : ℝ) + 1)⁻¹ : ℝ) : ℂ))
+      atTop (𝓝 (-(Real.eulerMascheroniConstant : ℂ))) := by
+    have h := (continuous_ofReal.tendsto (-Real.eulerMascheroniConstant)).comp hcR
+    have hval : ((-Real.eulerMascheroniConstant : ℝ) : ℂ) =
+        -(Real.eulerMascheroniConstant : ℂ) := by
+      push_cast
+      ring
+    rw [← hval]
+    exact h
+  have hcU := hcC.tendstoUniformlyOn_const s
+  have hF' : TendstoUniformlyOn
+      (fun (n : ℕ) (w : ℂ) => (Real.log n : ℂ) -
+        ∑ m ∈ Finset.range (n + 1), (w + m)⁻¹)
+      (fun (w : ℂ) => -(Real.eulerMascheroniConstant : ℂ)
+        + ∑' m : ℕ, (((m : ℂ) + 1)⁻¹ - (w + m)⁻¹)) atTop s := by
+    have hadd := hcU.add hM1
+    refine hadd.congr ?_
+    filter_upwards with n
+    intro w hw
+    simp only [Pi.add_apply]
+    rw [Finset.sum_sub_distrib, sum_inv_natCast_add_one (n + 1)]
+    push_cast [harmonic_succ]
+    ring
+  have hderiv : ∀ n : ℕ, ∀ x : ℂ, x ∈ s →
+      HasDerivAt (fun w => logGammaSeq w n)
+        ((Real.log n : ℂ) - ∑ m ∈ Finset.range (n + 1), (x + m)⁻¹) x := by
+    intro n x hx
+    have h1 : HasDerivAt (fun w : ℂ => w * (Real.log n : ℂ) + (Real.log (n !) : ℂ))
+        ((Real.log n : ℂ)) x := (hasDerivAt_mul_const _).add_const _
+    have h2 : HasDerivAt (fun w : ℂ => ∑ m ∈ Finset.range (n + 1), log (w + m))
+        (∑ m ∈ Finset.range (n + 1), (x + m)⁻¹) x := by
+      apply HasDerivAt.fun_sum
+        (A := fun (m : ℕ) (w : ℂ) => log (w + m)) (A' := fun m : ℕ => (x + m)⁻¹)
+      intro m _
+      have hmem : x + (m : ℂ) ∈ slitPlane := by
+        rw [mem_slitPlane_iff]
+        left
+        rw [add_re, natCast_re]
+        have : (0 : ℝ) ≤ m := Nat.cast_nonneg m
+        linarith [hre_pos x hx, this]
+      have hinner : HasDerivAt (fun w : ℂ => w + (m : ℂ)) 1 x := (hasDerivAt_id x).add_const _
+      simpa using! (hasDerivAt_log hmem).comp x hinner
+    simpa only [logGammaSeq] using! h1.sub h2
+  have hptw : ∀ x : ℂ, x ∈ s →
+      Tendsto (fun n => logGammaSeq x n) atTop (𝓝 (limUnder atTop (logGammaSeq x))) :=
+    fun x hx => (cauchySeq_logGammaSeq (hre_pos x hx)).tendsto_limUnder
+  have hkey : HasDerivAt (fun w => limUnder atTop (logGammaSeq w))
+      (-(Real.eulerMascheroniConstant : ℂ)
+        + ∑' m : ℕ, (((m : ℂ) + 1)⁻¹ - (z₀ + m)⁻¹)) z₀ :=
+    hasDerivAt_of_tendstoUniformlyOn hs_open hF'
+      (Filter.Eventually.of_forall fun n x hx => hderiv n x hx) hptw hz₀s
+  have hlim_at_z :
+      Tendsto (fun n : ℕ => (Real.log n : ℂ) -
+        ∑ m ∈ Finset.range (n + 1), (z₀ + m)⁻¹) atTop
+        (𝓝 (-(Real.eulerMascheroniConstant : ℂ)
+          + ∑' m : ℕ, (((m : ℂ) + 1)⁻¹ - (z₀ + m)⁻¹))) :=
+    hF'.tendsto_at hz₀s
+  have hdig := tendsto_log_sub_sum_inv_add_of_re_pos hz₀
+  have htarget :
+      -(Real.eulerMascheroniConstant : ℂ)
+        + ∑' m : ℕ, (((m : ℂ) + 1)⁻¹ - (z₀ + m)⁻¹) = digamma z₀ :=
+    tendsto_nhds_unique hlim_at_z hdig
+  simpa [htarget] using hkey
+
 /-! ## The main statements -/
 
 /-- The series representation of the digamma function: for `z` away from the poles of
