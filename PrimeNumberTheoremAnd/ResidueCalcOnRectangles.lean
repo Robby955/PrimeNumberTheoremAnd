@@ -218,6 +218,16 @@ theorem RectangleBorderIntegrable.add {f g : ℂ → E}
   rw [h₁, h₂, h₃, h₄]
   module
 
+theorem RectangleBorderIntegrable.add' {f g : ℂ → E}
+    (hf : RectangleBorderIntegrable f z w) (hg : RectangleBorderIntegrable g z w) :
+    RectangleIntegral' (fun s => f s + g s) z w =
+      RectangleIntegral' f z w + RectangleIntegral' g z w := by
+  dsimp [RectangleIntegral']
+  rw [show RectangleIntegral (fun s => f s + g s) z w =
+    RectangleIntegral (f + g) z w by rfl]
+  rw [RectangleBorderIntegrable.add hf hg]
+  rw [smul_add]
+
 omit [NormedSpace ℂ E] in
 theorem ContinuousOn.rectangleBorder_integrable (hf : ContinuousOn f (RectangleBorder z w)) :
     RectangleBorderIntegrable f z w :=
