@@ -1,5 +1,7 @@
 import PrimeNumberTheoremAnd.RectangleArgumentPrinciple
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 
 /-!
 # Riemann xi rectangle count
@@ -9,20 +11,147 @@ entire xi function.  The later Riemann-von-Mangoldt main-term extraction needs
 phase-level Stirling estimates for `Complex.Gamma`; this file records the
 divisor-counting layer that sits below that extraction.
 
-The next analytic brick is a principal-log Stirling estimate at
+The next analytic brick is an unwrapped log-Gamma Stirling estimate at
 `z = 1 / 4 + (T / 2) * I`.  The local Gamma API currently has norm growth
 bounds and the `logGammaSeq`/digamma construction, but not a reusable theorem
-of the following shape:
+of the following shape, where the logarithm is the `logGammaSeq` limit branch:
 
-`| (Complex.log (Complex.Gamma z)).im -
+`| (Filter.limUnder Filter.atTop (Complex.logGammaSeq z)).im -
     ((T / 2) * Real.log (T / 2) - T / 2 - Real.pi / 8
       + (T / 4) * Real.log (1 + 1 / (4 * T ^ 2))
       + (1 / 4) * Real.arctan (1 / (2 * T))) | ≤ 1 / (3 * T)`.
 -/
 
-open Complex Set BigOperators
+open Complex Set BigOperators Filter Topology
 
 noncomputable section
+
+/-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
+def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
+  (1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I
+
+/-- The Stirling main term for the log-Gamma phase calculation. -/
+def riemannVonMangoldtGammaStirlingMain (z : ℂ) : ℂ :=
+  (z - (1 / 2 : ℂ)) * Complex.log z - z + ((Real.log (2 * Real.pi) / 2 : ℝ) : ℂ)
+
+/-- The unwrapped log-Gamma branch built from the local `logGammaSeq` construction. -/
+def logGammaBranch (z : ℂ) : ℂ :=
+  Filter.limUnder Filter.atTop (Complex.logGammaSeq z)
+
+/-- Riemann-von-Mangoldt spelling for the unwrapped log-Gamma branch. -/
+def riemannVonMangoldtLogGammaBranch (z : ℂ) : ℂ :=
+  logGammaBranch z
+
+/-- The `logGammaSeq` branch exponentiates back to `Gamma` on the right half-plane. -/
+theorem exp_logGammaBranch {z : ℂ} (hz : 0 < z.re) :
+    Complex.exp (logGammaBranch z) = Complex.Gamma z := by
+  have hlim :
+      Tendsto (fun n : ℕ => Complex.logGammaSeq z n) atTop (𝓝 (logGammaBranch z)) :=
+    (Complex.cauchySeq_logGammaSeq hz).tendsto_limUnder
+  have hexp := (continuous_exp.tendsto _).comp hlim
+  have hgamma_to_exp :
+      Tendsto (fun n : ℕ => Complex.GammaSeq z n) atTop
+        (𝓝 (Complex.exp (logGammaBranch z))) := by
+    apply hexp.congr'
+    filter_upwards [eventually_ne_atTop 0] with n hn
+    exact Complex.exp_logGammaSeq hz hn
+  exact tendsto_nhds_unique hgamma_to_exp (Complex.GammaSeq_tendsto_Gamma z)
+
+/-- The explicit phase appearing at `z = 1 / 4 + iT / 2`. -/
+def riemannVonMangoldtGammaPhase (T : ℝ) : ℝ :=
+  (T / 2) * Real.log (T / 2) - T / 2 - Real.pi / 8
+    + (T / 4) * Real.log (1 + 1 / (4 * T ^ 2))
+    + (1 / 4) * Real.arctan (1 / (2 * T))
+
+lemma riemannVonMangoldtGammaPoint_norm (T : ℝ) (hT : 0 < T) :
+    ‖riemannVonMangoldtGammaPoint T‖ =
+      (T / 2) * Real.sqrt (1 + 1 / (4 * T ^ 2)) := by
+  have hinside_nonneg : 0 ≤ 1 + (T ^ 2)⁻¹ * 4⁻¹ := by positivity
+  have hnormsq :
+      ‖riemannVonMangoldtGammaPoint T‖ ^ 2 =
+        ((T / 2) * Real.sqrt (1 + 1 / (4 * T ^ 2))) ^ 2 := by
+    rw [← Complex.normSq_eq_norm_sq]
+    suffices (1 / 4 : ℝ) * (1 / 4) + (T / 2) * (T / 2) =
+        (T / 2 * Real.sqrt (1 + (T ^ 2)⁻¹ * 4⁻¹)) ^ 2 by
+      simpa [riemannVonMangoldtGammaPoint, Complex.normSq_apply] using this
+    rw [mul_pow, Real.sq_sqrt hinside_nonneg]
+    field_simp [ne_of_gt hT]
+    ring
+  have hleft : 0 ≤ ‖riemannVonMangoldtGammaPoint T‖ := norm_nonneg _
+  have hright : 0 ≤ (T / 2) * Real.sqrt (1 + 1 / (4 * T ^ 2)) := by positivity
+  exact sq_eq_sq₀ hleft hright |>.mp hnormsq
+
+lemma riemannVonMangoldtGammaPoint_log_norm (T : ℝ) (hT : 0 < T) :
+    Real.log ‖riemannVonMangoldtGammaPoint T‖ =
+      Real.log (T / 2) + (1 / 2) * Real.log (1 + 1 / (4 * T ^ 2)) := by
+  rw [riemannVonMangoldtGammaPoint_norm T hT, Real.log_mul]
+  · rw [Real.log_sqrt]
+    · ring
+    · positivity
+  · positivity
+  · positivity
+
+lemma riemannVonMangoldtGammaPoint_arg (T : ℝ) (hT : 0 < T) :
+    (riemannVonMangoldtGammaPoint T).arg =
+      Real.pi / 2 - Real.arctan (1 / (2 * T)) := by
+  have harg_atan :
+      (riemannVonMangoldtGammaPoint T).arg = Real.arctan (2 * T) := by
+    symm
+    apply Real.arctan_eq_of_tan_eq
+    · rw [Complex.tan_arg]
+      simp [riemannVonMangoldtGammaPoint]
+      field_simp
+      ring
+    · constructor
+      · rw [Complex.neg_pi_div_two_lt_arg_iff]
+        left
+        simp [riemannVonMangoldtGammaPoint]
+      · rw [Complex.arg_lt_pi_div_two_iff]
+        left
+        simp [riemannVonMangoldtGammaPoint]
+  have hinv := Real.arctan_inv_of_pos (x := 2 * T) (by positivity)
+  have hinv_eq : (2 * T)⁻¹ = 1 / (2 * T) := by ring
+  rw [hinv_eq] at hinv
+  rw [harg_atan]
+  linarith
+
+/-- The elementary phase identity for the Stirling main term at `1 / 4 + iT / 2`. -/
+theorem riemannVonMangoldtGammaStirlingMain_im (T : ℝ) (hT : 0 < T) :
+    (riemannVonMangoldtGammaStirlingMain (riemannVonMangoldtGammaPoint T)).im =
+      riemannVonMangoldtGammaPhase T := by
+  have him :
+      (riemannVonMangoldtGammaStirlingMain (riemannVonMangoldtGammaPoint T)).im =
+        (T / 2) * Real.log ‖riemannVonMangoldtGammaPoint T‖ - T / 2
+          - (1 / 4) * (riemannVonMangoldtGammaPoint T).arg := by
+    simp [riemannVonMangoldtGammaStirlingMain, riemannVonMangoldtGammaPoint,
+      Complex.log_re, Complex.log_im]
+    ring
+  rw [him, riemannVonMangoldtGammaPoint_log_norm T hT,
+    riemannVonMangoldtGammaPoint_arg T hT]
+  simp [riemannVonMangoldtGammaPhase]
+  ring
+
+/-- Reduces the desired `Im log Γ(1/4+iT/2)` estimate to the missing `logGammaSeq`
+branch Stirling remainder estimate. -/
+theorem im_logGamma_quarter_stirling_of_logGammaSeq_stirling_remainder (T : ℝ) (hT : 1 ≤ T)
+    (hstirling :
+      |(riemannVonMangoldtLogGammaBranch (riemannVonMangoldtGammaPoint T) -
+          riemannVonMangoldtGammaStirlingMain (riemannVonMangoldtGammaPoint T)).im|
+        ≤ 1 / (3 * T)) :
+    |(riemannVonMangoldtLogGammaBranch ((1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I)).im -
+        ((T / 2) * Real.log (T / 2) - T / 2 - Real.pi / 8
+          + (T / 4) * Real.log (1 + 1 / (4 * T ^ 2))
+          + (1 / 4) * Real.arctan (1 / (2 * T)))| ≤ 1 / (3 * T) := by
+  have hTpos : 0 < T := lt_of_lt_of_le zero_lt_one hT
+  have hmain := riemannVonMangoldtGammaStirlingMain_im T hTpos
+  have hstirling' :
+      |(riemannVonMangoldtLogGammaBranch (riemannVonMangoldtGammaPoint T)).im -
+          (riemannVonMangoldtGammaStirlingMain (riemannVonMangoldtGammaPoint T)).im|
+        ≤ 1 / (3 * T) := by
+    simpa [sub_im, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hstirling
+  rw [hmain] at hstirling'
+  simpa [riemannVonMangoldtGammaPoint, riemannVonMangoldtGammaPhase, sub_eq_add_neg,
+    add_comm, add_left_comm, add_assoc] using hstirling'
 
 /-- Riemann's entire xi function is meromorphic on every set. -/
 theorem riemannXi_meromorphicOn (R : Set ℂ) : MeromorphicOn riemannXi R := by
