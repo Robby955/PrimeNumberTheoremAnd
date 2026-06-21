@@ -484,6 +484,33 @@ theorem riemannVonMangoldtXiCountingRectangleIntegral_eq_edges (T : ℝ) :
     riemannVonMangoldtCountingRectangleLower, riemannVonMangoldtCountingRectangleUpper,
     RectangleIntegral', RectangleIntegral]
 
+theorem HIntegral_logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero
+    {x₁ x₂ y : ℝ} (hy : y ≠ 0)
+    (hzeta : ∀ x ∈ Set.uIcc x₁ x₂,
+      riemannZeta ((x : ℂ) + ((y : ℝ) : ℂ) * I) ≠ 0)
+    (hpref_int : IntervalIntegrable
+      (fun x : ℝ => logDeriv riemannVonMangoldtXiPrefactor
+        ((x : ℂ) + ((y : ℝ) : ℂ) * I)) MeasureTheory.volume x₁ x₂)
+    (hzeta_int : IntervalIntegrable
+      (fun x : ℝ => logDeriv riemannZeta
+        ((x : ℂ) + ((y : ℝ) : ℂ) * I)) MeasureTheory.volume x₁ x₂) :
+    HIntegral (logDeriv riemannXi) x₁ x₂ y =
+      HIntegral (logDeriv riemannVonMangoldtXiPrefactor) x₁ x₂ y +
+        HIntegral (logDeriv riemannZeta) x₁ x₂ y := by
+  unfold HIntegral
+  have hcongr : Set.EqOn
+      (fun x : ℝ => logDeriv riemannXi ((x : ℂ) + ((y : ℝ) : ℂ) * I))
+      (fun x : ℝ =>
+        logDeriv riemannVonMangoldtXiPrefactor ((x : ℂ) + ((y : ℝ) : ℂ) * I) +
+          logDeriv riemannZeta ((x : ℂ) + ((y : ℝ) : ℂ) * I))
+      (Set.uIcc x₁ x₂) := by
+    intro x hx
+    have him : (((x : ℂ) + ((y : ℝ) : ℂ) * I).im) ≠ 0 := by
+      simpa using hy
+    exact logDeriv_riemannXi_eq_prefactor_add_zeta_of_im_ne_zero him (hzeta x hx)
+  rw [intervalIntegral.integral_congr hcongr]
+  exact intervalIntegral.integral_add hpref_int hzeta_int
+
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
   (1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I
