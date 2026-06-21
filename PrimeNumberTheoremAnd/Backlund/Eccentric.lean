@@ -232,4 +232,38 @@ theorem log_phragmen_lindelof_normalized {f normalizer : ℂ → ℂ}
   rw [← hmul]
   exact mul_le_mul_of_nonneg_right hnorm (norm_nonneg (normalizer z))
 
+/--
+Hadamard three-lines with the concrete shifted log-power normalizer and real
+exponent weights.
+-/
+theorem log_phragmen_lindelof_shiftedLogPower {f : ℂ → ℂ}
+    {Q σ₀ σ₁ C₀ C₁ α β : ℝ} {z : ℂ} (hσ : σ₀ < σ₁)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)
+    (hQ : (1 : ℝ) < Q + σ₀)
+    (hd : DiffContOnCl ℂ
+      (fun w => f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁))
+    (hB : BddAbove (Set.image
+      (fun w => ‖f w / shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ) w‖)
+      (Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)))
+    (hleft : ∀ w : ℂ, w.re = σ₀ →
+      ‖f w‖ ≤ C₀ * (‖(Q : ℂ) + w‖ ^ α * ‖Complex.log ((Q : ℂ) + w)‖ ^ β))
+    (hright : ∀ w : ℂ, w.re = σ₁ →
+      ‖f w‖ ≤ C₁ * (‖(Q : ℂ) + w‖ ^ α * ‖Complex.log ((Q : ℂ) + w)‖ ^ β)) :
+    ‖f z‖ ≤
+      (C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+        C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀))) *
+        (‖(Q : ℂ) + z‖ ^ α * ‖Complex.log ((Q : ℂ) + z)‖ ^ β) := by
+  have hmain := log_phragmen_lindelof_normalized
+    (f := f) (normalizer := shiftedLogPowerNormalizer Q (α : ℂ) (β : ℂ))
+    (hσ := hσ) hz
+    (fun w hw => shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
+      (α : ℂ) (β : ℂ) hQ hw)
+    hd hB
+    (fun w hw => by
+      simpa [norm_shiftedLogPowerNormalizer_ofReal] using hleft w hw)
+    (fun w hw => by
+      simpa [norm_shiftedLogPowerNormalizer_ofReal] using hright w hw)
+  simpa [norm_shiftedLogPowerNormalizer_ofReal] using hmain
+
 end Backlund
