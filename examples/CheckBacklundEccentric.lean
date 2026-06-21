@@ -3,9 +3,15 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.eccentricHighRhs
 #check Backlund.kadiriRhs
 #check Backlund.eccentricHighRhs_le_kadiriRhs
+#check Backlund.log_ne_zero_of_one_lt_re
+#check Backlund.shifted_mem_slitPlane_on_verticalClosedStrip
+#check Backlund.shifted_log_ne_zero_on_verticalClosedStrip
 #check Backlund.log_phragmen_lindelof_normalized
 
 #print axioms Backlund.eccentricHighRhs
 #print axioms Backlund.kadiriRhs
 #print axioms Backlund.eccentricHighRhs_le_kadiriRhs
+#print axioms Backlund.log_ne_zero_of_one_lt_re
+#print axioms Backlund.shifted_mem_slitPlane_on_verticalClosedStrip
+#print axioms Backlund.shifted_log_ne_zero_on_verticalClosedStrip
 #print axioms Backlund.log_phragmen_lindelof_normalized

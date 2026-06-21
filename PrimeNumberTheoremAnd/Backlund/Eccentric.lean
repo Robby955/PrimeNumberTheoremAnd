@@ -51,6 +51,38 @@ theorem eccentricHighRhs_le_kadiriRhs {T : ℝ} (hT : (6800000 : ℝ) ≤ T) :
   have h3 : (5.13 : ℝ) ≤ 6.1 := by norm_num
   linarith
 
+/-- A point with real part greater than one has nonzero principal complex log. -/
+theorem log_ne_zero_of_one_lt_re {z : ℂ} (hz : (1 : ℝ) < z.re) :
+    Complex.log z ≠ 0 := by
+  intro hlog
+  have hnorm : (1 : ℝ) < ‖z‖ := lt_of_lt_of_le hz (Complex.re_le_norm z)
+  have hlog_pos : (0 : ℝ) < Real.log ‖z‖ := Real.log_pos hnorm
+  have hlog_re : (Complex.log z).re = 0 := by rw [hlog]; simp
+  rw [Complex.log_re] at hlog_re
+  linarith
+
+/-- On a shifted vertical closed strip with positive real part, `Q + z` is in the slit plane. -/
+theorem shifted_mem_slitPlane_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (0 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    (Q : ℂ) + z ∈ Complex.slitPlane := by
+  refine Or.inl ?_
+  have hzre : σ₀ ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hpos : (0 : ℝ) < Q + z.re := by nlinarith
+  simpa using hpos
+
+/-- On a shifted vertical closed strip with `Q + σ₀ > 1`, `log (Q + z)` is nonzero. -/
+theorem shifted_log_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (1 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    Complex.log ((Q : ℂ) + z) ≠ 0 := by
+  apply log_ne_zero_of_one_lt_re
+  have hzre : σ₀ ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hpos : (1 : ℝ) < Q + z.re := by nlinarith
+  simpa using hpos
+
 /--
 Hadamard three-lines for a function after division by a supplied nonzero
 normalizer. This is the reusable PL-log shell: the concrete shifted log-power
