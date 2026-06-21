@@ -22,6 +22,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.log_phragmen_lindelof_normalized
 #check Backlund.log_phragmen_lindelof_shiftedLogPower
 #check Backlund.log_phragmen_lindelof
+#check Backlund.zetaSurrogate_shiftedLogPower_PL_inputs
 
 #print axioms Backlund.eccentricHighRhs
 #print axioms Backlund.kadiriRhs
@@ -45,3 +46,4 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.log_phragmen_lindelof_normalized
 #print axioms Backlund.log_phragmen_lindelof_shiftedLogPower
 #print axioms Backlund.log_phragmen_lindelof
+#print axioms Backlund.zetaSurrogate_shiftedLogPower_PL_inputs

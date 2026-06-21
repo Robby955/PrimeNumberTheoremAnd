@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robby Sneiderman
 -/
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
+import PrimeNumberTheoremAnd.Backlund.ZeroCountCrude
 import PrimeNumberTheoremAnd.ZetaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.CriticalLineDecay
 import Mathlib.Analysis.Complex.Hadamard
@@ -703,5 +704,41 @@ theorem log_phragmen_lindelof {f : ℂ → ℂ}
     (f := f) (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁)
     (C₀ := C₀) (C₁ := C₁) (α := α) (β := β)
     hσ hz hQ hd hB hleft hright
+
+/--
+The fixed shifted log-power quotient for the entire zeta surrogate has the
+analytic side conditions needed by the PL shell on the strip `0 < re z < 1`.
+-/
+theorem zetaSurrogate_shiftedLogPower_PL_inputs {Q : ℝ} (hQ : (1 : ℝ) < Q) :
+    (∀ w ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1,
+      shiftedLogPowerNormalizer Q ((5 / 4 : ℝ) : ℂ) (1 : ℂ) w ≠ 0) ∧
+    DiffContOnCl ℂ
+      (fun w => zetaSurrogate w /
+        shiftedLogPowerNormalizer Q ((5 / 4 : ℝ) : ℂ) (1 : ℂ) w)
+      (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+  have hσ : (0 : ℝ) < 1 := by norm_num
+  have hQstrip : (1 : ℝ) < Q + (0 : ℝ) := by simpa using hQ
+  constructor
+  · intro w hw
+    exact shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
+      ((5 / 4 : ℝ) : ℂ) (1 : ℂ) hQstrip hw
+  · have hsurrogate : DiffContOnCl ℂ zetaSurrogate
+        (Complex.HadamardThreeLines.verticalStrip 0 1) :=
+      zetaSurrogate_differentiable.diffContOnCl
+    have hnormalizer : DiffContOnCl ℂ
+        (shiftedLogPowerNormalizer Q ((5 / 4 : ℝ) : ℂ) (1 : ℂ))
+        (Complex.HadamardThreeLines.verticalStrip 0 1) :=
+      shiftedLogPowerNormalizer_diffContOnCl_on_verticalStrip
+        ((5 / 4 : ℝ) : ℂ) (1 : ℂ) hσ hQstrip
+    have hnormalizer_inv : DiffContOnCl ℂ
+        (fun w =>
+          (shiftedLogPowerNormalizer Q ((5 / 4 : ℝ) : ℂ) (1 : ℂ) w)⁻¹)
+        (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+      refine hnormalizer.inv ?_
+      intro w hw
+      rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne] at hw
+      exact shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip
+        ((5 / 4 : ℝ) : ℂ) (1 : ℂ) hQstrip hw
+    simpa [div_eq_mul_inv, mul_comm] using hnormalizer_inv.smul hsurrogate
 
 end Backlund
