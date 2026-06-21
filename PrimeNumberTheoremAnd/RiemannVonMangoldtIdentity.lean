@@ -417,6 +417,31 @@ def riemannVonMangoldtXiCountingRectangleIntegral (T : ℝ) : ℂ :=
   RectangleIntegral' (logDeriv riemannXi) riemannVonMangoldtCountingRectangleLower
     (riemannVonMangoldtCountingRectangleUpper T)
 
+def riemannVonMangoldtXiBottomIntegral : ℂ :=
+  HIntegral (logDeriv riemannXi) 0 1 0
+
+def riemannVonMangoldtXiTopIntegral (T : ℝ) : ℂ :=
+  HIntegral (logDeriv riemannXi) 0 1 T
+
+def riemannVonMangoldtXiRightIntegral (T : ℝ) : ℂ :=
+  VIntegral (logDeriv riemannXi) 1 0 T
+
+def riemannVonMangoldtXiLeftIntegral (T : ℝ) : ℂ :=
+  VIntegral (logDeriv riemannXi) 0 0 T
+
+theorem riemannVonMangoldtXiCountingRectangleIntegral_eq_edges (T : ℝ) :
+    riemannVonMangoldtXiCountingRectangleIntegral T =
+      (1 / (2 * Real.pi * I) : ℂ) •
+        (riemannVonMangoldtXiBottomIntegral -
+          riemannVonMangoldtXiTopIntegral T +
+          riemannVonMangoldtXiRightIntegral T -
+          riemannVonMangoldtXiLeftIntegral T) := by
+  simp [riemannVonMangoldtXiCountingRectangleIntegral,
+    riemannVonMangoldtXiBottomIntegral, riemannVonMangoldtXiTopIntegral,
+    riemannVonMangoldtXiRightIntegral, riemannVonMangoldtXiLeftIntegral,
+    riemannVonMangoldtCountingRectangleLower, riemannVonMangoldtCountingRectangleUpper,
+    RectangleIntegral', RectangleIntegral]
+
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
   (1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I

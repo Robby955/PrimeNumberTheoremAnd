@@ -30,6 +30,11 @@ open Complex
 #check meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero
 #check riemannXi_rectangle_divisor_sum_eq_riemannZeta_N
 #check riemannVonMangoldtXiCountingRectangleIntegral
+#check riemannVonMangoldtXiBottomIntegral
+#check riemannVonMangoldtXiTopIntegral
+#check riemannVonMangoldtXiRightIntegral
+#check riemannVonMangoldtXiLeftIntegral
+#check riemannVonMangoldtXiCountingRectangleIntegral_eq_edges
 #check riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re
 
 example (z : ℂ) (hz : 0 < z.re) :
@@ -64,4 +69,9 @@ example (T : ℝ) (hT : 1 ≤ T)
 #print axioms meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero
 #print axioms riemannXi_rectangle_divisor_sum_eq_riemannZeta_N
 #print axioms riemannVonMangoldtXiCountingRectangleIntegral
+#print axioms riemannVonMangoldtXiBottomIntegral
+#print axioms riemannVonMangoldtXiTopIntegral
+#print axioms riemannVonMangoldtXiRightIntegral
+#print axioms riemannVonMangoldtXiLeftIntegral
+#print axioms riemannVonMangoldtXiCountingRectangleIntegral_eq_edges
 #print axioms riemannZeta_N_eq_riemannVonMangoldtXiCountingRectangleIntegral_re
