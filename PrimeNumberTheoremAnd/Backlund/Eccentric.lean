@@ -137,6 +137,41 @@ theorem shifted_log_cpow_const_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : �
     (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz)).cpow_const
     (fun z hz => shifted_log_mem_slitPlane_on_verticalClosedStrip hQ hz)
 
+/-- The shifted log-power normalizer used by the PL-log interpolation shell. -/
+noncomputable def shiftedLogPowerNormalizer (Q : ℝ) (α β : ℂ) (z : ℂ) : ℂ :=
+  ((Q : ℂ) + z) ^ α * (Complex.log ((Q : ℂ) + z)) ^ β
+
+/-- The shifted log-power normalizer is nonzero on shifted strips with `Q + σ₀ > 1`. -/
+theorem shiftedLogPowerNormalizer_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ}
+    (α β : ℂ) {z : ℂ} (hQ : (1 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    shiftedLogPowerNormalizer Q α β z ≠ 0 := by
+  unfold shiftedLogPowerNormalizer
+  refine mul_ne_zero ?_ ?_
+  · rw [Complex.cpow_ne_zero_iff]
+    have hQ0 : (0 : ℝ) < Q + σ₀ := by linarith
+    exact Or.inl (Complex.slitPlane_ne_zero
+      (shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz))
+  · rw [Complex.cpow_ne_zero_iff]
+    exact Or.inl (Complex.slitPlane_ne_zero
+      (shifted_log_mem_slitPlane_on_verticalClosedStrip hQ hz))
+
+/-- The shifted log-power normalizer is differentiable on shifted positive strips. -/
+theorem shiftedLogPowerNormalizer_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : ℝ}
+    (α β : ℂ) (hσ : σ₀ < σ₁) (hQ : (1 : ℝ) < Q + σ₀) :
+    DiffContOnCl ℂ (shiftedLogPowerNormalizer Q α β)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
+  unfold shiftedLogPowerNormalizer
+  have hQ0 : (0 : ℝ) < Q + σ₀ := by linarith
+  exact
+    (((differentiableOn_const (Q : ℂ)).add differentiableOn_id).cpow_const
+      (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz)).mul
+    ((((differentiableOn_const (Q : ℂ)).add differentiableOn_id).clog
+      (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz)).cpow_const
+      (fun z hz => shifted_log_mem_slitPlane_on_verticalClosedStrip hQ hz))
+
 /--
 Hadamard three-lines for a function after division by a supplied nonzero
 normalizer. This is the reusable PL-log shell: the concrete shifted log-power
