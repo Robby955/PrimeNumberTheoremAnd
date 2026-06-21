@@ -1390,6 +1390,101 @@ lemma integral_mul_exp_neg_a0_mul_Ioi :
           rw [Real.rpow_neg (digammaBinetA0_pos.le), Real.rpow_two]
           ring
 
+lemma integral_mul_exp_neg_mul_Ioi {x : ℝ} (hx : 0 < x) :
+    ∫ t in Set.Ioi (0 : ℝ), t * Real.exp (-(x * t)) = 1 / x ^ 2 := by
+  have h := _root_.integral_rpow_mul_exp_neg_mul_rpow
+    (p := 1) (q := 1) (b := x)
+    (by norm_num : (0 : ℝ) < 1) (by norm_num : (-1 : ℝ) < 1) hx
+  calc
+    ∫ t in Set.Ioi (0 : ℝ), t * Real.exp (-(x * t))
+        = ∫ t in Set.Ioi (0 : ℝ),
+            t ^ (1 : ℝ) * Real.exp (-x * t ^ (1 : ℝ)) := by
+          refine setIntegral_congr_fun measurableSet_Ioi ?_
+          intro t ht
+          simp [Real.rpow_one, mul_comm]
+    _ = x ^ (-((1 : ℝ) + 1) / 1) * (1 / 1) *
+        Real.Gamma (((1 : ℝ) + 1) / 1) := h
+    _ = 1 / x ^ 2 := by
+          rw [show -((1 : ℝ) + 1) / 1 = (-(2 : ℝ)) by norm_num]
+          rw [show ((1 : ℝ) + 1) / 1 = (2 : ℝ) by norm_num]
+          rw [Real.Gamma_two]
+          rw [Real.rpow_neg hx.le, Real.rpow_two]
+          ring
+
+/-- A linear majorant for the absolute Planck sine transform. -/
+lemma integral_abs_sin_div_exp_two_pi_sub_one_le (u : ℝ) :
+    ∫ t : ℝ in Set.Ioi 0,
+        |Real.sin (u * t)| / (Real.exp (2 * Real.pi * t) - 1) ≤
+      |u| / (2 * digammaBinetA0 ^ 2) := by
+  have hmono :
+      ∫ t : ℝ in Set.Ioi 0,
+          |Real.sin (u * t)| / (Real.exp (2 * Real.pi * t) - 1) ≤
+        ∫ t : ℝ in Set.Ioi 0,
+          |u| * (Real.exp (-(digammaBinetA0 * t)) / (2 * digammaBinetA0)) := by
+    exact MeasureTheory.integral_mono_of_nonneg
+      (by
+        filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+        have hnonneg : 0 ≤ |Real.sin (u * t)| := abs_nonneg _
+        exact div_nonneg hnonneg (exp_two_pi_mul_sub_one_pos ht).le)
+      (by
+        have hbase : IntegrableOn
+            (fun t : ℝ => (|u| / (2 * digammaBinetA0)) *
+              Real.exp (-(digammaBinetA0 * t)))
+            (Set.Ioi (0 : ℝ)) volume :=
+          integrableOn_exp_neg_a0_mul_Ioi.const_mul (|u| / (2 * digammaBinetA0))
+        refine hbase.congr_fun ?_ measurableSet_Ioi
+        intro t _ht
+        field_simp [digammaBinetA0_pos.ne'])
+      (by
+        filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi] with t ht
+        have htpos : 0 < t := ht
+        have hEpos := exp_two_pi_mul_sub_one_pos htpos
+        have hsin : |Real.sin (u * t)| ≤ |u| * t := by
+          calc
+            |Real.sin (u * t)| ≤ |u * t| :=
+              (show |Real.sin (u * t)| ≤ |u * t| from Real.abs_sin_le_abs)
+            _ = |u| * t := by rw [abs_mul, abs_of_pos htpos]
+        have hdiv : |Real.sin (u * t)| /
+              (Real.exp (2 * Real.pi * t) - 1) ≤
+            (|u| * t) / (Real.exp (2 * Real.pi * t) - 1) := by
+          exact div_le_div_of_nonneg_right hsin hEpos.le
+        have hk := two_mul_div_exp_two_pi_sub_one_le (t := t) htpos
+        have hk' : t / (Real.exp (2 * Real.pi * t) - 1) ≤
+            Real.exp (-(digammaBinetA0 * t)) / (2 * digammaBinetA0) := by
+          calc
+            t / (Real.exp (2 * Real.pi * t) - 1)
+                = ((2 * t) / (Real.exp (2 * Real.pi * t) - 1)) / 2 := by ring
+            _ ≤ (Real.exp (-(digammaBinetA0 * t)) / digammaBinetA0) / 2 := by
+                exact div_le_div_of_nonneg_right hk (by norm_num)
+            _ = Real.exp (-(digammaBinetA0 * t)) / (2 * digammaBinetA0) := by
+                field_simp [digammaBinetA0_pos.ne']
+        calc
+          |Real.sin (u * t)| / (Real.exp (2 * Real.pi * t) - 1)
+              ≤ (|u| * t) / (Real.exp (2 * Real.pi * t) - 1) := hdiv
+          _ = |u| * (t / (Real.exp (2 * Real.pi * t) - 1)) := by ring
+          _ ≤ |u| * (Real.exp (-(digammaBinetA0 * t)) /
+                (2 * digammaBinetA0)) := by
+              exact mul_le_mul_of_nonneg_left hk' (abs_nonneg u))
+  calc
+    ∫ t : ℝ in Set.Ioi 0,
+        |Real.sin (u * t)| / (Real.exp (2 * Real.pi * t) - 1)
+        ≤ ∫ t : ℝ in Set.Ioi 0,
+            |u| * (Real.exp (-(digammaBinetA0 * t)) / (2 * digammaBinetA0)) := hmono
+    _ = |u| / (2 * digammaBinetA0 ^ 2) := by
+      calc
+        ∫ t : ℝ in Set.Ioi 0,
+            |u| * (Real.exp (-(digammaBinetA0 * t)) / (2 * digammaBinetA0))
+            = ∫ t : ℝ in Set.Ioi 0,
+                (|u| / (2 * digammaBinetA0)) *
+                  Real.exp (-(digammaBinetA0 * t)) := by
+              refine setIntegral_congr_fun measurableSet_Ioi ?_
+              intro t _ht
+              field_simp [digammaBinetA0_pos.ne']
+        _ = |u| / (2 * digammaBinetA0 ^ 2) := by
+              rw [MeasureTheory.integral_const_mul]
+              rw [integral_exp_neg_a0_mul_Ioi]
+              field_simp [digammaBinetA0_pos.ne']
+
 lemma integrableOn_binetMajorant {x : ℝ} (hx : x ≠ 0) :
     IntegrableOn (binetMajorant x) (Set.Ioi (0 : ℝ)) volume := by
   have h0 : IntegrableOn
