@@ -532,6 +532,184 @@ theorem shiftedLogPowerNormalizer_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ :
       (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz)).cpow_const
       (fun z hz => shifted_log_mem_slitPlane_on_verticalClosedStrip hQ hz))
 
+/-- Rotated shifted base for the two-edge Backlund convexity normalizer. -/
+noncomputable def rotatedShiftedBase (Q : ℝ) (z : ℂ) : ℂ :=
+  -Complex.I * ((Q : ℂ) + z)
+
+theorem rotatedShiftedBase_im (Q : ℝ) (z : ℂ) :
+    (rotatedShiftedBase Q z).im = -(Q + z.re) := by
+  simp [rotatedShiftedBase, Complex.mul_im]
+
+theorem rotatedShiftedBase_norm (Q : ℝ) (z : ℂ) :
+    ‖rotatedShiftedBase Q z‖ = ‖(Q : ℂ) + z‖ := by
+  simp [rotatedShiftedBase]
+
+/-- On a positive shifted vertical strip, the rotated base misses the log branch cut. -/
+theorem rotatedShiftedBase_mem_slitPlane_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (0 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    rotatedShiftedBase Q z ∈ Complex.slitPlane := by
+  refine Or.inr ?_
+  have hzre : σ₀ ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hpos : (0 : ℝ) < Q + z.re := by nlinarith
+  rw [rotatedShiftedBase_im]
+  exact neg_ne_zero.mpr hpos.ne'
+
+theorem rotatedShiftedBase_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (0 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    rotatedShiftedBase Q z ≠ 0 :=
+  Complex.slitPlane_ne_zero (rotatedShiftedBase_mem_slitPlane_on_verticalClosedStrip hQ hz)
+
+/-- The principal log of the rotated base is nonzero on a positive shifted strip. -/
+theorem rotatedShiftedBase_log_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (0 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    Complex.log (rotatedShiftedBase Q z) ≠ 0 := by
+  intro hlog
+  have hbase_ne := rotatedShiftedBase_ne_zero_on_verticalClosedStrip hQ hz
+  have hbase_one : rotatedShiftedBase Q z = 1 := by
+    calc
+      rotatedShiftedBase Q z = Complex.exp (Complex.log (rotatedShiftedBase Q z)) := by
+        rw [Complex.exp_log hbase_ne]
+      _ = 1 := by simp [hlog]
+  have him := congrArg Complex.im hbase_one
+  have hzre : σ₀ ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hpos : (0 : ℝ) < Q + z.re := by nlinarith
+  rw [rotatedShiftedBase_im] at him
+  simp at him
+  nlinarith
+
+/-- Complex-linear exponent interpolating two real edge powers. -/
+noncomputable def twoEdgeExponent (σ₀ σ₁ α₀ α₁ : ℝ) (z : ℂ) : ℂ :=
+  (α₀ : ℂ) + (((α₁ - α₀) / (σ₁ - σ₀) : ℝ) : ℂ) * (z - (σ₀ : ℂ))
+
+/-- The rotated two-edge log-power normalizer. -/
+noncomputable def rotatedShiftedLogPowerTwoEdgeNormalizer
+    (Q σ₀ σ₁ α₀ α₁ : ℝ) (z : ℂ) : ℂ :=
+  rotatedShiftedBase Q z ^ twoEdgeExponent σ₀ σ₁ α₀ α₁ z *
+    Complex.log (rotatedShiftedBase Q z)
+
+theorem rotatedShiftedLogPowerTwoEdgeNormalizer_ne_zero_on_verticalClosedStrip
+    {Q σ₀ σ₁ α₀ α₁ : ℝ} {z : ℂ} (hQ : (0 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁ z ≠ 0 := by
+  unfold rotatedShiftedLogPowerTwoEdgeNormalizer
+  refine mul_ne_zero ?_ ?_
+  · rw [Complex.cpow_ne_zero_iff]
+    exact Or.inl (rotatedShiftedBase_ne_zero_on_verticalClosedStrip hQ hz)
+  · exact rotatedShiftedBase_log_ne_zero_on_verticalClosedStrip hQ hz
+
+/--
+The rotated two-edge normalizer is differentiable on positive shifted vertical strips.
+This packages the branch-control part of the weighted PL route.
+-/
+theorem rotatedShiftedLogPowerTwoEdgeNormalizer_diffContOnCl_on_verticalStrip
+    {Q σ₀ σ₁ α₀ α₁ : ℝ} (hσ : σ₀ < σ₁) (hQ : (0 : ℝ) < Q + σ₀) :
+    DiffContOnCl ℂ (rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
+  unfold rotatedShiftedLogPowerTwoEdgeNormalizer rotatedShiftedBase twoEdgeExponent
+  have hbase : DifferentiableOn ℂ (fun z : ℂ => -Complex.I * ((Q : ℂ) + z))
+      (Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) := by
+    fun_prop
+  have hexponent : DifferentiableOn ℂ
+      (fun z : ℂ =>
+        (α₀ : ℂ) + (((α₁ - α₀) / (σ₁ - σ₀) : ℝ) : ℂ) * (z - (σ₀ : ℂ)))
+      (Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) := by
+    fun_prop
+  exact
+    (hbase.cpow hexponent
+      (fun z hz => rotatedShiftedBase_mem_slitPlane_on_verticalClosedStrip
+        (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁) hQ hz)).mul
+    (hbase.clog
+      (fun z hz => rotatedShiftedBase_mem_slitPlane_on_verticalClosedStrip
+        (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁) hQ hz))
+
+theorem twoEdgeExponent_re (σ₀ σ₁ α₀ α₁ : ℝ) (z : ℂ) :
+    (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).re =
+      α₀ + ((α₁ - α₀) / (σ₁ - σ₀)) * (z.re - σ₀) := by
+  simp only [twoEdgeExponent, Complex.add_re, Complex.ofReal_re, Complex.mul_re,
+    Complex.ofReal_im, Complex.sub_re, Complex.sub_im, zero_mul, sub_zero]
+
+theorem twoEdgeExponent_im (σ₀ σ₁ α₀ α₁ : ℝ) (z : ℂ) :
+    (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).im =
+      ((α₁ - α₀) / (σ₁ - σ₀)) * z.im := by
+  simp only [twoEdgeExponent, Complex.add_im, Complex.ofReal_im, Complex.mul_im,
+    Complex.ofReal_re, Complex.sub_im, Complex.sub_re, zero_add, zero_mul]
+  ring
+
+theorem twoEdgeExponent_re_eq_interp {σ₀ σ₁ α₀ α₁ : ℝ} (hσ : σ₀ < σ₁)
+    (z : ℂ) :
+    (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).re =
+      α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+        α₁ * ((z.re - σ₀) / (σ₁ - σ₀)) := by
+  rw [twoEdgeExponent_re]
+  have hσne : σ₁ - σ₀ ≠ 0 := sub_ne_zero.mpr hσ.ne'
+  field_simp [hσne]
+  ring
+
+/--
+On the upper half of a positive shifted strip with decreasing edge exponents,
+the rotated two-edge normalizer has exactly the polynomial-log size needed for
+the Backlund convexity read-off.
+-/
+theorem rotatedShiftedLogPowerTwoEdgeNormalizer_norm_le_of_upperHalf
+    {Q σ₀ σ₁ α₀ α₁ : ℝ} {z : ℂ} (hσ : σ₀ < σ₁)
+    (hQ : (0 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)
+    (hα : α₁ ≤ α₀) (hz_im : 0 ≤ z.im) :
+    ‖rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁ z‖ ≤
+      ‖rotatedShiftedBase Q z‖ ^
+        (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+          α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+        ‖Complex.log (rotatedShiftedBase Q z)‖ := by
+  have hbase_ne := rotatedShiftedBase_ne_zero_on_verticalClosedStrip hQ hz
+  have hzre : σ₀ ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hbase_im_neg : (rotatedShiftedBase Q z).im < 0 := by
+    rw [rotatedShiftedBase_im]
+    nlinarith
+  have harg_nonpos : Complex.arg (rotatedShiftedBase Q z) ≤ 0 :=
+    (Complex.arg_neg_iff.mpr hbase_im_neg).le
+  have hcoef_nonpos : (α₁ - α₀) / (σ₁ - σ₀) ≤ 0 := by
+    exact div_nonpos_of_nonpos_of_nonneg (sub_nonpos.mpr hα) (sub_nonneg.mpr hσ.le)
+  have him_nonpos : (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).im ≤ 0 := by
+    rw [twoEdgeExponent_im]
+    exact mul_nonpos_of_nonpos_of_nonneg hcoef_nonpos hz_im
+  have hprod_nonneg :
+      0 ≤ Complex.arg (rotatedShiftedBase Q z) *
+        (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).im :=
+    mul_nonneg_of_nonpos_of_nonpos harg_nonpos him_nonpos
+  have hexp_ge_one :
+      (1 : ℝ) ≤ Real.exp (Complex.arg (rotatedShiftedBase Q z) *
+        (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).im) :=
+    by simpa using Real.exp_le_exp.mpr hprod_nonneg
+  have hpow_nonneg :
+      0 ≤ ‖rotatedShiftedBase Q z‖ ^
+        (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+          α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) :=
+    Real.rpow_nonneg (norm_nonneg _) _
+  unfold rotatedShiftedLogPowerTwoEdgeNormalizer
+  rw [norm_mul, Complex.norm_cpow_of_ne_zero hbase_ne,
+    twoEdgeExponent_re_eq_interp hσ]
+  have hdiv_le :
+      ‖rotatedShiftedBase Q z‖ ^
+          (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+            α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) /
+        Real.exp (Complex.arg (rotatedShiftedBase Q z) *
+          (twoEdgeExponent σ₀ σ₁ α₀ α₁ z).im)
+        ≤
+      ‖rotatedShiftedBase Q z‖ ^
+          (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+            α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) := by
+    rw [div_le_iff₀ (Real.exp_pos _)]
+    simpa using mul_le_mul_of_nonneg_left hexp_ge_one hpow_nonneg
+  exact mul_le_mul_of_nonneg_right hdiv_le (norm_nonneg _)
+
 /--
 Phragmen-Lindelöf growth and uniform boundary control imply boundedness of the
 norm on the corresponding closed vertical strip.
@@ -704,6 +882,125 @@ theorem log_phragmen_lindelof {f : ℂ → ℂ}
     (f := f) (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁)
     (C₀ := C₀) (C₁ := C₁) (α := α) (β := β)
     hσ hz hQ hd hB hleft hright
+
+/--
+Two-edge Phragmen-Lindelöf with a rotated log-power normalizer. The geometric
+read-off from the rotated normalizer is derived for decreasing edge powers on
+the upper half-strip.
+-/
+theorem log_phragmen_lindelof_shiftedLogPower_twoEdge {f : ℂ → ℂ}
+    {Q σ₀ σ₁ C₀ C₁ α₀ α₁ k : ℝ} {z : ℂ} (hσ : σ₀ < σ₁)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)
+    (hQ : (0 : ℝ) < Q + σ₀) (hC₀ : 0 ≤ C₀) (hC₁ : 0 ≤ C₁)
+    (hα : α₁ ≤ α₀) (hz_im : 0 ≤ z.im) (hk : (1 : ℝ) ≤ k)
+    (hd : DiffContOnCl ℂ
+      (fun w => f w / rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁ w)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁))
+    (hgrowth : ∃ c < Real.pi / (σ₁ - σ₀), ∃ B,
+      (fun w => f w / rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁ w)
+        =O[Filter.comap (_root_.abs ∘ Complex.im) Filter.atTop ⊓
+            Filter.principal (Complex.re ⁻¹' Set.Ioo σ₀ σ₁)]
+          fun w => Real.exp (B * Real.exp (c * |w.im|)))
+    (hleft : ∀ w : ℂ, w.re = σ₀ →
+      ‖f w‖ ≤ C₀ * ‖rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁ w‖)
+    (hright : ∀ w : ℂ, w.re = σ₁ →
+      ‖f w‖ ≤ C₁ * ‖rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁ w‖) :
+    ‖f z‖ ≤
+      (C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+        C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀))) *
+        k * (‖rotatedShiftedBase Q z‖ ^
+          (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+            α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+          ‖Complex.log (rotatedShiftedBase Q z)‖) := by
+  let normalizer : ℂ → ℂ :=
+    rotatedShiftedLogPowerTwoEdgeNormalizer Q σ₀ σ₁ α₀ α₁
+  let g : ℂ → ℂ := fun w => f w / normalizer w
+  have hnormalizer :
+      ∀ w ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁, normalizer w ≠ 0 := by
+    intro w hw
+    exact rotatedShiftedLogPowerTwoEdgeNormalizer_ne_zero_on_verticalClosedStrip hQ hw
+  have hleft_g : ∀ w : ℂ, w.re = σ₀ → ‖g w‖ ≤ C₀ := by
+    intro w hw
+    have hwstrip : w ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁ := by
+      simp [Complex.HadamardThreeLines.verticalClosedStrip, hw, hσ.le]
+    have hnorm_pos : 0 < ‖normalizer w‖ := norm_pos_iff.mpr (hnormalizer w hwstrip)
+    change ‖f w / normalizer w‖ ≤ C₀
+    rw [norm_div]
+    exact (div_le_iff₀ hnorm_pos).2 (by simpa [normalizer] using hleft w hw)
+  have hright_g : ∀ w : ℂ, w.re = σ₁ → ‖g w‖ ≤ C₁ := by
+    intro w hw
+    have hwstrip : w ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁ := by
+      simp [Complex.HadamardThreeLines.verticalClosedStrip, hw, hσ.le]
+    have hnorm_pos : 0 < ‖normalizer w‖ := norm_pos_iff.mpr (hnormalizer w hwstrip)
+    change ‖f w / normalizer w‖ ≤ C₁
+    rw [norm_div]
+    exact (div_le_iff₀ hnorm_pos).2 (by simpa [normalizer] using hright w hw)
+  have hB : BddAbove (Set.image (fun w => ‖f w / normalizer w‖)
+      (Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁)) := by
+    simpa [g, normalizer] using
+      bddAbove_norm_on_verticalClosedStrip_of_phragmen_lindelof
+        (g := g) (σ₀ := σ₀) (σ₁ := σ₁) (C := max C₀ C₁)
+        (by simpa [g, normalizer] using hd)
+        (by simpa [g, normalizer] using hgrowth)
+        (fun w hw => (hleft_g w hw).trans (le_max_left C₀ C₁))
+        (fun w hw => (hright_g w hw).trans (le_max_right C₀ C₁))
+  have hmain := log_phragmen_lindelof_normalized
+    (f := f) (normalizer := normalizer) (hσ := hσ) hz
+    hnormalizer hd hB hleft hright
+  have hinterp_nonneg :
+      0 ≤ C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+        C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀)) := by
+    exact mul_nonneg (Real.rpow_nonneg hC₀ _) (Real.rpow_nonneg hC₁ _)
+  have hgeom :
+      ‖normalizer z‖ ≤
+        k * (‖rotatedShiftedBase Q z‖ ^
+          (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+            α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+          ‖Complex.log (rotatedShiftedBase Q z)‖) := by
+    have hgeom_one :=
+      rotatedShiftedLogPowerTwoEdgeNormalizer_norm_le_of_upperHalf
+        (Q := Q) (σ₀ := σ₀) (σ₁ := σ₁) (α₀ := α₀) (α₁ := α₁)
+        (z := z) hσ hQ hz hα hz_im
+    have htarget_nonneg :
+        0 ≤ ‖rotatedShiftedBase Q z‖ ^
+          (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+            α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+          ‖Complex.log (rotatedShiftedBase Q z)‖ := by
+      exact mul_nonneg (Real.rpow_nonneg (norm_nonneg _) _) (norm_nonneg _)
+    exact hgeom_one.trans (by
+      calc
+        ‖rotatedShiftedBase Q z‖ ^
+            (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+              α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+            ‖Complex.log (rotatedShiftedBase Q z)‖
+            ≤ 1 * (‖rotatedShiftedBase Q z‖ ^
+              (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+                α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+              ‖Complex.log (rotatedShiftedBase Q z)‖) := by rw [one_mul]
+        _ ≤ k * (‖rotatedShiftedBase Q z‖ ^
+              (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+                α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+              ‖Complex.log (rotatedShiftedBase Q z)‖) := by
+            exact mul_le_mul_of_nonneg_right hk htarget_nonneg)
+  calc
+    ‖f z‖ ≤
+        (C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+          C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀))) * ‖normalizer z‖ := hmain
+    _ ≤
+        (C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+          C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀))) *
+          (k * (‖rotatedShiftedBase Q z‖ ^
+            (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+              α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+            ‖Complex.log (rotatedShiftedBase Q z)‖)) := by
+          exact mul_le_mul_of_nonneg_left (by simpa [normalizer] using hgeom) hinterp_nonneg
+    _ =
+        (C₀ ^ (1 - (z.re - σ₀) / (σ₁ - σ₀)) *
+          C₁ ^ ((z.re - σ₀) / (σ₁ - σ₀))) *
+          k * (‖rotatedShiftedBase Q z‖ ^
+            (α₀ * (1 - (z.re - σ₀) / (σ₁ - σ₀)) +
+              α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
+            ‖Complex.log (rotatedShiftedBase Q z)‖) := by ring
 
 /--
 The fixed shifted log-power quotient for the entire zeta surrogate has the
