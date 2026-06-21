@@ -10,6 +10,8 @@ open Complex
 #check riemannXi_no_boundary_divisor_support
 #check riemannXi_rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
 #check riemannXi_rectangle_argumentChange_eq_two_pi_sum_meromorphicOrderAt
+#check HIntegral_add
+#check VIntegral_add
 #check RectangleBorderIntegrable.add'
 #check riemannVonMangoldtGammaPoint
 #check riemannVonMangoldtGammaStirlingMain
@@ -57,6 +59,8 @@ example (T : ℝ) (hT : 1 ≤ T)
 
 #print axioms riemannXi_rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
 #print axioms riemannXi_rectangle_argumentChange_eq_two_pi_sum_meromorphicOrderAt
+#print axioms HIntegral_add
+#print axioms VIntegral_add
 #print axioms RectangleBorderIntegrable.add'
 #print axioms riemannVonMangoldtGammaStirlingMain_im
 #print axioms im_logGamma_quarter_stirling_of_logGammaSeq_stirling_remainder

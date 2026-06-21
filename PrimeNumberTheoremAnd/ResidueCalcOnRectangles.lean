@@ -34,6 +34,20 @@ lemma VIntegral_symm :
     VIntegral f x y₁ y₂ = -VIntegral f x y₂ y₁ := by
   simp_rw [VIntegral, integral_symm y₁ y₂, smul_neg, neg_neg]
 
+theorem HIntegral_add
+    (hf : IntervalIntegrable (fun x => f (x + y * I)) volume x₁ x₂)
+    (hg : IntervalIntegrable (fun x => g (x + y * I)) volume x₁ x₂) :
+    HIntegral (fun s => f s + g s) x₁ x₂ y =
+      HIntegral f x₁ x₂ y + HIntegral g x₁ x₂ y := by
+  simp [HIntegral, intervalIntegral.integral_add hf hg]
+
+theorem VIntegral_add
+    (hf : IntervalIntegrable (fun y => f (x + y * I)) volume y₁ y₂)
+    (hg : IntervalIntegrable (fun y => g (x + y * I)) volume y₁ y₂) :
+    VIntegral (fun s => f s + g s) x y₁ y₂ =
+      VIntegral f x y₁ y₂ + VIntegral g x y₁ y₂ := by
+  simp [VIntegral, intervalIntegral.integral_add hf hg, smul_add]
+
 /-- A `RectangleIntegral` of a function `f` is one over a rectangle
   determined by `z` and `w` in `ℂ`. -/
 @[blueprint
