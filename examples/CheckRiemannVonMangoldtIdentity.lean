@@ -24,6 +24,7 @@ open Complex
 #check riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero
 #check riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero
 #check meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero
+#check riemannXi_rectangle_divisor_sum_eq_riemannZeta_N
 
 example (z : ℂ) (hz : 0 < z.re) :
     Complex.exp (logGammaBranch z) = Complex.Gamma z :=
@@ -51,3 +52,4 @@ example (T : ℝ) (hT : 1 ≤ T)
 #print axioms riemannXi_eq_zeta_mul_gamma_factor_of_im_ne_zero
 #print axioms riemannXi_eq_zero_iff_riemannZeta_eq_zero_of_im_ne_zero
 #print axioms meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero
+#print axioms riemannXi_rectangle_divisor_sum_eq_riemannZeta_N

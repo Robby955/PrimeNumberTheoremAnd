@@ -169,6 +169,219 @@ theorem meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero {s : ℂ}
     _ = meromorphicOrderAt riemannZeta s :=
       meromorphicOrderAt_mul_of_ne_zero (f := riemannZeta) hG_an hG_ne
 
+/-- The lower-left corner of the positive-height Riemann-von Mangoldt counting rectangle. -/
+def riemannVonMangoldtCountingRectangleLower : ℂ :=
+  0
+
+/-- The upper-right corner of the positive-height Riemann-von Mangoldt counting rectangle. -/
+def riemannVonMangoldtCountingRectangleUpper (T : ℝ) : ℂ :=
+  (1 : ℂ) + ((T : ℝ) : ℂ) * I
+
+private lemma riemannVonMangoldtCountingRectangle_mem_iff {T : ℝ} (hT : 0 ≤ T) {s : ℂ} :
+    s ∈ Rectangle riemannVonMangoldtCountingRectangleLower
+        (riemannVonMangoldtCountingRectangleUpper T) ↔
+      0 ≤ s.re ∧ s.re ≤ 1 ∧ 0 ≤ s.im ∧ s.im ≤ T := by
+  change s ∈ Rectangle (0 : ℂ) ((1 : ℂ) + ((T : ℝ) : ℂ) * I) ↔
+    0 ≤ s.re ∧ s.re ≤ 1 ∧ 0 ≤ s.im ∧ s.im ≤ T
+  simpa using
+    (mem_Rect (z := (0 : ℂ)) (w := (1 : ℂ) + ((T : ℝ) : ℂ) * I)
+      (p := s) (by norm_num) (by simpa using hT))
+
+private lemma riemannVonMangoldtCountingRectangle_not_border_im_pos {T : ℝ} (hT : 0 ≤ T)
+    {s : ℂ}
+    (hs_rect : s ∈ Rectangle riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T))
+    (hs_not_border : s ∉ RectangleBorder riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T)) :
+    0 < s.im := by
+  have hs_bounds :=
+    (riemannVonMangoldtCountingRectangle_mem_iff (T := T) hT).1 hs_rect
+  refine lt_of_le_of_ne hs_bounds.2.2.1 ?_
+  intro hzero
+  apply hs_not_border
+  change s ∈ RectangleBorder (0 : ℂ) ((1 : ℂ) + ((T : ℝ) : ℂ) * I)
+  rw [RectangleBorder]
+  exact Or.inl (Or.inl (Or.inl
+    ⟨by
+      simpa [Set.mem_preimage, uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using
+        (⟨hs_bounds.1, hs_bounds.2.1⟩ : s.re ∈ Set.Icc (0 : ℝ) 1),
+    by simp [hzero.symm]⟩))
+
+private lemma riemannVonMangoldtCountingRectangle_not_border_im_lt {T : ℝ} (hT : 0 ≤ T)
+    {s : ℂ}
+    (hs_rect : s ∈ Rectangle riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T))
+    (hs_not_border : s ∉ RectangleBorder riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T)) :
+    s.im < T := by
+  have hs_bounds :=
+    (riemannVonMangoldtCountingRectangle_mem_iff (T := T) hT).1 hs_rect
+  refine lt_of_le_of_ne hs_bounds.2.2.2 ?_
+  intro htop
+  apply hs_not_border
+  change s ∈ RectangleBorder (0 : ℂ) ((1 : ℂ) + ((T : ℝ) : ℂ) * I)
+  rw [RectangleBorder]
+  exact Or.inl (Or.inr
+    ⟨by
+      simpa [Set.mem_preimage, uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using
+        (⟨hs_bounds.1, hs_bounds.2.1⟩ : s.re ∈ Set.Icc (0 : ℝ) 1),
+    by simp [htop]⟩)
+
+private lemma riemannVonMangoldtCountingRectangle_mem_of_positive_height_zero {T : ℝ}
+    {s : ℂ} (hs : s ∈ riemannZeta.zeroes_rect (.univ : Set ℝ) (.Ioo 0 T)) :
+    s ∈ Rectangle riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T) := by
+  have hT : 0 ≤ T := le_of_lt (lt_trans hs.2.1.1 hs.2.1.2)
+  have hre := Kadiri.positiveHeightZero_re_mem_Ioo (T := T) ⟨s, hs⟩
+  exact (riemannVonMangoldtCountingRectangle_mem_iff (T := T) hT).2
+    ⟨le_of_lt hre.1, le_of_lt hre.2, le_of_lt hs.2.1.1, le_of_lt hs.2.1.2⟩
+
+/--
+For the positive-height counting rectangle, the divisor support of `ξ` is exactly the zeta
+zero window used by `riemannZeta.N T`, provided `ξ` is nonzero on the rectangle border.
+-/
+theorem riemannXi_countingRectangle_divisor_support_eq_zeta_zeroes (T : ℝ) (hT : 0 < T)
+    (hboundary :
+      ∀ p ∈ RectangleBorder riemannVonMangoldtCountingRectangleLower
+        (riemannVonMangoldtCountingRectangleUpper T),
+        riemannXi p ≠ 0) :
+    (MeromorphicOn.divisor riemannXi
+        (Rectangle riemannVonMangoldtCountingRectangleLower
+          (riemannVonMangoldtCountingRectangleUpper T))).support =
+      riemannZeta.zeroes_rect (.univ : Set ℝ) (.Ioo 0 T) := by
+  classical
+  ext s
+  constructor
+  · intro hs_support
+    let R := Rectangle riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T)
+    let D := MeromorphicOn.divisor riemannXi R
+    have hxi_mero_R : MeromorphicOn riemannXi R := by
+      intro u _hu
+      exact (differentiable_riemannXi.analyticAt u).meromorphicAt
+    have hs_rect : s ∈ R := D.supportWithinDomain hs_support
+    have hs_not_border :
+        s ∉ RectangleBorder riemannVonMangoldtCountingRectangleLower
+          (riemannVonMangoldtCountingRectangleUpper T) := by
+      intro hs_border
+      have hs_xi_ne : riemannXi s ≠ 0 := hboundary s hs_border
+      have hs_order_zero : meromorphicOrderAt riemannXi s = (0 : WithTop ℤ) := by
+        rw [(differentiable_riemannXi.analyticAt s).meromorphicOrderAt_eq]
+        rw [(differentiable_riemannXi.analyticAt s).analyticOrderAt_eq_zero.2 hs_xi_ne]
+        simp
+      have hs_div_zero : D s = 0 := by
+        dsimp [D]
+        rw [MeromorphicOn.divisor_apply hxi_mero_R hs_rect, hs_order_zero]
+        simp
+      exact hs_support hs_div_zero
+    have hs_im_pos :
+        0 < s.im :=
+      riemannVonMangoldtCountingRectangle_not_border_im_pos (T := T) hT.le hs_rect hs_not_border
+    have hs_im_lt :
+        s.im < T :=
+      riemannVonMangoldtCountingRectangle_not_border_im_lt (T := T) hT.le hs_rect hs_not_border
+    have hs_im_ne : s.im ≠ 0 := ne_of_gt hs_im_pos
+    have hs_div_ne :
+        D s ≠ 0 := by
+      simpa [D, Function.mem_support] using hs_support
+    have hzeta_zero : riemannZeta s = 0 := by
+      by_contra hzeta_ne
+      have hs_ne_one : s ≠ 1 := ne_one_of_im_ne_zero hs_im_ne
+      have hzeta_order_zero : meromorphicOrderAt riemannZeta s = (0 : WithTop ℤ) := by
+        have han : AnalyticAt ℂ riemannZeta s :=
+          riemannZeta_analyticOn_compl_one s (by simpa [Set.mem_compl_iff] using hs_ne_one)
+        rw [han.meromorphicOrderAt_eq, han.analyticOrderAt_eq_zero.2 hzeta_ne]
+        simp
+      have hxi_order_zero : meromorphicOrderAt riemannXi s = (0 : WithTop ℤ) := by
+        rw [meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero hs_im_ne,
+          hzeta_order_zero]
+      have hs_div_zero : D s = 0 := by
+        dsimp [D]
+        rw [MeromorphicOn.divisor_apply hxi_mero_R hs_rect, hxi_order_zero]
+        simp
+      exact hs_div_ne hs_div_zero
+    exact ⟨Set.mem_univ s, ⟨hs_im_pos, hs_im_lt⟩, hzeta_zero⟩
+  · intro hs_zero
+    let R := Rectangle riemannVonMangoldtCountingRectangleLower
+      (riemannVonMangoldtCountingRectangleUpper T)
+    let D := MeromorphicOn.divisor riemannXi R
+    have hxi_mero_R : MeromorphicOn riemannXi R := by
+      intro u _hu
+      exact (differentiable_riemannXi.analyticAt u).meromorphicAt
+    have hs_rect : s ∈ R :=
+      riemannVonMangoldtCountingRectangle_mem_of_positive_height_zero (T := T) hs_zero
+    have hs_im_ne : s.im ≠ 0 := ne_of_gt hs_zero.2.1.1
+    have hs_zeta_order_ne : meromorphicOrderAt riemannZeta s ≠ (0 : WithTop ℤ) := by
+      intro hzero_order
+      let rho : riemannZeta.zeroes_rect (.univ : Set ℝ) (.Ioo 0 T) := ⟨s, hs_zero⟩
+      have hpos := Kadiri.riemannZeta_order_pos_positiveHeightZero rho
+      have horder_zero : riemannZeta.order s = 0 := by
+        simp [riemannZeta.order, hzero_order]
+      linarith
+    have hs_xi_order_ne : meromorphicOrderAt riemannXi s ≠ (0 : WithTop ℤ) := by
+      rwa [meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero hs_im_ne]
+    have hs_xi_order_ne_top : meromorphicOrderAt riemannXi s ≠ ⊤ := by
+      rw [meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero hs_im_ne]
+      exact meromorphicOrderAt_riemannZeta_ne_top s
+    rw [Function.mem_support, ne_eq]
+    rw [MeromorphicOn.divisor_apply hxi_mero_R hs_rect]
+    simpa [WithTop.untop₀_eq_zero] using
+      (not_or.mpr ⟨hs_xi_order_ne, hs_xi_order_ne_top⟩)
+
+/--
+The ξ divisor sum over the positive-height counting rectangle equals the project's
+order-weighted zero-counting function `N(T)`.
+-/
+theorem riemannXi_rectangle_divisor_sum_eq_riemannZeta_N (T : ℝ) (hT : 0 < T)
+    (hboundary :
+      ∀ p ∈ RectangleBorder riemannVonMangoldtCountingRectangleLower
+        (riemannVonMangoldtCountingRectangleUpper T),
+        riemannXi p ≠ 0) :
+    (∑ p ∈ (divisor_support_rectangle_finite riemannXi
+        riemannVonMangoldtCountingRectangleLower
+        (riemannVonMangoldtCountingRectangleUpper T)).toFinset,
+        (((MeromorphicOn.divisor riemannXi
+          (Rectangle riemannVonMangoldtCountingRectangleLower
+            (riemannVonMangoldtCountingRectangleUpper T))) p : ℤ) : ℝ)) =
+      riemannZeta.N T := by
+  classical
+  let R := Rectangle riemannVonMangoldtCountingRectangleLower
+    (riemannVonMangoldtCountingRectangleUpper T)
+  let D := MeromorphicOn.divisor riemannXi R
+  let hXi := divisor_support_rectangle_finite riemannXi
+    riemannVonMangoldtCountingRectangleLower (riemannVonMangoldtCountingRectangleUpper T)
+  let hZeta := Kadiri.zeroes_rect_univ_positive_height_finite T
+  have hsupport :
+      D.support = riemannZeta.zeroes_rect (.univ : Set ℝ) (.Ioo 0 T) := by
+    simpa [D, R] using
+      riemannXi_countingRectangle_divisor_support_eq_zeta_zeroes T hT hboundary
+  have hfinset : hXi.toFinset = hZeta.toFinset := by
+    ext s
+    rw [hXi.mem_toFinset, hZeta.mem_toFinset]
+    simp [D, R, hsupport]
+  rw [show (divisor_support_rectangle_finite riemannXi
+        riemannVonMangoldtCountingRectangleLower
+        (riemannVonMangoldtCountingRectangleUpper T)).toFinset = hZeta.toFinset by
+      exact hfinset]
+  rw [riemannZeta_N_eq_toFinset_sum_order T]
+  refine Finset.sum_congr rfl ?_
+  intro s hs_mem
+  have hs_zero : s ∈ riemannZeta.zeroes_rect (.univ : Set ℝ) (.Ioo 0 T) :=
+    hZeta.mem_toFinset.mp hs_mem
+  have hs_rect : s ∈ R :=
+    riemannVonMangoldtCountingRectangle_mem_of_positive_height_zero (T := T) hs_zero
+  have hs_im_ne : s.im ≠ 0 := ne_of_gt hs_zero.2.1.1
+  obtain ⟨n, hn⟩ := WithTop.ne_top_iff_exists.1 (meromorphicOrderAt_riemannZeta_ne_top s)
+  have hxi_mero_R : MeromorphicOn riemannXi R := by
+    intro u _hu
+    exact (differentiable_riemannXi.analyticAt u).meromorphicAt
+  have horder : D s = riemannZeta.order s := by
+    dsimp [D]
+    rw [MeromorphicOn.divisor_apply hxi_mero_R hs_rect,
+      meromorphicOrderAt_riemannXi_eq_riemannZeta_of_im_ne_zero hs_im_ne,
+      riemannZeta.order, ← hn, WithTop.untop₀_coe, WithTop.untopD_coe]
+  exact_mod_cast horder
+
 /-- The Gamma argument `1 / 4 + iT / 2` in the Riemann-von-Mangoldt main term. -/
 def riemannVonMangoldtGammaPoint (T : ℝ) : ℂ :=
   (1 / 4 : ℂ) + ((T / 2 : ℝ) : ℂ) * I
