@@ -478,6 +478,58 @@ lemma hasSum_digamma_of_re_pos {z₀ : ℂ} (hz₀ : 0 < z₀.re) :
     ring
   exact ht ▸ hsm.hasSum
 
+/--
+The Euler-limit derivative sequence converges to `digamma` on the right half-plane.
+This exposes the finite limit used to pass Euler-Maclaurin resolvent sums to the
+digamma value.
+-/
+lemma tendsto_log_sub_sum_inv_add_of_re_pos {z : ℂ} (hz : 0 < z.re) :
+    Tendsto (fun n : ℕ => (Real.log n : ℂ) - ∑ m ∈ Finset.range (n + 1), (z + m)⁻¹)
+      atTop (𝓝 (digamma z)) := by
+  have hsum := (hasSum_digamma_of_re_pos hz).tendsto_sum_nat
+  have hsum_shift : Tendsto
+      (fun n : ℕ => ∑ m ∈ Finset.range (n + 1), (((m : ℂ) + 1)⁻¹ - (z + m)⁻¹))
+      atTop (𝓝 (digamma z + Real.eulerMascheroniConstant)) := by
+    exact hsum.comp (tendsto_add_atTop_nat 1)
+  have hcR : Tendsto (fun n : ℕ => Real.log n - ((harmonic (n + 1) : ℚ) : ℝ)) atTop
+      (𝓝 (-Real.eulerMascheroniConstant)) := by
+    have h1 : Tendsto (fun n : ℕ => Real.log n - (harmonic n : ℝ)) atTop
+        (𝓝 (-Real.eulerMascheroniConstant)) :=
+      Real.tendsto_harmonic_sub_log.neg.congr fun n => by ring
+    have h2 : Tendsto (fun n : ℕ => ((n : ℝ) + 1)⁻¹) atTop (𝓝 0) := by
+      apply Tendsto.inv_tendsto_atTop
+      exact tendsto_atTop_add_const_right atTop 1 tendsto_natCast_atTop_atTop
+    have hcomb := h1.sub h2
+    have hfun : (fun n : ℕ => Real.log n - (harmonic n : ℝ) - ((n : ℝ) + 1)⁻¹) =
+        (fun n : ℕ => Real.log n - ((harmonic (n + 1) : ℚ) : ℝ)) := by
+      funext n
+      rw [harmonic_succ]
+      push_cast
+      ring
+    rw [← hfun]
+    simpa using hcomb
+  have hcC : Tendsto
+      (fun n : ℕ => ((Real.log n - ((harmonic (n + 1) : ℚ) : ℝ) : ℝ) : ℂ))
+      atTop (𝓝 (-(Real.eulerMascheroniConstant : ℂ))) := by
+    have h := (continuous_ofReal.tendsto (-Real.eulerMascheroniConstant)).comp hcR
+    have hval : ((-Real.eulerMascheroniConstant : ℝ) : ℂ) =
+        -(Real.eulerMascheroniConstant : ℂ) := by
+      push_cast
+      ring_nf
+    rw [← hval]
+    exact h
+  have hadd := hcC.add hsum_shift
+  have hfun :
+      (fun n : ℕ => ((Real.log n - ((harmonic (n + 1) : ℚ) : ℝ) : ℝ) : ℂ) +
+        ∑ m ∈ Finset.range (n + 1), (((m : ℂ) + 1)⁻¹ - (z + m)⁻¹)) =
+      (fun n : ℕ => (Real.log n : ℂ) - ∑ m ∈ Finset.range (n + 1), (z + m)⁻¹) := by
+    funext n
+    rw [Finset.sum_sub_distrib, sum_inv_natCast_add_one (n + 1)]
+    push_cast
+    abel_nf
+  rw [hfun] at hadd
+  simpa using hadd
+
 /-! ## The main statements -/
 
 /-- The series representation of the digamma function: for `z` away from the poles of
