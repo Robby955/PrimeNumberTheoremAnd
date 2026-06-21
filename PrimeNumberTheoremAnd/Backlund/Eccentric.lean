@@ -83,6 +83,21 @@ theorem shifted_log_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : �
   have hpos : (1 : ℝ) < Q + z.re := by nlinarith
   simpa using hpos
 
+/-- On a shifted vertical closed strip with `Q + σ₀ > 1`, `log (Q + z)` is in the slit plane. -/
+theorem shifted_log_mem_slitPlane_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (1 : ℝ) < Q + σ₀)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    Complex.log ((Q : ℂ) + z) ∈ Complex.slitPlane := by
+  refine Or.inl ?_
+  rw [Complex.log_re]
+  apply Real.log_pos
+  have hzre : σ₀ ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hpos : (1 : ℝ) < (((Q : ℂ) + z).re) := by
+    simp
+    nlinarith
+  exact lt_of_lt_of_le hpos (Complex.re_le_norm _)
+
 /-- The closure of a Hadamard open vertical strip is the corresponding closed strip. -/
 theorem verticalStrip_closure_eq_verticalClosedStrip {σ₀ σ₁ : ℝ} (hσ : σ₀ ≠ σ₁) :
     closure (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) =
@@ -99,6 +114,28 @@ theorem shifted_log_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : ℝ}
   rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
   exact ((differentiableOn_const (Q : ℂ)).add differentiableOn_id).clog
     (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ hz)
+
+/-- Constant complex powers of `Q + z` are differentiable on a positive shifted strip. -/
+theorem shifted_cpow_const_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : ℝ} (c : ℂ)
+    (hσ : σ₀ < σ₁) (hQ : (0 : ℝ) < Q + σ₀) :
+    DiffContOnCl ℂ (fun z : ℂ => ((Q : ℂ) + z) ^ c)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
+  exact ((differentiableOn_const (Q : ℂ)).add differentiableOn_id).cpow_const
+    (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ hz)
+
+/-- Constant complex powers of `log (Q + z)` are differentiable on a shifted strip. -/
+theorem shifted_log_cpow_const_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : ℝ} (c : ℂ)
+    (hσ : σ₀ < σ₁) (hQ : (1 : ℝ) < Q + σ₀) :
+    DiffContOnCl ℂ (fun z : ℂ => (Complex.log ((Q : ℂ) + z)) ^ c)
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
+  have hQ0 : (0 : ℝ) < Q + σ₀ := by linarith
+  exact (((differentiableOn_const (Q : ℂ)).add differentiableOn_id).clog
+    (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip hQ0 hz)).cpow_const
+    (fun z hz => shifted_log_mem_slitPlane_on_verticalClosedStrip hQ hz)
 
 /--
 Hadamard three-lines for a function after division by a supplied nonzero
