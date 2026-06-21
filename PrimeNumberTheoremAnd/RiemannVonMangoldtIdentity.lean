@@ -2,6 +2,7 @@ import PrimeNumberTheoremAnd.RectangleArgumentPrinciple
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.PhaseBounds
+import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Stirling
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 
@@ -145,6 +146,77 @@ theorem hasDerivAt_logGammaBranch_stirlingRemainder_ray {z : ℂ}
       fun u : ℝ => (u : ℂ) * z)
     (Complex.digammaRem ((t : ℂ) * z) * z) t
   simpa [Function.comp, ContinuousLinearMap.restrictScalars, mul_comm] using hcomp
+
+/-- Real derivative of the Stirling remainder along an arbitrary complex line. -/
+theorem hasDerivAt_logGammaBranch_stirlingRemainder_line {a v : ℂ} {t : ℝ}
+    (hpos : 0 < (a + (t : ℂ) * v).re) :
+    HasDerivAt
+      (fun u : ℝ =>
+        logGammaBranch (a + (u : ℂ) * v) -
+          riemannVonMangoldtGammaStirlingMain (a + (u : ℂ) * v))
+      (Complex.digammaRem (a + (t : ℂ) * v) * v) t := by
+  have hrem := hasDerivAt_logGammaBranch_sub_stirlingMain
+    (z := a + (t : ℂ) * v) hpos
+  have hmul : HasDerivAt (fun u : ℝ => (u : ℂ) * v) v t := by
+    simpa using (Complex.ofRealCLM.hasDerivAt (x := t)).mul_const v
+  have hlin : HasDerivAt (fun u : ℝ => a + (u : ℂ) * v) v t := by
+    simpa using hmul.const_add a
+  have hcomp := HasFDerivAt.comp_hasDerivAt t (hrem.hasFDerivAt.restrictScalars ℝ) hlin
+  change HasDerivAt
+    ((fun w : ℂ => logGammaBranch w - riemannVonMangoldtGammaStirlingMain w) ∘
+      fun u : ℝ => a + (u : ℂ) * v)
+    (Complex.digammaRem (a + (t : ℂ) * v) * v) t
+  simpa [Function.comp, ContinuousLinearMap.restrictScalars, mul_comm] using hcomp
+
+/--
+Moving the Stirling remainder along a segment costs the A1 derivative bound
+times the segment length.
+-/
+theorem norm_logGammaBranch_stirlingRemainder_line_sub_le {a v : ℂ} {ρ : ℝ}
+    (hρ : 0 < ρ)
+    (hre :
+      ∀ s ∈ Set.Icc (0 : ℝ) 1, (1 / 4 : ℝ) ≤ (a + (s : ℂ) * v).re)
+    (hnorm : ∀ s ∈ Set.Icc (0 : ℝ) 1, ρ ≤ ‖a + (s : ℂ) * v‖) :
+    ‖(logGammaBranch (a + v) -
+        riemannVonMangoldtGammaStirlingMain (a + v)) -
+      (logGammaBranch a - riemannVonMangoldtGammaStirlingMain a)‖ ≤
+      (1 / (6 * ρ ^ 2)) * ‖v‖ := by
+  let F : ℝ → ℂ := fun s =>
+    logGammaBranch (a + (s : ℂ) * v) -
+      riemannVonMangoldtGammaStirlingMain (a + (s : ℂ) * v)
+  let F' : ℝ → ℂ := fun s => Complex.digammaRem (a + (s : ℂ) * v) * v
+  have hderiv :
+      ∀ s ∈ Set.Icc (0 : ℝ) 1, HasDerivWithinAt F (F' s) (Set.Icc (0 : ℝ) 1) s := by
+    intro s hs
+    have hpos : 0 < (a + (s : ℂ) * v).re := by linarith [hre s hs]
+    exact (hasDerivAt_logGammaBranch_stirlingRemainder_line
+      (a := a) (v := v) (t := s) hpos).hasDerivWithinAt
+  have hbound :
+      ∀ s ∈ Set.Ico (0 : ℝ) 1, ‖F' s‖ ≤ (1 / (6 * ρ ^ 2)) * ‖v‖ := by
+    intro s hs
+    have hsIcc : s ∈ Set.Icc (0 : ℝ) 1 := Set.Ico_subset_Icc_self hs
+    have hA1 := Complex.digammaRem_full_norm_bound (z := a + (s : ℂ) * v) (hre s hsIcc)
+    have hmul := mul_le_mul_of_nonneg_right hA1 (norm_nonneg v)
+    have hwlower : ρ ≤ ‖a + (s : ℂ) * v‖ := hnorm s hsIcc
+    have hsq : ρ ^ 2 ≤ ‖a + (s : ℂ) * v‖ ^ 2 := by
+      have hdiff : 0 ≤ ‖a + (s : ℂ) * v‖ - ρ := sub_nonneg.mpr hwlower
+      have hsum : 0 ≤ ‖a + (s : ℂ) * v‖ + ρ := by positivity
+      have hprod := mul_nonneg hdiff hsum
+      nlinarith [hprod]
+    have hdenle : 6 * ρ ^ 2 ≤ 6 * ‖a + (s : ℂ) * v‖ ^ 2 := by nlinarith
+    have hdenpos : 0 < 6 * ρ ^ 2 := by positivity
+    have hrec :
+        1 / (6 * ‖a + (s : ℂ) * v‖ ^ 2) ≤ 1 / (6 * ρ ^ 2) :=
+      one_div_le_one_div_of_le hdenpos hdenle
+    calc
+      ‖F' s‖
+          = ‖Complex.digammaRem (a + (s : ℂ) * v)‖ * ‖v‖ := by
+            simp [F']
+      _ ≤ (1 / (6 * ‖a + (s : ℂ) * v‖ ^ 2)) * ‖v‖ := hmul
+      _ ≤ (1 / (6 * ρ ^ 2)) * ‖v‖ :=
+        mul_le_mul_of_nonneg_right hrec (norm_nonneg v)
+  simpa [F] using
+    norm_image_sub_le_of_norm_deriv_le_segment_01' (f := F) (f' := F') hderiv hbound
 
 /--
 If the Stirling remainder tends to zero along the radial ray, then it equals the
@@ -305,6 +377,197 @@ theorem logGammaBranch_stirling_int_tendsto_zero :
   dsimp [realRem]
   push_cast
   ring
+
+private lemma norm_logGammaBranch_stirling_real_floor_sub_le {x : ℝ}
+    (hx : (1 / 4 : ℝ) ≤ x) :
+    ‖(logGammaBranch (x : ℂ) - riemannVonMangoldtGammaStirlingMain (x : ℂ)) -
+      (logGammaBranch (((⌊x⌋₊ + 1 : ℕ) : ℝ) : ℂ) -
+        riemannVonMangoldtGammaStirlingMain (((⌊x⌋₊ + 1 : ℕ) : ℝ) : ℂ))‖ ≤
+      1 / (6 * x ^ 2) := by
+  let p : ℝ := ((⌊x⌋₊ + 1 : ℕ) : ℝ)
+  have hxpos : 0 < x := by linarith
+  have hxnonneg : 0 ≤ x := hxpos.le
+  have hp_ge : x ≤ p := by
+    have hlt := Nat.lt_floor_add_one x
+    exact le_of_lt (by simpa [p, Nat.cast_add, Nat.cast_one] using hlt)
+  have hp_sub_nonneg : 0 ≤ p - x := sub_nonneg.mpr hp_ge
+  have hp_sub_le_one : p - x ≤ 1 := by
+    have hfloor_le : (⌊x⌋₊ : ℝ) ≤ x := Nat.floor_le hxnonneg
+    dsimp only [p]
+    rw [Nat.cast_add, Nat.cast_one]
+    linarith
+  have hline := norm_logGammaBranch_stirlingRemainder_line_sub_le
+    (a := (x : ℂ)) (v := ((p - x : ℝ) : ℂ)) (ρ := x) hxpos
+    (by
+      intro s hs
+      have hs0 : 0 ≤ s := hs.1
+      have hre_eq :
+          ((x : ℂ) + (s : ℂ) * ((p - x : ℝ) : ℂ)).re = x + s * (p - x) := by
+        simp
+      rw [hre_eq]
+      nlinarith [mul_nonneg hs0 hp_sub_nonneg])
+    (by
+      intro s hs
+      have hs0 : 0 ≤ s := hs.1
+      have hy_nonneg : 0 ≤ x + s * (p - x) := by
+        nlinarith [mul_nonneg hs0 hp_sub_nonneg, hxnonneg]
+      have hy_ge : x ≤ x + s * (p - x) := by
+        nlinarith [mul_nonneg hs0 hp_sub_nonneg]
+      have hpoint :
+          (x : ℂ) + (s : ℂ) * ((p - x : ℝ) : ℂ) =
+            ((x + s * (p - x) : ℝ) : ℂ) := by
+        push_cast
+        ring
+      rw [hpoint, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hy_nonneg]
+      exact hy_ge)
+  have hline' :
+      ‖(logGammaBranch (p : ℂ) - riemannVonMangoldtGammaStirlingMain (p : ℂ)) -
+        (logGammaBranch (x : ℂ) - riemannVonMangoldtGammaStirlingMain (x : ℂ))‖ ≤
+        (1 / (6 * x ^ 2)) * ‖((p - x : ℝ) : ℂ)‖ := by
+    simpa [p] using hline
+  have hvnorm_le : ‖((p - x : ℝ) : ℂ)‖ ≤ 1 := by
+    rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hp_sub_nonneg]
+    exact hp_sub_le_one
+  have hcoef_nonneg : 0 ≤ 1 / (6 * x ^ 2) := by positivity
+  calc
+    ‖(logGammaBranch (x : ℂ) - riemannVonMangoldtGammaStirlingMain (x : ℂ)) -
+      (logGammaBranch (((⌊x⌋₊ + 1 : ℕ) : ℝ) : ℂ) -
+        riemannVonMangoldtGammaStirlingMain (((⌊x⌋₊ + 1 : ℕ) : ℝ) : ℂ))‖
+        = ‖(logGammaBranch (p : ℂ) - riemannVonMangoldtGammaStirlingMain (p : ℂ)) -
+          (logGammaBranch (x : ℂ) - riemannVonMangoldtGammaStirlingMain (x : ℂ))‖ := by
+          rw [norm_sub_rev]
+    _ ≤ (1 / (6 * x ^ 2)) * ‖((p - x : ℝ) : ℂ)‖ := hline'
+    _ ≤ 1 / (6 * x ^ 2) := by
+      simpa using mul_le_mul_of_nonneg_left hvnorm_le hcoef_nonneg
+
+private lemma tendsto_one_div_six_mul_sq_atTop :
+    Tendsto (fun x : ℝ => 1 / (6 * x ^ 2)) atTop (𝓝 (0 : ℝ)) := by
+  have hpow : Tendsto (fun x : ℝ => x ^ 2) atTop atTop :=
+    tendsto_pow_atTop (by norm_num : (2 : ℕ) ≠ 0)
+  have hden : Tendsto (fun x : ℝ => 6 * x ^ 2) atTop atTop :=
+    hpow.const_mul_atTop (by norm_num : (0 : ℝ) < 6)
+  have hone : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (𝓝 (1 : ℝ)) := tendsto_const_nhds
+  simpa [one_div, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hone.div_atTop hden
+
+/-- The log-Gamma branch Stirling remainder tends to zero on positive real rays. -/
+theorem logGammaBranch_stirling_real_tendsto_zero :
+    Tendsto
+      (fun x : ℝ =>
+        logGammaBranch (x : ℂ) - riemannVonMangoldtGammaStirlingMain (x : ℂ))
+      atTop (𝓝 0) := by
+  let R : ℂ → ℂ := fun w => logGammaBranch w - riemannVonMangoldtGammaStirlingMain w
+  have hanchor :
+      Tendsto (fun x : ℝ => R ((((⌊x⌋₊ + 1 : ℕ) : ℝ) : ℂ))) atTop (𝓝 0) := by
+    simpa [R, Function.comp_def, Nat.cast_add, Nat.cast_one] using
+      logGammaBranch_stirling_int_tendsto_zero.comp
+        (tendsto_nat_floor_atTop (α := ℝ))
+  have hdiff :
+      Tendsto
+        (fun x : ℝ => R (x : ℂ) - R ((((⌊x⌋₊ + 1 : ℕ) : ℝ) : ℂ)))
+        atTop (𝓝 0) := by
+    refine squeeze_zero_norm' ?_ tendsto_one_div_six_mul_sq_atTop
+    filter_upwards [eventually_ge_atTop (1 / 4 : ℝ)] with x hx
+    simpa [R] using norm_logGammaBranch_stirling_real_floor_sub_le (x := x) hx
+  simpa [R] using hdiff.add hanchor
+
+/-- The log-Gamma branch Stirling remainder tends to zero along every radial ray in `Re ≥ 1/4`. -/
+theorem logGammaBranch_stirling_ray_tendsto_zero {z : ℂ}
+    (hz : (1 / 4 : ℝ) ≤ z.re) :
+    Tendsto
+      (fun t : ℝ =>
+        logGammaBranch ((t : ℂ) * z) -
+          riemannVonMangoldtGammaStirlingMain ((t : ℂ) * z))
+      atTop (𝓝 0) := by
+  let R : ℂ → ℂ := fun w => logGammaBranch w - riemannVonMangoldtGammaStirlingMain w
+  have hznormpos : 0 < ‖z‖ := Complex.norm_pos_of_re_ge_quarter hz
+  have hscale : Tendsto (fun t : ℝ => t * ‖z‖) atTop atTop :=
+    tendsto_id.atTop_mul_const hznormpos
+  have hreal :
+      Tendsto (fun t : ℝ => R (((t * ‖z‖ : ℝ) : ℂ))) atTop (𝓝 0) := by
+    simpa [R, Function.comp_def] using logGammaBranch_stirling_real_tendsto_zero.comp hscale
+  have hdiff :
+      Tendsto
+        (fun t : ℝ => R ((t : ℂ) * z) - R (((t * ‖z‖ : ℝ) : ℂ)))
+        atTop (𝓝 0) := by
+    refine squeeze_zero_norm' (a := fun t : ℝ => (16 * ‖z‖ / 3) / t) ?_ ?_
+    · filter_upwards [eventually_ge_atTop (1 : ℝ)] with t ht
+      have ht0 : 0 ≤ t := le_trans zero_le_one ht
+      have htpos : 0 < t := lt_of_lt_of_le zero_lt_one ht
+      let realPt : ℂ := ((t * ‖z‖ : ℝ) : ℂ)
+      let v : ℂ := (t : ℂ) * z - realPt
+      have hseg_re_lower :
+          ∀ s ∈ Set.Icc (0 : ℝ) 1, t / 4 ≤ (realPt + (s : ℂ) * v).re := by
+        intro s hs
+        have hs0 : 0 ≤ s := hs.1
+        have hs1 : s ≤ 1 := hs.2
+        have hz_re_le_norm : z.re ≤ ‖z‖ := re_le_norm z
+        have hreal_ge : t / 4 ≤ t * ‖z‖ := by
+          have hquarter_norm : (1 / 4 : ℝ) ≤ ‖z‖ := le_trans hz hz_re_le_norm
+          nlinarith [mul_le_mul_of_nonneg_left hquarter_norm ht0]
+        have hray_ge : t / 4 ≤ t * z.re := by
+          nlinarith [mul_le_mul_of_nonneg_left hz ht0]
+        have hpart1 :
+            (1 - s) * (t / 4) ≤ (1 - s) * (t * ‖z‖) :=
+          mul_le_mul_of_nonneg_left hreal_ge (sub_nonneg.mpr hs1)
+        have hpart2 : s * (t / 4) ≤ s * (t * z.re) :=
+          mul_le_mul_of_nonneg_left hray_ge hs0
+        have hre_eq :
+            (realPt + (s : ℂ) * v).re =
+              (1 - s) * (t * ‖z‖) + s * (t * z.re) := by
+          dsimp [realPt, v]
+          simp [Complex.mul_re, sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc]
+          ring
+        rw [hre_eq]
+        nlinarith
+      have hline := norm_logGammaBranch_stirlingRemainder_line_sub_le
+        (a := realPt) (v := v) (ρ := t / 4) (by positivity)
+        (by
+          intro s hs
+          have hlower := hseg_re_lower s hs
+          nlinarith)
+        (by
+          intro s hs
+          exact le_trans (hseg_re_lower s hs) (re_le_norm (realPt + (s : ℂ) * v)))
+      have hseglen : ‖v‖ ≤ 2 * t * ‖z‖ := by
+        have hnorm_ray : ‖(t : ℂ) * z‖ = t * ‖z‖ :=
+          Complex.norm_ofReal_mul_complex ht0 z
+        have hnorm_real : ‖realPt‖ = t * ‖z‖ := by
+          dsimp [realPt]
+          rw [Complex.norm_real, Real.norm_eq_abs,
+            abs_of_nonneg (mul_nonneg ht0 (norm_nonneg z))]
+        calc
+          ‖v‖ = ‖(t : ℂ) * z - realPt‖ := rfl
+          _ ≤ ‖(t : ℂ) * z‖ + ‖realPt‖ := norm_sub_le ((t : ℂ) * z) realPt
+          _ = 2 * t * ‖z‖ := by
+            rw [hnorm_ray, hnorm_real]
+            ring
+      have hcoef_nonneg : 0 ≤ 1 / (6 * (t / 4) ^ 2) := by positivity
+      have hline' :
+          ‖R ((t : ℂ) * z) - R realPt‖ ≤
+            (1 / (6 * (t / 4) ^ 2)) * ‖v‖ := by
+        simpa [R, realPt, v] using hline
+      calc
+        ‖R ((t : ℂ) * z) - R (((t * ‖z‖ : ℝ) : ℂ))‖
+            = ‖R ((t : ℂ) * z) - R realPt‖ := by rfl
+        _ ≤ (1 / (6 * (t / 4) ^ 2)) * ‖v‖ := hline'
+        _ ≤ (1 / (6 * (t / 4) ^ 2)) * (2 * t * ‖z‖) :=
+          mul_le_mul_of_nonneg_left hseglen hcoef_nonneg
+        _ = (16 * ‖z‖ / 3) / t := by
+          field_simp [htpos.ne']
+          ring
+    · have hconst :
+          Tendsto (fun _ : ℝ => (16 * ‖z‖ / 3 : ℝ)) atTop
+            (𝓝 (16 * ‖z‖ / 3 : ℝ)) := tendsto_const_nhds
+      simpa using hconst.div_atTop tendsto_id
+  simpa [R] using hdiff.add hreal
+
+/-- Sharp radial-ray Stirling remainder bound from the second-Binet digamma estimate. -/
+theorem norm_logGammaBranch_sub_stirling_le {z : ℂ}
+    (hz : (1 / 4 : ℝ) ≤ z.re) :
+    ‖logGammaBranch z - riemannVonMangoldtGammaStirlingMain z‖ ≤
+      1 / (6 * ‖z‖) :=
+  norm_logGammaBranch_sub_stirling_le_of_tendsto hz
+    (logGammaBranch_stirling_ray_tendsto_zero hz)
 
 /-- The explicit phase appearing at `z = 1 / 4 + iT / 2`. -/
 def riemannVonMangoldtGammaPhase (T : ℝ) : ℝ :=

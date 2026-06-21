@@ -10,3 +10,4 @@ open Complex
 #check norm_logGammaBranch_sub_stirling_le_of_tendsto
 #check logGammaBranch_ofReal_eq_realLogGamma
 #check logGammaBranch_stirling_int_tendsto_zero
+#check norm_logGammaBranch_sub_stirling_le
