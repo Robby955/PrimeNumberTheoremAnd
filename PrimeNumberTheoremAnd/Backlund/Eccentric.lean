@@ -1507,6 +1507,99 @@ theorem cosZeroTarget_firstHit_pairs_product_le_pairingH_pow {D ε : ℝ}
       intro i
       exact hle i)
 
+theorem cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
+    {D ε : ℝ}
+    (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
+    {N q m : ℕ} (hN : 0 < N)
+    (hε : (N : ℝ) * ε ≤ ((q + 1 : ℕ) : ℝ) * Real.pi)
+    (hstart : ∀ i : Fin m,
+      v ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < ε)
+    (hright_unpaired : ∀ i : Fin (q + 1),
+      (firstHitRealSet D u (backlundCosZeroTarget N (i : ℕ))).Nonempty)
+    (hright_pair : ∀ i : Fin m,
+      (firstHitRealSet D u
+        (backlundCosZeroTarget N ((i : ℕ) + q + 1))).Nonempty)
+    (hright_unpaired_bound : ∀ i : Fin (q + 1),
+      (1 / 2 : ℝ) +
+          firstHit u (backlundCosZeroTarget N (i : ℕ)) (hright_unpaired i) ≤
+        1 + backlundEta)
+    (hright_pair_bound : ∀ i : Fin m,
+      (1 / 2 : ℝ) +
+          firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1)) (hright_pair i) ≤
+        1 + backlundEta) :
+    ∃ hleft : ∀ i : Fin m,
+      (firstHitRealSet D v (backlundCosZeroTarget N (i : ℕ))).Nonempty,
+      (∏ i : Fin (q + 1),
+          ‖((((1 / 2 : ℝ) +
+              firstHit u (backlundCosZeroTarget N (i : ℕ)) (hright_unpaired i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖) *
+        (∏ i : Fin m,
+          (‖((((1 / 2 : ℝ) +
+                firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1))
+                  (hright_pair i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖ *
+            ‖((((1 / 2 : ℝ) -
+                firstHit v (backlundCosZeroTarget N (i : ℕ)) (hleft i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖)) ≤
+        backlundPairingH ^ ((q + 1) + 2 * m) := by
+  obtain ⟨hleft, hpairprod⟩ :=
+    cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
+      (u := u) (v := v) hD hN hε hstart herr hright_pair hright_pair_bound
+  refine ⟨hleft, ?_⟩
+  have hunpaired :
+      (∏ i : Fin (q + 1),
+          ‖((((1 / 2 : ℝ) +
+              firstHit u (backlundCosZeroTarget N (i : ℕ)) (hright_unpaired i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖) ≤
+        backlundPairingH ^ (q + 1) := by
+    have hprod :
+        (∏ i : Fin (q + 1),
+            ‖((((1 / 2 : ℝ) +
+                firstHit u (backlundCosZeroTarget N (i : ℕ)) (hright_unpaired i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖) ≤
+          ∏ _i : Fin (q + 1), backlundPairingH := by
+      refine Finset.prod_le_prod ?_ ?_
+      · intro i _hi
+        exact norm_nonneg _
+      · intro i _hi
+        have hI :=
+          firstHit_mem_Icc u (backlundCosZeroTarget N (i : ℕ))
+            (hright_unpaired i)
+        exact norm_ofReal_sub_backlundEccentricCenter_le_pairingH
+          (by linarith [hI.1]) (hright_unpaired_bound i)
+    simpa using hprod
+  have hpair_nonneg :
+      0 ≤
+        (∏ i : Fin m,
+          (‖((((1 / 2 : ℝ) +
+                firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1))
+                  (hright_pair i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖ *
+            ‖((((1 / 2 : ℝ) -
+                firstHit v (backlundCosZeroTarget N (i : ℕ)) (hleft i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖)) := by
+    exact Finset.prod_nonneg fun i _ =>
+      mul_nonneg (norm_nonneg _) (norm_nonneg _)
+  calc
+    (∏ i : Fin (q + 1),
+        ‖((((1 / 2 : ℝ) +
+            firstHit u (backlundCosZeroTarget N (i : ℕ)) (hright_unpaired i) : ℝ) : ℂ) -
+          backlundEccentricCenter backlundEta)‖) *
+      (∏ i : Fin m,
+        (‖((((1 / 2 : ℝ) +
+              firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1))
+                (hright_pair i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖ *
+          ‖((((1 / 2 : ℝ) -
+              firstHit v (backlundCosZeroTarget N (i : ℕ)) (hleft i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖))
+        ≤ backlundPairingH ^ (q + 1) * backlundPairingH ^ (2 * m) := by
+          exact mul_le_mul hunpaired hpairprod hpair_nonneg
+            (pow_nonneg backlundPairingH_pos.le (q + 1))
+    _ = backlundPairingH ^ ((q + 1) + 2 * m) := by
+      rw [← pow_add]
+
 theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
     {σ₁ x : ℝ}
     (hσ₁ : σ₁ ≤ 1 + backlundEta) (hx : x ∈ Set.Icc (1 - σ₁) σ₁) :
