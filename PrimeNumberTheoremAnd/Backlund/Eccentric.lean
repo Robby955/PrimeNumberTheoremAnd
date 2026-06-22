@@ -1990,6 +1990,60 @@ theorem backlundEccentricJensenLogCountingTerm_eq_logCounting_of_center_ne_zero
   rw [htrail]
   simp [f]
 
+theorem backlundEccentricJensenLogCountingTerm_lower_bound_of_orderedRealPartZeros_product
+    {N m : ℕ} {T η a b R H r : ℝ} {xs : Fin m → ℝ}
+    (hcenter : backlundFEntire N T (backlundEccentricCenter η) ≠ 0)
+    (hR : 1 ≤ R)
+    (hr : 0 < r)
+    (hH : 0 < H)
+    (hR_eq : R = r * H)
+    (hxs : backlundOrderedRealPartZeros N m T a b xs)
+    (hplus : ∀ i : Fin m, ((xs i : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hminus : ∀ i : Fin m, ((xs i : ℂ) - (T : ℂ) * Complex.I) ≠ 1)
+    (hz0 : ∀ i : Fin m, ((xs i : ℂ) - backlundEccentricCenter η) ≠ 0)
+    (hzR : ∀ i : Fin m, ‖((xs i : ℂ) - backlundEccentricCenter η)‖ ≤ R)
+    (hprod :
+      (∏ i : Fin m, ‖((xs i : ℂ) - backlundEccentricCenter η)‖) ≤ H ^ m) :
+    (m : ℝ) * Real.log r ≤
+      backlundEccentricJensenLogCountingTerm N T η R := by
+  let zs : Fin m → ℂ := fun i => (xs i : ℂ) - backlundEccentricCenter η
+  have hnot :
+      ∃ w : ℂ, backlundFEntire N T (w + backlundEccentricCenter η) ≠ 0 := by
+    refine ⟨0, ?_⟩
+    simpa using hcenter
+  have hDnonneg : 0 ≤ backlundEccentricTranslatedDivisor N T η := by
+    unfold backlundEccentricTranslatedDivisor
+    exact Differentiable.divisor_nonneg
+      (backlundFEntire_translate_differentiable N T η)
+  have hinj : Function.Injective zs := by
+    intro i j hij
+    apply hxs.1.injective
+    apply Complex.ofReal_injective
+    have hcx : (xs i : ℂ) = (xs j : ℂ) := by
+      simpa [zs] using congrArg (fun z : ℂ => z + backlundEccentricCenter η) hij
+    exact hcx
+  have hzD :
+      ∀ i : Fin m,
+        (1 : ℤ) ≤ backlundEccentricTranslatedDivisor N T η (zs i) := by
+    intro i
+    simpa [zs] using
+      backlundEccentricTranslatedDivisor_one_le_of_orderedRealPartZeros
+        (N := N) (k := m) (T := T) (η := η) (a := a) (b := b)
+        (xs := xs) hnot hxs hplus hminus i
+  have hlower :
+      (m : ℝ) * Real.log r ≤
+        Function.locallyFinsuppWithin.logCounting
+          (backlundEccentricTranslatedDivisor N T η) R := by
+    exact logCounting_lower_bound_of_product
+      (D := backlundEccentricTranslatedDivisor N T η) (zs := zs)
+      (R := R) (H := H) (r := r)
+      hDnonneg hR hr hH hR_eq hinj
+      (by simpa [zs] using hz0) hzD (by simpa [zs] using hzR)
+      (by simpa [zs] using hprod)
+  rw [backlundEccentricJensenLogCountingTerm_eq_logCounting_of_center_ne_zero
+    (N := N) (T := T) (η := η) (R := R) hcenter]
+  exact hlower
+
 theorem backlundPairingLoss_le {N : ℕ} {E : ℝ} (hE : 0 ≤ E) :
     (backlundPairingLoss N E : ℝ) ≤ (N : ℝ) * E / Real.pi := by
   unfold backlundPairingLoss
