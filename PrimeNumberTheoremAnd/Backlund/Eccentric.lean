@@ -286,6 +286,20 @@ theorem firstHit_le_of_start_lt_target_of_target_lt_value {D : ℝ}
     (firstHit_isLeast u target hne).2 hx_hit
   exact hfirst_le_x.trans hxI.2
 
+theorem firstHit_le_of_abs_error_at_value {D : ℝ}
+    (v : C(Set.Icc (0 : ℝ) D, ℝ)) {target d value ε : ℝ}
+    (hd : d ∈ Set.Icc (0 : ℝ) D)
+    (hstart : v ⟨0, by exact ⟨le_rfl, le_trans hd.1 hd.2⟩⟩ < target)
+    (herr : |value - v ⟨d, hd⟩| < ε)
+    (hgap : target + ε ≤ value) :
+    ∃ hne : (firstHitRealSet D v target).Nonempty,
+      firstHit v target hne ≤ d := by
+  have hdiff : value - v ⟨d, hd⟩ < ε := (abs_lt.mp herr).2
+  have hvalue : target < v ⟨d, hd⟩ := by
+    linarith
+  exact firstHit_le_of_start_lt_target_of_target_lt_value
+    (u := v) (target := target) (d := d) hd hstart hvalue
+
 theorem firstHit_lt_firstHit_of_start_lt_of_target_lt {D : ℝ}
     (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target₁ target₂ : ℝ}
     (hD : (0 : ℝ) ≤ D)
