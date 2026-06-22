@@ -1751,6 +1751,70 @@ theorem backlundEccentricJensenZeroCountRhsEntire_eq_logCounting_form
   field_simp [Real.pi_ne_zero, hr]
   ring
 
+noncomputable def backlundEccentricTranslatedDivisor (N : ℕ) (T η : ℝ) :
+    Function.locallyFinsuppWithin (Set.univ : Set ℂ) ℤ :=
+  MeromorphicOn.divisor
+    (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η))
+    (Set.univ : Set ℂ)
+
+noncomputable def backlundEccentricJensenLogCountingTerm
+    (N : ℕ) (T η R : ℝ) : ℝ :=
+  Function.locallyFinsuppWithin.logCounting
+      (backlundEccentricTranslatedDivisor N T η) R +
+    Real.log
+      ‖meromorphicTrailingCoeffAt
+        (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η)) 0‖ -
+    Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖
+
+theorem backlundPairingLoss_le {N : ℕ} {E : ℝ} (hE : 0 ≤ E) :
+    (backlundPairingLoss N E : ℝ) ≤ (N : ℝ) * E / Real.pi := by
+  unfold backlundPairingLoss
+  exact Nat.floor_le (by positivity)
+
+theorem eccentric_jensen_zero_count_of_logCounting_lower_bound
+    {N n : ℕ} {T η R E r : ℝ}
+    (hR : R ≠ 0) (hrlog : 0 < Real.log r) (hE : 0 ≤ E)
+    (hlower :
+      (2 * (n : ℝ) - 1 - (backlundPairingLoss N E : ℝ)) * Real.log r ≤
+        backlundEccentricJensenLogCountingTerm N T η R) :
+    (n : ℝ) ≤ backlundEccentricJensenZeroCountRhsEntire N T η R r E := by
+  let L := backlundEccentricJensenLogCountingTerm N T η R
+  have hRhs :
+      backlundEccentricJensenZeroCountRhsEntire N T η R r E =
+        L / (2 * Real.log r) + 1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
+    rw [backlundEccentricJensenZeroCountRhsEntire_eq_logCounting_form
+      (N := N) (T := T) (η := η) (R := R) (E := E) hR (ne_of_gt hrlog)]
+    simp only [L, backlundEccentricJensenLogCountingTerm,
+      backlundEccentricTranslatedDivisor]
+    ring
+  have hlowerL :
+      (2 * (n : ℝ) - 1 - (backlundPairingLoss N E : ℝ)) * Real.log r ≤ L := by
+    simpa [L] using hlower
+  have hcount :
+      2 * (n : ℝ) - 1 - (backlundPairingLoss N E : ℝ) ≤ L / Real.log r :=
+    (le_div_iff₀ hrlog).2 hlowerL
+  have hcount_half :
+      (2 * (n : ℝ) - 1 - (backlundPairingLoss N E : ℝ)) / 2 ≤
+        L / (2 * Real.log r) := by
+    have h := div_le_div_of_nonneg_right hcount (by norm_num : (0 : ℝ) ≤ 2)
+    have hden : (L / Real.log r) / 2 = L / (2 * Real.log r) := by
+      field_simp [ne_of_gt hrlog, two_ne_zero]
+    simpa [hden] using h
+  have hloss_half :
+      (backlundPairingLoss N E : ℝ) / 2 ≤ (N : ℝ) * E / (2 * Real.pi) := by
+    have hloss := backlundPairingLoss_le (N := N) hE
+    have h := div_le_div_of_nonneg_right hloss (by norm_num : (0 : ℝ) ≤ 2)
+    have hden : ((N : ℝ) * E / Real.pi) / 2 = (N : ℝ) * E / (2 * Real.pi) := by
+      field_simp [Real.pi_ne_zero, two_ne_zero]
+    simpa [hden] using h
+  rw [hRhs]
+  calc
+    (n : ℝ)
+        = (2 * (n : ℝ) - 1 - (backlundPairingLoss N E : ℝ)) / 2 +
+            1 / 2 + (backlundPairingLoss N E : ℝ) / 2 := by ring
+    _ ≤ L / (2 * Real.log r) + 1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
+      nlinarith
+
 theorem midpointReflectedProduct_zetaSurrogate_eq (z : ℂ) :
     midpointReflectedProduct zetaSurrogate z =
       zetaSurrogate z * zetaSurrogate ((1 : ℂ) - z) := by
