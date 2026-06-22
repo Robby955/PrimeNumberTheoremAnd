@@ -309,6 +309,68 @@ theorem phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral {a b : ℝ}
   dsimp [η]
   simp
 
+theorem phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral_on_at {a b : ℝ}
+    (h : a < b) (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0)
+    {q : ℝ → ℂ}
+    (hI_cont : Continuous fun x : Set.Icc a b => ∫ t in a..(x : ℝ), q t)
+    (hExp : ∀ x : Set.Icc a b,
+      Complex.exp (∫ t in a..(x : ℝ), q t) =
+        f x / f ⟨a, by exact ⟨le_rfl, h.le⟩⟩)
+    (x : Set.Icc a b) :
+    (phaseLiftOfNonzeroPath h f hf).change
+        ⟨a, by exact ⟨le_rfl, h.le⟩⟩
+        x =
+      (∫ t in a..(x : ℝ), q t).im := by
+  let xleft : Set.Icc a b := ⟨a, by exact ⟨le_rfl, h.le⟩⟩
+  let η : C(Set.Icc a b, ℝ) := {
+    toFun := fun x => (Complex.log (f xleft) + ∫ t in a..(x : ℝ), q t).im
+    continuous_toFun := by
+      exact Complex.continuous_im.comp
+        (continuous_const.add hI_cont) }
+  have hη_exp : ∀ x, Circle.exp (η x) = normalizeNonzeroPath f hf x := by
+    intro x
+    have hFa : f xleft ≠ 0 := hf xleft
+    have hFx : f x ≠ 0 := hf x
+    have hExpL :
+        Complex.exp (Complex.log (f xleft) + ∫ t in a..(x : ℝ), q t) = f x := by
+      have hleft :
+          f xleft = f (⟨a, by exact ⟨le_rfl, h.le⟩⟩ : Set.Icc a b) := by
+        congr
+      have hFleft : f (⟨a, by exact ⟨le_rfl, h.le⟩⟩ : Set.Icc a b) ≠ 0 := hf _
+      rw [Complex.exp_add, Complex.exp_log hFa, hExp x]
+      rw [hleft]
+      field_simp [hFleft]
+    dsimp [η, normalizeNonzeroPath]
+    exact circle_exp_im_eq_unitNormalize_of_exp_eq hFx hExpL
+  have hη_left :
+      η xleft =
+        (((normalizeNonzeroPath f hf) xleft : Circle) : ℂ).arg := by
+    have hFa : f xleft ≠ 0 := hf xleft
+    dsimp [η, xleft, normalizeNonzeroPath]
+    rw [Complex.log_im]
+    symm
+    simpa [unitNormalize] using arg_unitNormalize hFa
+  have hphase :
+      (phaseLiftOfNonzeroPath h f hf).phase = η := by
+    exact phaseLiftOfCirclePath_phase_eq_of_exp_phase h η hη_exp hη_left
+  rw [PhaseLift.change, hphase]
+  dsimp [η, xleft]
+  simp
+
+theorem phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral_on {a b : ℝ}
+    (h : a < b) (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0)
+    {q : ℝ → ℂ}
+    (hI_cont : Continuous fun x : Set.Icc a b => ∫ t in a..(x : ℝ), q t)
+    (hExp : ∀ x : Set.Icc a b,
+      Complex.exp (∫ t in a..(x : ℝ), q t) =
+        f x / f ⟨a, by exact ⟨le_rfl, h.le⟩⟩) :
+    (phaseLiftOfNonzeroPath h f hf).change
+        ⟨a, by exact ⟨le_rfl, h.le⟩⟩
+        ⟨b, by exact ⟨h.le, le_rfl⟩⟩ =
+      (∫ t in a..b, q t).im := by
+  exact phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral_on_at
+    h f hf hI_cont hExp ⟨b, by exact ⟨h.le, le_rfl⟩⟩
+
 theorem re_pow_eq_zero_iff_cos_phase_eq_zero (N : ℕ) {z : ℂ} {θ : ℝ}
     (hz : z ≠ 0) (hθ : Circle.exp θ = unitNormalize z hz) :
     (z ^ N).re = 0 ↔ Real.cos ((N : ℝ) * θ) = 0 := by
@@ -1402,6 +1464,67 @@ theorem backlundAHorizontalArgumentVariation_eq_neg_height_symm (x₁ x₂ T : �
       backlundAHorizontalArgumentVariation x₂ x₁ (-T) := by
   rw [backlundAHorizontalArgumentVariation_neg_height,
     backlundAHorizontalArgumentVariation_symm]
+
+theorem phaseLift_change_eq_backlundAHorizontalArgumentVariation_at
+    {x₁ x₂ T : ℝ} (h : x₁ < x₂)
+    (hs1 : ∀ x ∈ Set.Icc x₁ x₂,
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hA_ne : ∀ x ∈ Set.Icc x₁ x₂,
+      backlundA ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hI_cont : Continuous fun x : Set.Icc x₁ x₂ =>
+      ∫ t in x₁..(x : ℝ),
+        logDeriv backlundA ((t : ℂ) + (T : ℂ) * Complex.I))
+    (hExp : ∀ x : Set.Icc x₁ x₂,
+      Complex.exp (∫ t in x₁..(x : ℝ),
+          logDeriv backlundA ((t : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundA ((x : ℝ) + (T : ℂ) * Complex.I) /
+          backlundA ((x₁ : ℂ) + (T : ℂ) * Complex.I))
+    (x : Set.Icc x₁ x₂) :
+    let f := backlundAHorizontalPathOn x₁ x₂ T hs1
+    let hf : ∀ x, f x ≠ 0 := fun x => hA_ne x x.property
+    (phaseLiftOfNonzeroPath h f hf).change
+        ⟨x₁, by exact ⟨le_rfl, h.le⟩⟩
+        x =
+      backlundAHorizontalArgumentVariation x₁ (x : ℝ) T := by
+  dsimp
+  let f := backlundAHorizontalPathOn x₁ x₂ T hs1
+  let hf : ∀ x, f x ≠ 0 := fun x => hA_ne x x.property
+  have hExp' : ∀ x : Set.Icc x₁ x₂,
+      Complex.exp (∫ t in x₁..(x : ℝ),
+          logDeriv backlundA ((t : ℂ) + (T : ℂ) * Complex.I)) =
+        f x / f ⟨x₁, by exact ⟨le_rfl, h.le⟩⟩ := by
+    intro x
+    simpa [f, backlundAHorizontalPathOn] using hExp x
+  have hphase :=
+    phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral_on_at
+      (a := x₁) (b := x₂) (q := fun t : ℝ =>
+        logDeriv backlundA ((t : ℂ) + (T : ℂ) * Complex.I))
+      h f hf hI_cont hExp' x
+  simpa [backlundAHorizontalArgumentVariation, HIntegral, f, hf] using hphase
+
+theorem phaseLift_change_eq_backlundAHorizontalArgumentVariation
+    {x₁ x₂ T : ℝ} (h : x₁ < x₂)
+    (hs1 : ∀ x ∈ Set.Icc x₁ x₂,
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hA_ne : ∀ x ∈ Set.Icc x₁ x₂,
+      backlundA ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hI_cont : Continuous fun x : Set.Icc x₁ x₂ =>
+      ∫ t in x₁..(x : ℝ),
+        logDeriv backlundA ((t : ℂ) + (T : ℂ) * Complex.I))
+    (hExp : ∀ x : Set.Icc x₁ x₂,
+      Complex.exp (∫ t in x₁..(x : ℝ),
+          logDeriv backlundA ((t : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundA ((x : ℝ) + (T : ℂ) * Complex.I) /
+          backlundA ((x₁ : ℂ) + (T : ℂ) * Complex.I)) :
+    let f := backlundAHorizontalPathOn x₁ x₂ T hs1
+    let hf : ∀ x, f x ≠ 0 := fun x => hA_ne x x.property
+    (phaseLiftOfNonzeroPath h f hf).change
+        ⟨x₁, by exact ⟨le_rfl, h.le⟩⟩
+        ⟨x₂, by exact ⟨h.le, le_rfl⟩⟩ =
+      backlundAHorizontalArgumentVariation x₁ x₂ T := by
+  exact phaseLift_change_eq_backlundAHorizontalArgumentVariation_at
+    (x₁ := x₁) (x₂ := x₂) (T := T) h hs1 hA_ne hI_cont hExp
+    ⟨x₂, by exact ⟨h.le, le_rfl⟩⟩
 
 theorem phaseLift_change_eq_backlundAHorizontalArgumentVariation_of_slitPlane
     {x₁ x₂ T : ℝ} (h : x₁ < x₂)
