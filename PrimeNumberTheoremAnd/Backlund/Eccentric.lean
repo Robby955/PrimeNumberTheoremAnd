@@ -3816,6 +3816,25 @@ noncomputable def backlundEccentricJensenZeroCountRhsEntire
     Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖ / (2 * Real.log r) +
       1 / 2 + (N : ℝ) * E / (2 * Real.pi)
 
+/--
+The corrected lemma-6 Jensen RHS for the source-faithful ordered pairing count.
+The pairing supplies `2n - 2 - floor (N E / pi)` zeros, so the count term is
+`1 + N E / (2*pi)`, not `1/2 + N E / (2*pi)`.
+-/
+noncomputable def backlundEccentricJensenZeroCountRhsEntireCorrected
+    (N : ℕ) (T η R r E : ℝ) : ℝ :=
+  backlundEccentricJensenIntegralEntire N T η R / (4 * Real.pi * Real.log r) -
+    Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖ / (2 * Real.log r) +
+      1 + (N : ℝ) * E / (2 * Real.pi)
+
+theorem backlundEccentricJensenZeroCountRhsEntireCorrected_eq_original_add_half
+    (N : ℕ) (T η R r E : ℝ) :
+    backlundEccentricJensenZeroCountRhsEntireCorrected N T η R r E =
+      backlundEccentricJensenZeroCountRhsEntire N T η R r E + 1 / 2 := by
+  unfold backlundEccentricJensenZeroCountRhsEntireCorrected
+    backlundEccentricJensenZeroCountRhsEntire
+  ring
+
 theorem backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage
     (N : ℕ) (T η R : ℝ) :
     backlundEccentricJensenIntegralEntire N T η R =
@@ -4327,6 +4346,21 @@ theorem eccentric_jensen_source_count_minus_half_le_of_logCounting_lower_bound
     _ ≤ L / (2 * Real.log r) + 1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
       nlinarith
 
+theorem eccentric_jensen_corrected_zero_count_of_logCounting_lower_bound
+    {N n : ℕ} {T η R E r : ℝ}
+    (hR : R ≠ 0) (hrlog : 0 < Real.log r) (hE : 0 ≤ E)
+    (hlower :
+      (2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ)) * Real.log r ≤
+        backlundEccentricJensenLogCountingTerm N T η R) :
+    (n : ℝ) ≤
+      backlundEccentricJensenZeroCountRhsEntireCorrected N T η R r E := by
+  have hminus :=
+    eccentric_jensen_source_count_minus_half_le_of_logCounting_lower_bound
+      (N := N) (n := n) (T := T) (η := η) (R := R) (E := E) (r := r)
+      hR hrlog hE hlower
+  rw [backlundEccentricJensenZeroCountRhsEntireCorrected_eq_original_add_half]
+  linarith
+
 theorem eccentric_jensen_zero_count_of_orderedRealPartZeros_product
     {N n m : ℕ} {T η a b R H r E : ℝ} {xs : Fin m → ℝ}
     (hcenter : backlundFEntire N T (backlundEccentricCenter η) ≠ 0)
@@ -4380,6 +4414,72 @@ theorem eccentric_jensen_zero_count_of_orderedRealPartZeros_product_on_backlundI
   have hR : 1 ≤ backlundLargeRadius := by
     norm_num [backlundLargeRadius]
   exact eccentric_jensen_zero_count_of_orderedRealPartZeros_product
+    (N := N) (n := n) (m := m) (T := T) (η := backlundEta)
+    (a := 1 - σ₁) (b := σ₁) (R := backlundLargeRadius)
+    (H := H) (r := r) (E := E) (xs := xs)
+    hcenter hR hr hrlog hE hH hR_eq hcount hxs hplus hminus
+    (backlundOrderedRealPartZeros_ne_eccentricCenter
+      (N := N) (k := m) (T := T) (η := backlundEta)
+      (a := 1 - σ₁) (b := σ₁) (xs := xs) hcenter hxs hplus hminus)
+    (backlundOrderedRealPartZeros_norm_le_largeRadius
+      (N := N) (k := m) (T := T) (σ₁ := σ₁) (xs := xs) hσ₁ hxs)
+    hprod
+
+theorem eccentric_jensen_corrected_zero_count_of_orderedRealPartZeros_product
+    {N n m : ℕ} {T η a b R H r E : ℝ} {xs : Fin m → ℝ}
+    (hcenter : backlundFEntire N T (backlundEccentricCenter η) ≠ 0)
+    (hR : 1 ≤ R)
+    (hr : 0 < r)
+    (hrlog : 0 < Real.log r)
+    (hE : 0 ≤ E)
+    (hH : 0 < H)
+    (hR_eq : R = r * H)
+    (hcount : 2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ) ≤ m)
+    (hxs : backlundOrderedRealPartZeros N m T a b xs)
+    (hplus : ∀ i : Fin m, ((xs i : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hminus : ∀ i : Fin m, ((xs i : ℂ) - (T : ℂ) * Complex.I) ≠ 1)
+    (hz0 : ∀ i : Fin m, ((xs i : ℂ) - backlundEccentricCenter η) ≠ 0)
+    (hzR : ∀ i : Fin m, ‖((xs i : ℂ) - backlundEccentricCenter η)‖ ≤ R)
+    (hprod :
+      (∏ i : Fin m, ‖((xs i : ℂ) - backlundEccentricCenter η)‖) ≤ H ^ m) :
+    (n : ℝ) ≤
+      backlundEccentricJensenZeroCountRhsEntireCorrected N T η R r E := by
+  have hlower_m :
+      (m : ℝ) * Real.log r ≤
+        backlundEccentricJensenLogCountingTerm N T η R :=
+    backlundEccentricJensenLogCountingTerm_lower_bound_of_orderedRealPartZeros_product
+      (N := N) (m := m) (T := T) (η := η) (a := a) (b := b)
+      (R := R) (H := H) (r := r) (xs := xs)
+      hcenter hR hr hH hR_eq hxs hplus hminus hz0 hzR hprod
+  have hlower :
+      (2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ)) * Real.log r ≤
+        backlundEccentricJensenLogCountingTerm N T η R := by
+    exact (mul_le_mul_of_nonneg_right hcount hrlog.le).trans hlower_m
+  exact eccentric_jensen_corrected_zero_count_of_logCounting_lower_bound
+    (N := N) (n := n) (T := T) (η := η) (R := R) (E := E) (r := r)
+    (by linarith) hrlog hE hlower
+
+theorem eccentric_jensen_corrected_zero_count_of_orderedRealPartZeros_product_on_backlundInterval
+    {N n m : ℕ} {T σ₁ H r E : ℝ} {xs : Fin m → ℝ}
+    (hcenter : backlundFEntire N T (backlundEccentricCenter backlundEta) ≠ 0)
+    (hr : 0 < r)
+    (hrlog : 0 < Real.log r)
+    (hE : 0 ≤ E)
+    (hH : 0 < H)
+    (hR_eq : backlundLargeRadius = r * H)
+    (hσ₁ : σ₁ ≤ 1 + backlundEta)
+    (hcount : 2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ) ≤ m)
+    (hxs : backlundOrderedRealPartZeros N m T (1 - σ₁) σ₁ xs)
+    (hplus : ∀ i : Fin m, ((xs i : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hminus : ∀ i : Fin m, ((xs i : ℂ) - (T : ℂ) * Complex.I) ≠ 1)
+    (hprod :
+      (∏ i : Fin m, ‖((xs i : ℂ) - backlundEccentricCenter backlundEta)‖) ≤ H ^ m) :
+    (n : ℝ) ≤
+      backlundEccentricJensenZeroCountRhsEntireCorrected N T backlundEta
+        backlundLargeRadius r E := by
+  have hR : 1 ≤ backlundLargeRadius := by
+    norm_num [backlundLargeRadius]
+  exact eccentric_jensen_corrected_zero_count_of_orderedRealPartZeros_product
     (N := N) (n := n) (m := m) (T := T) (η := backlundEta)
     (a := 1 - σ₁) (b := σ₁) (R := backlundLargeRadius)
     (H := H) (r := r) (E := E) (xs := xs)
