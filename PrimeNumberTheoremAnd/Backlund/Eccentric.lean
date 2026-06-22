@@ -1626,6 +1626,26 @@ theorem backlundEccentricJensenIntegralEntire_eq_two_pi_mul_logCounting_add_trai
   rw [backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage,
     hcircle, hcircle_log]
 
+theorem backlundEccentricJensenZeroCountRhsEntire_eq_logCounting_form
+    (N : ℕ) (T η R E : ℝ) {r : ℝ} (hR : R ≠ 0) (hr : Real.log r ≠ 0) :
+    backlundEccentricJensenZeroCountRhsEntire N T η R r E =
+      (Function.locallyFinsuppWithin.logCounting
+          (MeromorphicOn.divisor
+            (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η))
+            (Set.univ : Set ℂ)) R +
+        Real.log
+          ‖meromorphicTrailingCoeffAt
+            (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η)) 0‖) /
+        (2 * Real.log r) -
+      Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖ /
+        (2 * Real.log r) +
+      1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
+  rw [backlundEccentricJensenZeroCountRhsEntire,
+    backlundEccentricJensenIntegralEntire_eq_two_pi_mul_logCounting_add_trailingCoeff
+      (N := N) (T := T) (η := η) (R := R) hR]
+  field_simp [Real.pi_ne_zero, hr]
+  ring
+
 theorem midpointReflectedProduct_zetaSurrogate_eq (z : ℂ) :
     midpointReflectedProduct zetaSurrogate z =
       zetaSurrogate z * zetaSurrogate ((1 : ℂ) - z) := by
