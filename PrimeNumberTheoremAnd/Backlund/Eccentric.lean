@@ -260,6 +260,18 @@ theorem phaseLiftOfNonzeroPath_exp_phase {a b : ℝ} (h : a < b)
       unitNormalize (f x) (hf x) :=
   (phaseLiftOfNonzeroPath h f hf).exp_phase x
 
+theorem phaseLiftOfNonzeroPath_phase_left {a b : ℝ} (h : a < b)
+    (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0) :
+    (phaseLiftOfNonzeroPath h f hf).phase ⟨a, by exact ⟨le_rfl, h.le⟩⟩ =
+      (((normalizeNonzeroPath f hf) ⟨a, by exact ⟨le_rfl, h.le⟩⟩ : Circle) : ℂ).arg := by
+  have hmap : (iccHomeoI a b h) ⟨a, by exact ⟨le_rfl, h.le⟩⟩ = (0 : unitInterval) := by
+    apply Subtype.ext
+    rw [iccHomeoI_apply_coe]
+    simp
+  dsimp [phaseLiftOfNonzeroPath, phaseLiftOfCirclePath]
+  rw [hmap]
+  exact Circle.isCoveringMap_exp.liftPath_zero _ _ _
+
 theorem phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral {a b : ℝ}
     (h : a < b) {F q : ℝ → ℂ}
     (hF_cont : Continuous F)
@@ -708,6 +720,49 @@ theorem HIntegral_logDeriv_backlundA_conj (x₁ x₂ T : ℝ) :
   change logDeriv backlundA ((x : ℂ) + ((-T : ℝ) : ℂ) * Complex.I) =
     star (logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
   rw [hpoint, logDeriv_backlundA_conj]
+
+theorem HIntegral_logDeriv_backlundA_eq_integral_from_zero_add (x₀ d T : ℝ) :
+    HIntegral (logDeriv backlundA) x₀ (x₀ + d) T =
+      ∫ u in (0 : ℝ)..d,
+        logDeriv backlundA (((x₀ + u : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+  have h := intervalIntegral.integral_comp_add_right
+    (f := fun x : ℝ => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
+    (a := (0 : ℝ)) (b := d) (d := x₀)
+  rw [HIntegral]
+  calc
+    ∫ x in x₀..x₀ + d, logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I)
+        = ∫ u in (0 : ℝ)..d,
+            logDeriv backlundA (((u + x₀ : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+          simpa [zero_add, add_comm, add_left_comm, add_assoc] using h.symm
+    _ = ∫ u in (0 : ℝ)..d,
+          logDeriv backlundA (((x₀ + u : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+          apply intervalIntegral.integral_congr
+          intro u _hu
+          ring_nf
+
+theorem HIntegral_logDeriv_backlundA_eq_integral_from_zero_sub (x₀ d T : ℝ) :
+    HIntegral (logDeriv backlundA) x₀ (x₀ - d) T =
+      ∫ u in (0 : ℝ)..d,
+        -logDeriv backlundA (((x₀ - u : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+  let f : ℝ → ℂ := fun x => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I)
+  have h := intervalIntegral.integral_comp_sub_left
+    (f := f) (a := (0 : ℝ)) (b := d) (d := x₀)
+  rw [HIntegral]
+  calc
+    ∫ x in x₀..x₀ - d, logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I)
+        = -∫ x in x₀ - d..x₀,
+            logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I) := by
+          rw [intervalIntegral.integral_symm]
+    _ = -∫ u in (0 : ℝ)..d,
+          logDeriv backlundA (((x₀ - u : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+          have h' :
+              ∫ u in (0 : ℝ)..d, f (x₀ - u) =
+                ∫ x in x₀ - d..x₀, f x := by
+            simpa only [sub_zero] using h
+          simpa [f] using (congrArg Neg.neg h').symm
+    _ = ∫ u in (0 : ℝ)..d,
+          -logDeriv backlundA (((x₀ - u : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+          rw [intervalIntegral.integral_neg]
 
 theorem differentiableAt_backlundA {s : ℂ} (hs : s ≠ 1) :
     DifferentiableAt ℂ backlundA s := by
@@ -1465,6 +1520,59 @@ theorem backlundAHorizontalArgumentVariation_eq_neg_height_symm (x₁ x₂ T : �
   rw [backlundAHorizontalArgumentVariation_neg_height,
     backlundAHorizontalArgumentVariation_symm]
 
+theorem phaseLift_change_eq_backlundAHorizontalPathFromArgumentVariation_at
+    {x₀ D T : ℝ} (hD : (0 : ℝ) < D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalPathFrom x₀ D T hT x ≠ 0)
+    (hI_cont : Continuous fun x : Set.Icc (0 : ℝ) D =>
+      ∫ u in (0 : ℝ)..(x : ℝ),
+        logDeriv backlundA (((x₀ + u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+    (hExp : ∀ x : Set.Icc (0 : ℝ) D,
+      Complex.exp (∫ u in (0 : ℝ)..(x : ℝ),
+          logDeriv backlundA (((x₀ + u : ℝ) : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundAHorizontalPathFrom x₀ D T hT x /
+          backlundAHorizontalPathFrom x₀ D T hT ⟨0, by exact ⟨le_rfl, hD.le⟩⟩)
+    (x : Set.Icc (0 : ℝ) D) :
+    (phaseLiftOfNonzeroPath hD (backlundAHorizontalPathFrom x₀ D T hT) hf).change
+        ⟨0, by exact ⟨le_rfl, hD.le⟩⟩
+        x =
+      backlundAHorizontalArgumentVariation x₀ (x₀ + (x : ℝ)) T := by
+  have hphase :=
+    phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral_on_at
+      (a := (0 : ℝ)) (b := D) (q := fun u : ℝ =>
+        logDeriv backlundA (((x₀ + u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+      hD (backlundAHorizontalPathFrom x₀ D T hT) hf hI_cont hExp x
+  rw [hphase]
+  rw [backlundAHorizontalArgumentVariation,
+    HIntegral_logDeriv_backlundA_eq_integral_from_zero_add]
+
+theorem phaseLift_change_eq_backlundAHorizontalLeftPathFromCenterArgumentVariation_at
+    {D T : ℝ} (hD : (0 : ℝ) < D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (hI_cont : Continuous fun x : Set.Icc (0 : ℝ) D =>
+      ∫ u in (0 : ℝ)..(x : ℝ),
+        -logDeriv backlundA ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+    (hExp : ∀ x : Set.Icc (0 : ℝ) D,
+      Complex.exp (∫ u in (0 : ℝ)..(x : ℝ),
+          -logDeriv backlundA
+            ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundAHorizontalLeftPathFromCenter D T hT x /
+          backlundAHorizontalLeftPathFromCenter D T hT
+            ⟨0, by exact ⟨le_rfl, hD.le⟩⟩)
+    (x : Set.Icc (0 : ℝ) D) :
+    (phaseLiftOfNonzeroPath hD (backlundAHorizontalLeftPathFromCenter D T hT) hf).change
+        ⟨0, by exact ⟨le_rfl, hD.le⟩⟩
+        x =
+      backlundAHorizontalArgumentVariation (1 / 2) ((1 / 2 : ℝ) - (x : ℝ)) T := by
+  have hphase :=
+    phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral_on_at
+      (a := (0 : ℝ)) (b := D) (q := fun u : ℝ =>
+        -logDeriv backlundA
+          ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+      hD (backlundAHorizontalLeftPathFromCenter D T hT) hf hI_cont hExp x
+  rw [hphase]
+  rw [backlundAHorizontalArgumentVariation,
+    HIntegral_logDeriv_backlundA_eq_integral_from_zero_sub]
+
 theorem phaseLift_change_eq_backlundAHorizontalArgumentVariation_at
     {x₁ x₂ T : ℝ} (h : x₁ < x₂)
     (hs1 : ∀ x ∈ Set.Icc x₁ x₂,
@@ -1618,6 +1726,52 @@ theorem backlundArgumentSymmetryDefect_self (T : ℝ) :
   rw [backlundArgumentSymmetryDefect]
   norm_num
   simp [backlundAHorizontalArgumentVariation_self]
+
+theorem selectedPhaseLift_change_sum_eq_backlundArgumentSymmetryDefect_at
+    {D T : ℝ} (hD : (0 : ℝ) < D) (hT : T ≠ 0)
+    (hfR : ∀ x, backlundAHorizontalPathFrom (1 / 2) D T hT x ≠ 0)
+    (hfL : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (hIR : Continuous fun x : Set.Icc (0 : ℝ) D =>
+      ∫ u in (0 : ℝ)..(x : ℝ),
+        logDeriv backlundA ((((1 / 2 : ℝ) + u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+    (hExpR : ∀ x : Set.Icc (0 : ℝ) D,
+      Complex.exp (∫ u in (0 : ℝ)..(x : ℝ),
+          logDeriv backlundA
+            ((((1 / 2 : ℝ) + u : ℝ) : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundAHorizontalPathFrom (1 / 2) D T hT x /
+          backlundAHorizontalPathFrom (1 / 2) D T hT
+            ⟨0, by exact ⟨le_rfl, hD.le⟩⟩)
+    (hIL : Continuous fun x : Set.Icc (0 : ℝ) D =>
+      ∫ u in (0 : ℝ)..(x : ℝ),
+        -logDeriv backlundA ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+    (hExpL : ∀ x : Set.Icc (0 : ℝ) D,
+      Complex.exp (∫ u in (0 : ℝ)..(x : ℝ),
+          -logDeriv backlundA
+            ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundAHorizontalLeftPathFromCenter D T hT x /
+          backlundAHorizontalLeftPathFromCenter D T hT
+            ⟨0, by exact ⟨le_rfl, hD.le⟩⟩)
+    (x : Set.Icc (0 : ℝ) D) :
+    (phaseLiftOfNonzeroPath hD
+          (backlundAHorizontalPathFrom (1 / 2) D T hT) hfR).change
+        ⟨0, by exact ⟨le_rfl, hD.le⟩⟩ x +
+      (phaseLiftOfNonzeroPath hD
+          (backlundAHorizontalLeftPathFromCenter D T hT) hfL).change
+        ⟨0, by exact ⟨le_rfl, hD.le⟩⟩ x =
+      backlundArgumentSymmetryDefect ((1 / 2 : ℝ) + (x : ℝ)) T := by
+  have hR :=
+    phaseLift_change_eq_backlundAHorizontalPathFromArgumentVariation_at
+      (x₀ := (1 / 2 : ℝ)) (D := D) (T := T)
+      hD hT hfR hIR hExpR x
+  have hL :=
+    phaseLift_change_eq_backlundAHorizontalLeftPathFromCenterArgumentVariation_at
+      (D := D) (T := T) hD hT hfL hIL hExpL x
+  rw [hR, hL, backlundArgumentSymmetryDefect]
+  have hxarg : (1 : ℝ) - ((1 / 2 : ℝ) + (x : ℝ)) = (1 / 2 : ℝ) - (x : ℝ) := by
+    ring
+  rw [hxarg]
+  rw [backlundAHorizontalArgumentVariation_eq_neg_height_symm
+    (x₁ := (1 / 2 : ℝ)) (x₂ := (1 / 2 : ℝ) - (x : ℝ)) (T := T)]
 
 /-- The high-height gamma/functional-equation error budget used in lemma 4. -/
 noncomputable def backlundArgumentSymmetryErrorBound (T₀ : ℝ) : ℝ :=
