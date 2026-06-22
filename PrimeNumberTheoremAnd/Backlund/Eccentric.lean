@@ -1014,6 +1014,167 @@ noncomputable def midpointReflectedProductMajorant (Q C₀ C₁ : ℝ) (z : ℂ)
       Complex.log ((Q : ℂ) + z) *
       Complex.log ((((Q + 1 : ℝ) : ℂ) - z)))
 
+theorem zetaSurrogate_conj (z : ℂ) :
+    zetaSurrogate (star z) = star (zetaSurrogate z) := by
+  by_cases hz : z = 1
+  · subst hz
+    simp [zetaSurrogate]
+  · have hstar : star z ≠ 1 := by
+      intro h
+      have h' := congrArg (starRingEnd ℂ) h
+      exact hz (by simpa [Complex.conj_conj] using h')
+    rw [zetaSurrogate, if_neg hstar]
+    rw [show zetaSurrogate z = (z - 1) * riemannZeta z by simp [zetaSurrogate, hz]]
+    simp [riemannZeta_conj]
+
+theorem midpointReflectedProduct_zetaSurrogate_eq (z : ℂ) :
+    midpointReflectedProduct zetaSurrogate z =
+      zetaSurrogate z * zetaSurrogate ((1 : ℂ) - z) := by
+  unfold midpointReflectedProduct
+  have harg : (1 : ℂ) - star z = star ((1 : ℂ) - z) := by
+    simp
+  rw [harg, zetaSurrogate_conj]
+  simp
+
+/-- Reflected shifted base `Q + 1 - z` stays off the log branch cut on a strip. -/
+theorem reflectedShifted_mem_slitPlane_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (0 : ℝ) < Q + 1 - σ₁)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    (((Q + 1 : ℝ) : ℂ) - z) ∈ Complex.slitPlane := by
+  refine Or.inl ?_
+  have hzre : z.re ≤ σ₁ := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.2
+  have hpos : (0 : ℝ) < Q + 1 - z.re := by nlinarith
+  simpa [Complex.sub_re] using hpos
+
+theorem reflectedShifted_log_ne_zero_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (1 : ℝ) < Q + 1 - σ₁)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    Complex.log ((((Q + 1 : ℝ) : ℂ) - z)) ≠ 0 := by
+  apply log_ne_zero_of_one_lt_re
+  have hzre : z.re ≤ σ₁ := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.2
+  have hpos : (1 : ℝ) < Q + 1 - z.re := by nlinarith
+  simpa [Complex.sub_re] using hpos
+
+theorem reflectedShifted_log_mem_slitPlane_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
+    (hQ : (1 : ℝ) < Q + 1 - σ₁)
+    (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip σ₀ σ₁) :
+    Complex.log ((((Q + 1 : ℝ) : ℂ) - z)) ∈ Complex.slitPlane := by
+  refine Or.inl ?_
+  rw [Complex.log_re]
+  apply Real.log_pos
+  have hzre : z.re ≤ σ₁ := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.2
+  have hpos : (1 : ℝ) < ((((Q + 1 : ℝ) : ℂ) - z).re) := by
+    simp [Complex.sub_re]
+    nlinarith
+  exact lt_of_lt_of_le hpos (Complex.re_le_norm _)
+
+theorem reflectedShifted_log_diffContOnCl_on_verticalStrip {Q σ₀ σ₁ : ℝ}
+    (hσ : σ₀ < σ₁) (hQ : (0 : ℝ) < Q + 1 - σ₁) :
+    DiffContOnCl ℂ (fun z : ℂ => Complex.log ((((Q + 1 : ℝ) : ℂ) - z)))
+      (Complex.HadamardThreeLines.verticalStrip σ₀ σ₁) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne]
+  exact ((differentiableOn_const (((Q + 1 : ℝ) : ℂ))).sub differentiableOn_id).clog
+    (fun z hz => reflectedShifted_mem_slitPlane_on_verticalClosedStrip hQ hz)
+
+theorem midpointReflectedProductMajorant_ne_zero_on_verticalClosedStrip
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : C₀ ≠ 0) (hC₁ : C₁ ≠ 0)
+    {z : ℂ} (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1) :
+    midpointReflectedProductMajorant Q C₀ C₁ z ≠ 0 := by
+  unfold midpointReflectedProductMajorant
+  refine mul_ne_zero ?_ ?_
+  · exact_mod_cast mul_ne_zero hC₀ hC₁
+  · refine mul_ne_zero ?_ ?_
+    · refine mul_ne_zero ?_ ?_
+      · refine mul_ne_zero ?_ ?_
+        · rw [Complex.cpow_ne_zero_iff]
+          exact Or.inl (Complex.slitPlane_ne_zero
+            (shifted_mem_slitPlane_on_verticalClosedStrip
+              (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz))
+        · exact Complex.slitPlane_ne_zero
+            (reflectedShifted_mem_slitPlane_on_verticalClosedStrip
+              (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz)
+      · exact shifted_log_ne_zero_on_verticalClosedStrip
+          (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz
+    · exact reflectedShifted_log_ne_zero_on_verticalClosedStrip
+        (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz
+
+theorem midpointReflectedProductMajorant_diffContOnCl_on_verticalStrip
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) :
+    DiffContOnCl ℂ (midpointReflectedProductMajorant Q C₀ C₁)
+      (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+  refine DifferentiableOn.diffContOnCl ?_
+  rw [verticalStrip_closure_eq_verticalClosedStrip (by norm_num : (0 : ℝ) ≠ 1)]
+  unfold midpointReflectedProductMajorant
+  have hpow : DifferentiableOn ℂ (fun z : ℂ => ((Q : ℂ) + z) ^ (((3 / 2 : ℝ) : ℂ)))
+      (Complex.HadamardThreeLines.verticalClosedStrip 0 1) :=
+    ((differentiableOn_const (Q : ℂ)).add differentiableOn_id).cpow_const
+      (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip
+        (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz)
+  have hlinear : DifferentiableOn ℂ (fun z : ℂ => (((Q + 1 : ℝ) : ℂ) - z))
+      (Complex.HadamardThreeLines.verticalClosedStrip 0 1) := by
+    fun_prop
+  have hlog : DifferentiableOn ℂ (fun z : ℂ => Complex.log ((Q : ℂ) + z))
+      (Complex.HadamardThreeLines.verticalClosedStrip 0 1) :=
+    ((differentiableOn_const (Q : ℂ)).add differentiableOn_id).clog
+      (fun z hz => shifted_mem_slitPlane_on_verticalClosedStrip
+        (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz)
+  have hreflectedLog : DifferentiableOn ℂ
+      (fun z : ℂ => Complex.log ((((Q + 1 : ℝ) : ℂ) - z)))
+      (Complex.HadamardThreeLines.verticalClosedStrip 0 1) :=
+    ((differentiableOn_const (((Q + 1 : ℝ) : ℂ))).sub differentiableOn_id).clog
+      (fun z hz => reflectedShifted_mem_slitPlane_on_verticalClosedStrip
+        (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz)
+  exact (differentiableOn_const (((C₀ * C₁ : ℝ) : ℂ))).mul
+    (((hpow.mul hlinear).mul hlog).mul hreflectedLog)
+
+theorem zetaSurrogate_midpointReflectedProduct_PL_inputs
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : C₀ ≠ 0) (hC₁ : C₁ ≠ 0) :
+    (∀ w ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1,
+      midpointReflectedProductMajorant Q C₀ C₁ w ≠ 0) ∧
+    DiffContOnCl ℂ
+      (fun w => midpointReflectedProduct zetaSurrogate w /
+        midpointReflectedProductMajorant Q C₀ C₁ w)
+      (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+  constructor
+  · intro w hw
+    exact midpointReflectedProductMajorant_ne_zero_on_verticalClosedStrip hQ hC₀ hC₁ hw
+  · have hσ : (0 : ℝ) < 1 := by norm_num
+    have hsurrogate : DiffContOnCl ℂ zetaSurrogate
+        (Complex.HadamardThreeLines.verticalStrip 0 1) :=
+      zetaSurrogate_differentiable.diffContOnCl
+    have hreflectArg : DiffContOnCl ℂ (fun w : ℂ => (1 : ℂ) - w)
+        (Complex.HadamardThreeLines.verticalStrip 0 1) :=
+      ((differentiable_const (1 : ℂ)).sub differentiable_id).diffContOnCl
+    have hreflectSurrogate : DiffContOnCl ℂ (fun w : ℂ => zetaSurrogate ((1 : ℂ) - w))
+        (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+      simpa [Function.comp_def] using
+        zetaSurrogate_differentiable.comp_diffContOnCl hreflectArg
+    have hnumerator : DiffContOnCl ℂ
+        (fun w : ℂ => zetaSurrogate w * zetaSurrogate ((1 : ℂ) - w))
+        (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+      simpa [smul_eq_mul] using hsurrogate.smul hreflectSurrogate
+    have hmajorant : DiffContOnCl ℂ (midpointReflectedProductMajorant Q C₀ C₁)
+        (Complex.HadamardThreeLines.verticalStrip 0 1) :=
+      midpointReflectedProductMajorant_diffContOnCl_on_verticalStrip hQ
+    have hmajorant_inv : DiffContOnCl ℂ
+        (fun w => (midpointReflectedProductMajorant Q C₀ C₁ w)⁻¹)
+        (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+      refine hmajorant.inv ?_
+      intro w hw
+      rw [verticalStrip_closure_eq_verticalClosedStrip hσ.ne] at hw
+      exact midpointReflectedProductMajorant_ne_zero_on_verticalClosedStrip hQ hC₀ hC₁ hw
+    have hquot : DiffContOnCl ℂ
+        (fun w => (zetaSurrogate w * zetaSurrogate ((1 : ℂ) - w)) /
+          midpointReflectedProductMajorant Q C₀ C₁ w)
+        (Complex.HadamardThreeLines.verticalStrip 0 1) := by
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using
+        hmajorant_inv.smul hnumerator
+    simpa [midpointReflectedProduct_zetaSurrogate_eq] using hquot
+
 private theorem one_sub_star_midline (t : ℝ) :
     (1 : ℂ) - star ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) =
       (1 / 2 : ℂ) + (t : ℂ) * Complex.I := by
