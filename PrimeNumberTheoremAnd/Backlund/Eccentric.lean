@@ -1525,6 +1525,107 @@ theorem zetaSurrogate_midpointReflectedProduct_quotient_norm_le_exp_quadratic
           (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) / D :=
           div_le_div_of_nonneg_right (hC z) hDpos.le
 
+private lemma one_add_norm_le_two_mul_exp_abs_im_of_re_mem_Ioo {z : ℂ}
+    (hz : z.re ∈ Set.Ioo (0 : ℝ) 1) :
+    1 + ‖z‖ ≤ 2 * Real.exp |z.im| := by
+  have hz_re_icc : z.re ∈ Set.Icc (-1 : ℝ) 1 := by
+    exact ⟨by linarith [hz.1], le_of_lt hz.2⟩
+  have hnorm : ‖z‖ ≤ |z.im| + 1 := by
+    calc ‖z‖
+        = ‖(z.re : ℂ) + (z.im : ℂ) * Complex.I‖ := by rw [Complex.re_add_im]
+      _ ≤ ‖(z.re : ℂ)‖ + ‖(z.im : ℂ) * Complex.I‖ := norm_add_le _ _
+      _ = |z.re| + |z.im| := by
+          rw [Complex.norm_real, norm_mul, Complex.norm_I, Complex.norm_real]
+          simp only [norm_eq_abs, mul_one]
+      _ ≤ 1 + |z.im| := by
+          have hre : |z.re| ≤ 1 := abs_le.mpr hz_re_icc
+          linarith
+      _ = |z.im| + 1 := by ring
+  calc
+    1 + ‖z‖ ≤ |z.im| + 2 := by linarith
+    _ ≤ 2 * (1 + |z.im|) := by nlinarith [abs_nonneg z.im]
+    _ ≤ 2 * Real.exp |z.im| :=
+        mul_le_mul_of_nonneg_left
+          (by simpa [add_comm] using Real.add_one_le_exp |z.im|) (by norm_num)
+
+private lemma reflected_quadratic_le_eight_exp_two_abs_im {z : ℂ}
+    (hz : z.re ∈ Set.Ioo (0 : ℝ) 1) :
+    (1 + ‖z‖) ^ (2 : ℝ) + (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ) ≤
+      8 * Real.exp (2 * |z.im|) := by
+  have hz_ref : ((1 : ℂ) - star z).re ∈ Set.Ioo (0 : ℝ) 1 := by
+    simp only [RCLike.star_def, Complex.sub_re, Complex.one_re, Complex.conj_re,
+      Set.mem_Ioo, sub_pos, sub_lt_self_iff]
+    exact ⟨by linarith [hz.2], by linarith [hz.1]⟩
+  have hz_bound := one_add_norm_le_two_mul_exp_abs_im_of_re_mem_Ioo hz
+  have href_bound :=
+    one_add_norm_le_two_mul_exp_abs_im_of_re_mem_Ioo hz_ref
+  have href_bound' :
+      1 + ‖(1 : ℂ) - star z‖ ≤ 2 * Real.exp |z.im| := by
+    simpa [Complex.sub_im] using href_bound
+  have hpos_z : 0 ≤ 1 + ‖z‖ := by positivity
+  have hpos_ref : 0 ≤ 1 + ‖(1 : ℂ) - star z‖ := by positivity
+  have hexp_pos : 0 < Real.exp |z.im| := Real.exp_pos _
+  have hz_sq :
+      (1 + ‖z‖) ^ 2 ≤ (2 * Real.exp |z.im|) ^ 2 := by
+    nlinarith
+  have href_sq :
+      (1 + ‖(1 : ℂ) - star z‖) ^ 2 ≤ (2 * Real.exp |z.im|) ^ 2 := by
+    nlinarith
+  have hexp_sq : (2 * Real.exp |z.im|) ^ 2 = 4 * Real.exp (2 * |z.im|) := by
+    rw [sq, show 2 * |z.im| = |z.im| + |z.im| by ring, Real.exp_add]
+    ring
+  rw [Real.rpow_two, Real.rpow_two]
+  nlinarith
+
+theorem zetaSurrogate_midpointReflectedProduct_PL_growth
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁) :
+    ∃ c < Real.pi / ((1 : ℝ) - 0), ∃ B,
+      (fun z => midpointReflectedProduct zetaSurrogate z /
+          midpointReflectedProductMajorant Q C₀ C₁ z)
+        =O[Filter.comap (_root_.abs ∘ Complex.im) Filter.atTop ⊓
+            Filter.principal (Complex.re ⁻¹' Set.Ioo 0 1)]
+          fun z => Real.exp (B * Real.exp (c * |z.im|)) := by
+  obtain ⟨C, hCpos, hC⟩ :=
+    zetaSurrogate_midpointReflectedProduct_quotient_norm_le_exp_quadratic
+      hQ hC₀ hC₁
+  set D : ℝ := (C₀ * C₁) * (Q ^ (5 / 2 : ℝ) * (Real.log Q) ^ 2)
+  have hDpos : 0 < D := by
+    have hlog : 0 < Real.log Q := Real.log_pos hQ
+    have hpow : 0 < Q ^ (5 / 2 : ℝ) := Real.rpow_pos_of_pos (by linarith) _
+    dsimp [D]
+    positivity
+  refine ⟨2, by
+    have htwo_lt_pi : (2 : ℝ) < Real.pi := by linarith [Real.pi_gt_three]
+    simpa using htwo_lt_pi, 8 * C, ?_⟩
+  apply Asymptotics.IsBigO.of_bound D⁻¹
+  filter_upwards [Filter.mem_inf_of_right (Filter.mem_principal_self
+    (Complex.re ⁻¹' Set.Ioo (0 : ℝ) 1))] with z hzstrip
+  have hzre : z.re ∈ Set.Ioo (0 : ℝ) 1 := by
+    simpa using hzstrip
+  have hzclosed : z ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1 := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using
+      (show z.re ∈ Set.Icc (0 : ℝ) 1 from ⟨le_of_lt hzre.1, le_of_lt hzre.2⟩)
+  have hquot := hC z hzclosed
+  have hquad := reflected_quadratic_le_eight_exp_two_abs_im hzre
+  have hexp_le :
+      Real.exp (C * ((1 + ‖z‖) ^ (2 : ℝ) +
+          (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) ≤
+        Real.exp ((8 * C) * Real.exp (2 * |z.im|)) := by
+    refine Real.exp_le_exp.2 ?_
+    have hexp_nonneg : 0 ≤ Real.exp (2 * |z.im|) := (Real.exp_pos _).le
+    nlinarith
+  calc
+    ‖midpointReflectedProduct zetaSurrogate z /
+        midpointReflectedProductMajorant Q C₀ C₁ z‖
+        ≤ Real.exp (C * ((1 + ‖z‖) ^ (2 : ℝ) +
+          (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) / D := by
+          simpa [D] using hquot
+    _ ≤ Real.exp ((8 * C) * Real.exp (2 * |z.im|)) / D :=
+          div_le_div_of_nonneg_right hexp_le hDpos.le
+    _ = D⁻¹ * ‖Real.exp ((8 * C) * Real.exp (2 * |z.im|))‖ := by
+          rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+          ring
+
 theorem midpointReflectedProductMajorant_diffContOnCl_on_verticalStrip
     {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) :
     DiffContOnCl ℂ (midpointReflectedProductMajorant Q C₀ C₁)
