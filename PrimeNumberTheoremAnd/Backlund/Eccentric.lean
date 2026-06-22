@@ -2142,6 +2142,68 @@ theorem zetaSurrogate_midpoint_norm_sq_le_majorant {Q t : ℝ} (hQ : (1 : ℝ) <
     (zetaSurrogate_midpointReflectedProduct_PL_growth hQ hC₀ hC₁)
     hleft hright
 
+theorem A_critical_line_quarter_log {Q t : ℝ} (hQ : (1 : ℝ) < Q) :
+    ∃ k₁ > 0,
+      ‖backlundA ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        k₁ * (‖(Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ (5 / 4 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I))‖) := by
+  obtain ⟨C₀, hC₀, C₁, hC₁, hsquare⟩ :=
+    zetaSurrogate_midpoint_norm_sq_le_majorant (Q := Q) (t := t) hQ
+  let z : ℂ := (1 / 2 : ℂ) + (t : ℂ) * Complex.I
+  let R : ℝ := ‖(Q : ℂ) + z‖
+  let L : ℝ := ‖Complex.log ((Q : ℂ) + z)‖
+  let k₁ : ℝ := Real.sqrt (C₀ * C₁)
+  have hRpos : 0 < R := by
+    apply norm_pos_iff.mpr
+    intro h
+    have hre := congrArg Complex.re h
+    simp [z, Complex.add_re, Complex.mul_re] at hre
+    linarith
+  have hLpos : 0 < L := by
+    apply norm_pos_iff.mpr
+    exact log_ne_zero_of_one_lt_re (by simp [z, Complex.add_re, Complex.mul_re]; linarith)
+  have hksq : k₁ ^ 2 = C₀ * C₁ := by
+    simpa [k₁] using Real.sq_sqrt (mul_nonneg hC₀.le hC₁.le)
+  have hRpow :
+      (R ^ (5 / 4 : ℝ)) ^ 2 = R ^ (5 / 2 : ℝ) := by
+    rw [sq, ← Real.rpow_add hRpos]
+    norm_num
+  have hmajorant_norm :
+      ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ =
+        C₀ * C₁ * R ^ (5 / 2 : ℝ) * L ^ 2 := by
+    rw [show z = (1 / 2 : ℂ) + (t : ℂ) * Complex.I by rfl]
+    rw [midpointReflectedProductMajorant_norm_midline (Q := Q) (C₀ := C₀)
+      (C₁ := C₁) (t := t) hQ]
+    rw [abs_of_pos hC₀, abs_of_pos hC₁]
+  have htarget_sq :
+      ‖zetaSurrogate z‖ ^ 2 ≤
+        (k₁ * (R ^ (5 / 4 : ℝ) * L)) ^ 2 := by
+    have hsquare' :
+        ‖zetaSurrogate z‖ ^ 2 ≤ ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := by
+      simpa [z] using hsquare
+    calc
+      ‖zetaSurrogate z‖ ^ 2
+          ≤ ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := hsquare'
+      _ = C₀ * C₁ * R ^ (5 / 2 : ℝ) * L ^ 2 := hmajorant_norm
+      _ = (k₁ * (R ^ (5 / 4 : ℝ) * L)) ^ 2 := by
+          rw [mul_pow, mul_pow, hksq, hRpow]
+          ring
+  have htarget_nonneg : 0 ≤ k₁ * (R ^ (5 / 4 : ℝ) * L) := by
+    positivity
+  have hsurrogate_le :
+      ‖zetaSurrogate z‖ ≤ k₁ * (R ^ (5 / 4 : ℝ) * L) :=
+    (sq_le_sq₀ (norm_nonneg _) htarget_nonneg).mp htarget_sq
+  have hz_ne : z ≠ 1 := by
+    intro hz
+    have hre := congrArg Complex.re hz
+    simp [z, Complex.add_re, Complex.mul_re] at hre
+  have hsurrogate_eq : zetaSurrogate z = backlundA z := by
+    simp [zetaSurrogate, backlundA, hz_ne]
+  refine ⟨k₁, by positivity, ?_⟩
+  rw [show ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) = z by rfl]
+  rw [← hsurrogate_eq]
+  simpa [R, L] using hsurrogate_le
+
 /--
 The fixed shifted log-power quotient for the entire zeta surrogate has the
 analytic side conditions needed by the PL shell on the strip `0 < re z < 1`.
