@@ -1547,6 +1547,60 @@ theorem midpointReflectedProductMajorant_norm_left_boundary
   rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, hreflect]
   simp [mul_comm, mul_left_comm, mul_assoc]
 
+theorem zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_edge_bounds
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁)
+    (hzero : ∀ t : ℝ,
+      ‖zetaSurrogate ((t : ℂ) * Complex.I)‖ ≤
+        C₀ * (‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖))
+    (hone : ∀ t : ℝ,
+      ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        C₁ * (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖)) :
+    ∀ t : ℝ,
+      ‖midpointReflectedProduct zetaSurrogate ((t : ℂ) * Complex.I) /
+        midpointReflectedProductMajorant Q C₀ C₁ ((t : ℂ) * Complex.I)‖ ≤ 1 := by
+  intro t
+  let D₀ : ℝ :=
+    ‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+      ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖
+  let D₁ : ℝ :=
+    ‖((Q + 1 : ℝ) : ℂ) + ((-t : ℝ) : ℂ) * Complex.I‖ *
+      ‖Complex.log (((Q + 1 : ℝ) : ℂ) + ((-t : ℝ) : ℂ) * Complex.I)‖
+  have hD₀_nonneg : 0 ≤ D₀ := by
+    exact mul_nonneg (Real.rpow_nonneg (norm_nonneg _) _) (norm_nonneg _)
+  have hD₁_nonneg : 0 ≤ D₁ := by
+    exact mul_nonneg (norm_nonneg _) (norm_nonneg _)
+  have hzero_t : ‖zetaSurrogate ((t : ℂ) * Complex.I)‖ ≤ C₀ * D₀ := by
+    simpa [D₀] using hzero t
+  have hone_neg_t :
+      ‖zetaSurrogate ((1 : ℂ) - (t : ℂ) * Complex.I)‖ ≤ C₁ * D₁ := by
+    have h := hone (-t)
+    simpa [D₁, sub_eq_add_neg, neg_mul] using h
+  have hnum :
+      ‖midpointReflectedProduct zetaSurrogate ((t : ℂ) * Complex.I)‖ ≤
+        (C₀ * D₀) * (C₁ * D₁) := by
+    rw [midpointReflectedProduct_zetaSurrogate_eq, norm_mul]
+    exact mul_le_mul hzero_t hone_neg_t
+      (norm_nonneg _) (mul_nonneg hC₀.le hD₀_nonneg)
+  have hmaj_norm :
+      ‖midpointReflectedProductMajorant Q C₀ C₁ ((t : ℂ) * Complex.I)‖ =
+        (C₀ * D₀) * (C₁ * D₁) := by
+    rw [midpointReflectedProductMajorant_norm_left_boundary (Q := Q) (C₀ := C₀)
+      (C₁ := C₁) (t := t) hQ]
+    rw [abs_of_pos hC₀, abs_of_pos hC₁]
+    ring
+  have hzstrip :
+      ((t : ℂ) * Complex.I) ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1 := by
+    simp [Complex.HadamardThreeLines.verticalClosedStrip, Complex.mul_re]
+  have hmajorant_pos :
+      0 < ‖midpointReflectedProductMajorant Q C₀ C₁ ((t : ℂ) * Complex.I)‖ :=
+    norm_pos_iff.mpr
+      (midpointReflectedProductMajorant_ne_zero_on_verticalClosedStrip hQ hC₀.ne'
+        hC₁.ne' hzstrip)
+  rw [norm_div]
+  exact (div_le_iff₀ hmajorant_pos).2 (by simpa [hmaj_norm] using hnum)
+
 /--
 Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
 has PL growth and unit boundary control on the two strip edges, its midpoint
