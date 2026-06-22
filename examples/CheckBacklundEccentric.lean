@@ -15,6 +15,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.phaseLiftOfNonzeroPath
 #check Backlund.phaseLiftOfNonzeroPath_exp_phase
 #check Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
+#check Backlund.phaseLiftOfNonzeroPath_re_pow_eq_zero_iff
 #check Backlund.firstHitSubtypeSet
 #check Backlund.firstHitRealSet
 #check Backlund.firstHitPoint
@@ -25,6 +26,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_isLeast
 #check Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
 #check Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
+#check Backlund.firstHit_phaseLift_re_pow_eq_zero
 #check Backlund.backlundA
 #check Backlund.backlundA_conj
 #check Kadiri.zeta_logDeriv_functional_eq
@@ -194,6 +196,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.phaseLiftOfNonzeroPath
 #print axioms Backlund.phaseLiftOfNonzeroPath_exp_phase
 #print axioms Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
+#print axioms Backlund.phaseLiftOfNonzeroPath_re_pow_eq_zero_iff
 #print axioms Backlund.firstHitSubtypeSet
 #print axioms Backlund.firstHitRealSet
 #print axioms Backlund.firstHitPoint
@@ -204,6 +207,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.firstHit_isLeast
 #print axioms Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
 #print axioms Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
+#print axioms Backlund.firstHit_phaseLift_re_pow_eq_zero
 #print axioms Backlund.backlundA
 #print axioms Backlund.backlundA_conj
 #print axioms Kadiri.zeta_logDeriv_functional_eq

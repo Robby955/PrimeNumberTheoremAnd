@@ -184,6 +184,14 @@ theorem re_pow_eq_zero_iff_cos_phase_eq_zero (N : ℕ) {z : ℂ} {θ : ℝ}
   · intro h
     simp [h]
 
+theorem phaseLiftOfNonzeroPath_re_pow_eq_zero_iff {a b : ℝ} (h : a < b)
+    (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0) (N : ℕ)
+    (x : Set.Icc a b) :
+    (f x ^ N).re = 0 ↔
+      Real.cos ((N : ℝ) * (phaseLiftOfNonzeroPath h f hf).phase x) = 0 := by
+  exact re_pow_eq_zero_iff_cos_phase_eq_zero N (hf x)
+    (phaseLiftOfNonzeroPath_exp_phase h f hf x)
+
 def firstHitSubtypeSet {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ)) (target : ℝ) :
     Set (Set.Icc (0 : ℝ) D) :=
   {x | u x = target}
@@ -320,6 +328,19 @@ theorem firstHit_lt_firstHit_of_start_lt_of_target_lt {D : ℝ}
   have hval₁_at_d₂ : u ⟨d₂, hd₂⟩ = target₁ := by
     simpa [hsubeq] using hval₁
   linarith
+
+theorem firstHit_phaseLift_re_pow_eq_zero {D : ℝ}
+    (f : C(Set.Icc (0 : ℝ) D, ℂ)) (hf : ∀ x, f x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath f hf)) (N : ℕ) {target : ℝ}
+    (hcos : Real.cos ((N : ℝ) * target) = 0)
+    (hne : (firstHitRealSet D θ.phase target).Nonempty) :
+    (f (firstHitPoint θ.phase target hne) ^ N).re = 0 := by
+  have hphase : θ.phase (firstHitPoint θ.phase target hne) = target :=
+    (firstHitPoint_isLeast θ.phase target hne).1
+  exact (re_pow_eq_zero_iff_cos_phase_eq_zero N
+    (hf (firstHitPoint θ.phase target hne))
+    (θ.exp_phase (firstHitPoint θ.phase target hne))).2
+    (by simpa [hphase] using hcos)
 
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 
