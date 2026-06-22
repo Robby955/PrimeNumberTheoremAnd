@@ -56,6 +56,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.zetaSurrogate_midpointReflectedProduct_right_boundary_le_one_of_re_eq_one
 #check Backlund.zetaSurrogate_midpointReflectedProduct_boundary_controls
 #check Backlund.midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip
+#check Backlund.zetaSurrogate_midpoint_norm_sq_le_majorant
 #check Backlund.zetaSurrogate_shiftedLogPower_PL_inputs
 
 #print axioms Backlund.eccentricHighRhs
@@ -114,4 +115,5 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.zetaSurrogate_midpointReflectedProduct_right_boundary_le_one_of_re_eq_one
 #print axioms Backlund.zetaSurrogate_midpointReflectedProduct_boundary_controls
 #print axioms Backlund.midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip
+#print axioms Backlund.zetaSurrogate_midpoint_norm_sq_le_majorant
 #print axioms Backlund.zetaSurrogate_shiftedLogPower_PL_inputs

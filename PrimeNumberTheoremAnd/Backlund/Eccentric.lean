@@ -2121,6 +2121,27 @@ theorem midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip {f : ℂ 
   rw [midpointReflectedProduct_norm_midline] at hproduct
   exact hproduct
 
+theorem zetaSurrogate_midpoint_norm_sq_le_majorant {Q t : ℝ} (hQ : (1 : ℝ) < Q) :
+    ∃ C₀ > 0, ∃ C₁ > 0,
+      ‖zetaSurrogate ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ 2 ≤
+        ‖midpointReflectedProductMajorant Q C₀ C₁
+          ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ := by
+  obtain ⟨C₀, hC₀, C₁, hC₁, hleft, hright⟩ :=
+    zetaSurrogate_midpointReflectedProduct_boundary_controls hQ
+  obtain ⟨hnonzero, hd⟩ :=
+    zetaSurrogate_midpointReflectedProduct_PL_inputs hQ hC₀.ne' hC₁.ne'
+  have hzmid :
+      ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) ∈
+        Complex.HadamardThreeLines.verticalClosedStrip 0 1 := by
+    simp [Complex.HadamardThreeLines.verticalClosedStrip, Complex.add_re, Complex.mul_re]
+    norm_num
+  refine ⟨C₀, hC₀, C₁, hC₁, ?_⟩
+  exact midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip
+    (f := zetaSurrogate) (Q := Q) (C₀ := C₀) (C₁ := C₁) (t := t)
+    (hnonzero _ hzmid) hd
+    (zetaSurrogate_midpointReflectedProduct_PL_growth hQ hC₀ hC₁)
+    hleft hright
+
 /--
 The fixed shifted log-power quotient for the entire zeta surrogate has the
 analytic side conditions needed by the PL shell on the strip `0 < re z < 1`.
