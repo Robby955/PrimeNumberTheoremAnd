@@ -1584,6 +1584,20 @@ theorem midpointReflectedProductMajorant_norm_right_boundary
   rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, hqz_eq, hreflect]
   simp [mul_comm, mul_left_comm, mul_assoc]
 
+private lemma rpow_three_halves_mul_le_swap {a b : ℝ}
+    (ha : 0 < a) (hb : 0 < b) (hab : a ≤ b) :
+    a ^ (3 / 2 : ℝ) * b ≤ b ^ (3 / 2 : ℝ) * a := by
+  have hhalf : a ^ (1 / 2 : ℝ) ≤ b ^ (1 / 2 : ℝ) :=
+    Real.rpow_le_rpow ha.le hab (by norm_num)
+  have ha32 : a ^ (3 / 2 : ℝ) = a * a ^ (1 / 2 : ℝ) := by
+    rw [show (3 / 2 : ℝ) = 1 + 1 / 2 by norm_num, Real.rpow_add ha]
+    rw [Real.rpow_one]
+  have hb32 : b ^ (3 / 2 : ℝ) = b * b ^ (1 / 2 : ℝ) := by
+    rw [show (3 / 2 : ℝ) = 1 + 1 / 2 by norm_num, Real.rpow_add hb]
+    rw [Real.rpow_one]
+  rw [ha32, hb32]
+  nlinarith [mul_nonneg ha.le hb.le, hhalf]
+
 theorem zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_edge_bounds
     {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁)
     (hzero : ∀ t : ℝ,
@@ -1659,6 +1673,108 @@ theorem zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_re_eq_zer
   rw [hw_eq]
   exact zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_edge_bounds
     hQ hC₀ hC₁ hzero hone w.im
+
+theorem zetaSurrogate_midpointReflectedProduct_right_boundary_le_one_of_edge_bounds
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁)
+    (hzero : ∀ t : ℝ,
+      ‖zetaSurrogate ((t : ℂ) * Complex.I)‖ ≤
+        C₀ * (‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖))
+    (hone : ∀ t : ℝ,
+      ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        C₁ * (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖)) :
+    ∀ t : ℝ,
+      ‖midpointReflectedProduct zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I) /
+        midpointReflectedProductMajorant Q C₀ C₁ ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤ 1 := by
+  intro t
+  let R₀ : ℝ := ‖(Q : ℂ) + ((-t : ℝ) : ℂ) * Complex.I‖
+  let L₀ : ℝ := ‖Complex.log ((Q : ℂ) + ((-t : ℝ) : ℂ) * Complex.I)‖
+  let R₁ : ℝ := ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖
+  let L₁ : ℝ := ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖
+  have hR₀_pos : 0 < R₀ := by
+    apply norm_pos_iff.mpr
+    intro h
+    have hre := congrArg Complex.re h
+    simp [Complex.add_re, Complex.mul_re] at hre
+    linarith
+  have hR₁_pos : 0 < R₁ := by
+    apply norm_pos_iff.mpr
+    intro h
+    have hre := congrArg Complex.re h
+    simp [Complex.add_re, Complex.mul_re] at hre
+    linarith
+  have hR₀_le_R₁ : R₀ ≤ R₁ := by
+    refine (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp ?_
+    rw [← Complex.normSq_eq_norm_sq, ← Complex.normSq_eq_norm_sq]
+    simp [Complex.normSq_apply, Complex.add_re, Complex.add_im,
+      Complex.mul_re, Complex.mul_im]
+    nlinarith
+  have hpower_swap : R₀ ^ (3 / 2 : ℝ) * R₁ ≤ R₁ ^ (3 / 2 : ℝ) * R₀ :=
+    rpow_three_halves_mul_le_swap hR₀_pos hR₁_pos hR₀_le_R₁
+  have hlog_nonneg : 0 ≤ L₀ * L₁ := mul_nonneg (norm_nonneg _) (norm_nonneg _)
+  have hswap :
+      (R₁ * L₁) * (R₀ ^ (3 / 2 : ℝ) * L₀) ≤
+        (R₁ ^ (3 / 2 : ℝ) * L₁) * (R₀ * L₀) := by
+    calc
+      (R₁ * L₁) * (R₀ ^ (3 / 2 : ℝ) * L₀)
+          = (R₀ ^ (3 / 2 : ℝ) * R₁) * (L₀ * L₁) := by ring
+      _ ≤ (R₁ ^ (3 / 2 : ℝ) * R₀) * (L₀ * L₁) := by
+          exact mul_le_mul_of_nonneg_right hpower_swap hlog_nonneg
+      _ = (R₁ ^ (3 / 2 : ℝ) * L₁) * (R₀ * L₀) := by ring
+  have hone_t : ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+      C₁ * (R₁ * L₁) := by
+    simpa [R₁, L₁] using hone t
+  have hzero_neg_t : ‖zetaSurrogate (((-t : ℝ) : ℂ) * Complex.I)‖ ≤
+      C₀ * (R₀ ^ (3 / 2 : ℝ) * L₀) := by
+    simpa [R₀, L₀] using hzero (-t)
+  have hsecond :
+      ‖zetaSurrogate ((1 : ℂ) - ((1 : ℂ) + (t : ℂ) * Complex.I))‖ =
+        ‖zetaSurrogate (((-t : ℝ) : ℂ) * Complex.I)‖ := by
+    have harg :
+        (1 : ℂ) - ((1 : ℂ) + (t : ℂ) * Complex.I) =
+          ((-t : ℝ) : ℂ) * Complex.I := by
+      apply Complex.ext
+      · simp [Complex.mul_re]
+      · simp [Complex.mul_im]
+    rw [harg]
+  have hnum :
+      ‖midpointReflectedProduct zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        (C₁ * (R₁ * L₁)) * (C₀ * (R₀ ^ (3 / 2 : ℝ) * L₀)) := by
+    rw [midpointReflectedProduct_zetaSurrogate_eq, norm_mul, hsecond]
+    exact mul_le_mul hone_t hzero_neg_t (norm_nonneg _)
+      (mul_nonneg hC₁.le (mul_nonneg (norm_nonneg _) (norm_nonneg _)))
+  have hmaj_norm :
+      ‖midpointReflectedProductMajorant Q C₀ C₁
+          ((1 : ℂ) + (t : ℂ) * Complex.I)‖ =
+        (C₀ * C₁) * ((R₁ ^ (3 / 2 : ℝ) * L₁) * (R₀ * L₀)) := by
+    rw [midpointReflectedProductMajorant_norm_right_boundary (Q := Q) (C₀ := C₀)
+      (C₁ := C₁) (t := t) hQ]
+    rw [abs_of_pos hC₀, abs_of_pos hC₁]
+    simp [R₀, L₀, R₁, L₁, mul_comm, mul_left_comm, mul_assoc]
+  have hnum_le_major :
+      ‖midpointReflectedProduct zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        ‖midpointReflectedProductMajorant Q C₀ C₁
+          ((1 : ℂ) + (t : ℂ) * Complex.I)‖ := by
+    refine hnum.trans ?_
+    rw [hmaj_norm]
+    calc
+      (C₁ * (R₁ * L₁)) * (C₀ * (R₀ ^ (3 / 2 : ℝ) * L₀))
+          = (C₀ * C₁) * ((R₁ * L₁) * (R₀ ^ (3 / 2 : ℝ) * L₀)) := by ring
+      _ ≤ (C₀ * C₁) * ((R₁ ^ (3 / 2 : ℝ) * L₁) * (R₀ * L₀)) := by
+          exact mul_le_mul_of_nonneg_left hswap (mul_nonneg hC₀.le hC₁.le)
+  have hzstrip :
+      ((1 : ℂ) + (t : ℂ) * Complex.I) ∈
+        Complex.HadamardThreeLines.verticalClosedStrip 0 1 := by
+    simp [Complex.HadamardThreeLines.verticalClosedStrip, Complex.add_re, Complex.mul_re]
+  have hmajorant_pos :
+      0 < ‖midpointReflectedProductMajorant Q C₀ C₁
+        ((1 : ℂ) + (t : ℂ) * Complex.I)‖ :=
+    norm_pos_iff.mpr
+      (midpointReflectedProductMajorant_ne_zero_on_verticalClosedStrip hQ hC₀.ne'
+        hC₁.ne' hzstrip)
+  rw [norm_div]
+  exact (div_le_iff₀ hmajorant_pos).2 (by simpa [one_mul] using hnum_le_major)
 
 /--
 Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
