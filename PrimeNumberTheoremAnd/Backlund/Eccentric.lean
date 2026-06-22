@@ -15,6 +15,7 @@ import Mathlib.Analysis.Complex.PhragmenLindelof
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.MeasureTheory.Integral.CircleAverage
+import Mathlib.Topology.Homotopy.Lifting
 
 /-!
 # Eccentric Backlund route constants
@@ -54,6 +55,84 @@ theorem zeta_one_line_le_const_mul_log :
       linarith
     · norm_num
   simpa using hζ 1 t ht hσ
+
+noncomputable def unitNormalize (z : ℂ) (hz : z ≠ 0) : Circle where
+  val := z / (‖z‖ : ℂ)
+  property := by
+    simp [Submonoid.unitSphere, div_self (norm_ne_zero_iff.mpr hz)]
+
+@[simp] theorem coe_unitNormalize (z : ℂ) (hz : z ≠ 0) :
+    ((unitNormalize z hz : Circle) : ℂ) = z / (‖z‖ : ℂ) := rfl
+
+noncomputable def normalizeNonzeroPath {a b : ℝ} (f : C(Set.Icc a b, ℂ))
+    (hf : ∀ x, f x ≠ 0) : C(Set.Icc a b, Circle) where
+  toFun x := unitNormalize (f x) (hf x)
+  continuous_toFun := by
+    exact Continuous.subtype_mk
+      (f.continuous.div (by fun_prop)
+        (by intro x; exact_mod_cast norm_ne_zero_iff.mpr (hf x)))
+      (by intro x; exact (unitNormalize (f x) (hf x)).property)
+
+structure PhaseLift {a b : ℝ} (γ : C(Set.Icc a b, Circle)) where
+  phase : C(Set.Icc a b, ℝ)
+  exp_phase : ∀ x, Circle.exp (phase x) = γ x
+
+noncomputable def PhaseLift.change {a b : ℝ} {γ : C(Set.Icc a b, Circle)}
+    (θ : PhaseLift γ) (x₀ x : Set.Icc a b) : ℝ :=
+  θ.phase x - θ.phase x₀
+
+noncomputable def PhaseLift.leftEndpointChange {a b : ℝ} (h : a ≤ b)
+    {γ : C(Set.Icc a b, Circle)} (θ : PhaseLift γ) (x : Set.Icc a b) : ℝ :=
+  θ.change ⟨a, by exact ⟨le_rfl, h⟩⟩ x
+
+noncomputable def circlePathOnUnitInterval {a b : ℝ} (h : a < b)
+    (γ : C(Set.Icc a b, Circle)) : C(unitInterval, Circle) :=
+  γ.comp ((iccHomeoI a b h).symm : C(unitInterval, Set.Icc a b))
+
+noncomputable def phaseLiftOfCirclePath {a b : ℝ} (h : a < b)
+    (γ : C(Set.Icc a b, Circle)) : PhaseLift γ := by
+  let xleft : Set.Icc a b := ⟨a, by constructor <;> linarith⟩
+  let γI : C(unitInterval, Circle) := circlePathOnUnitInterval h γ
+  let e0 : ℝ := ((γ xleft : Circle) : ℂ).arg
+  have h0 : γI 0 = Circle.exp e0 := by
+    dsimp [γI, circlePathOnUnitInterval, e0, xleft]
+    have hsymm : ((iccHomeoI a b h).symm (0 : unitInterval) : ℝ) = a := by
+      rw [iccHomeoI_symm_apply_coe]
+      norm_num
+    have hsub : (iccHomeoI a b h).symm (0 : unitInterval) =
+        (⟨a, by constructor <;> linarith⟩ : Set.Icc a b) := by
+      exact Subtype.ext hsymm
+    rw [hsub]
+    exact (Circle.exp_arg (γ ⟨a, by constructor <;> linarith⟩)).symm
+  let θI : C(unitInterval, ℝ) := Circle.isCoveringMap_exp.liftPath γI e0 h0
+  let phase : C(Set.Icc a b, ℝ) :=
+    θI.comp (iccHomeoI a b h : C(Set.Icc a b, unitInterval))
+  refine ⟨phase, ?_⟩
+  intro x
+  dsimp [phase]
+  have hlift := Circle.isCoveringMap_exp.liftPath_lifts γI e0 h0
+  have hpoint := congrFun hlift ((iccHomeoI a b h) x)
+  calc
+    Circle.exp (θI ((iccHomeoI a b h) x)) = γI ((iccHomeoI a b h) x) := hpoint
+    _ = γ x := by
+      dsimp [γI, circlePathOnUnitInterval]
+      exact congrArg γ ((iccHomeoI a b h).left_inv x)
+
+theorem phaseLiftOfCirclePath_exp_phase {a b : ℝ} (h : a < b)
+    (γ : C(Set.Icc a b, Circle)) (x : Set.Icc a b) :
+    Circle.exp ((phaseLiftOfCirclePath h γ).phase x) = γ x :=
+  (phaseLiftOfCirclePath h γ).exp_phase x
+
+noncomputable def phaseLiftOfNonzeroPath {a b : ℝ} (h : a < b)
+    (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0) :
+    PhaseLift (normalizeNonzeroPath f hf) :=
+  phaseLiftOfCirclePath h (normalizeNonzeroPath f hf)
+
+theorem phaseLiftOfNonzeroPath_exp_phase {a b : ℝ} (h : a < b)
+    (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0) (x : Set.Icc a b) :
+    Circle.exp ((phaseLiftOfNonzeroPath h f hf).phase x) =
+      unitNormalize (f x) (hf x) :=
+  (phaseLiftOfNonzeroPath h f hf).exp_phase x
 
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 

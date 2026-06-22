@@ -3,6 +3,17 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.eccentricHighRhs
 #check Backlund.kadiriRhs
 #check Backlund.zeta_one_line_le_const_mul_log
+#check Backlund.unitNormalize
+#check Backlund.coe_unitNormalize
+#check Backlund.normalizeNonzeroPath
+#check Backlund.PhaseLift
+#check Backlund.PhaseLift.change
+#check Backlund.PhaseLift.leftEndpointChange
+#check Backlund.circlePathOnUnitInterval
+#check Backlund.phaseLiftOfCirclePath
+#check Backlund.phaseLiftOfCirclePath_exp_phase
+#check Backlund.phaseLiftOfNonzeroPath
+#check Backlund.phaseLiftOfNonzeroPath_exp_phase
 #check Backlund.backlundA
 #check Backlund.backlundA_conj
 #check Kadiri.zeta_logDeriv_functional_eq
@@ -159,6 +170,17 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.eccentricHighRhs
 #print axioms Backlund.kadiriRhs
 #print axioms Backlund.zeta_one_line_le_const_mul_log
+#print axioms Backlund.unitNormalize
+#print axioms Backlund.coe_unitNormalize
+#print axioms Backlund.normalizeNonzeroPath
+#print axioms Backlund.PhaseLift
+#print axioms Backlund.PhaseLift.change
+#print axioms Backlund.PhaseLift.leftEndpointChange
+#print axioms Backlund.circlePathOnUnitInterval
+#print axioms Backlund.phaseLiftOfCirclePath
+#print axioms Backlund.phaseLiftOfCirclePath_exp_phase
+#print axioms Backlund.phaseLiftOfNonzeroPath
+#print axioms Backlund.phaseLiftOfNonzeroPath_exp_phase
 #print axioms Backlund.backlundA
 #print axioms Backlund.backlundA_conj
 #print axioms Kadiri.zeta_logDeriv_functional_eq
