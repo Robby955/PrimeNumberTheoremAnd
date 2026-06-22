@@ -2159,38 +2159,43 @@ theorem midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip {f : ℂ 
   rw [midpointReflectedProduct_norm_midline] at hproduct
   exact hproduct
 
-theorem zetaSurrogate_midpoint_norm_sq_le_majorant {Q t : ℝ} (hQ : (1 : ℝ) < Q) :
+theorem zetaSurrogate_midpoint_norm_sq_le_majorant {Q : ℝ} (hQ : (1 : ℝ) < Q) :
     ∃ C₀ > 0, ∃ C₁ > 0,
-      ‖zetaSurrogate ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ 2 ≤
-        ‖midpointReflectedProductMajorant Q C₀ C₁
-          ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ := by
+      ∀ t : ℝ,
+        ‖zetaSurrogate ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ 2 ≤
+          ‖midpointReflectedProductMajorant Q C₀ C₁
+            ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ := by
   obtain ⟨C₀, hC₀, C₁, hC₁, hleft, hright⟩ :=
     zetaSurrogate_midpointReflectedProduct_boundary_controls hQ
   obtain ⟨hnonzero, hd⟩ :=
     zetaSurrogate_midpointReflectedProduct_PL_inputs hQ hC₀.ne' hC₁.ne'
+  refine ⟨C₀, hC₀, C₁, hC₁, ?_⟩
+  intro t
   have hzmid :
       ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) ∈
         Complex.HadamardThreeLines.verticalClosedStrip 0 1 := by
     simp [Complex.HadamardThreeLines.verticalClosedStrip, Complex.add_re, Complex.mul_re]
     norm_num
-  refine ⟨C₀, hC₀, C₁, hC₁, ?_⟩
   exact midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip
     (f := zetaSurrogate) (Q := Q) (C₀ := C₀) (C₁ := C₁) (t := t)
     (hnonzero _ hzmid) hd
     (zetaSurrogate_midpointReflectedProduct_PL_growth hQ hC₀ hC₁)
     hleft hright
 
-theorem A_critical_line_quarter_log {Q t : ℝ} (hQ : (1 : ℝ) < Q) :
+theorem A_critical_line_quarter_log {Q : ℝ} (hQ : (1 : ℝ) < Q) :
     ∃ k₁ > 0,
-      ‖backlundA ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
-        k₁ * (‖(Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ (5 / 4 : ℝ) *
-          ‖Complex.log ((Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I))‖) := by
+      ∀ t : ℝ,
+        ‖backlundA ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+          k₁ * (‖(Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ (5 / 4 : ℝ) *
+            ‖Complex.log ((Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I))‖) := by
   obtain ⟨C₀, hC₀, C₁, hC₁, hsquare⟩ :=
-    zetaSurrogate_midpoint_norm_sq_le_majorant (Q := Q) (t := t) hQ
+    zetaSurrogate_midpoint_norm_sq_le_majorant (Q := Q) hQ
+  let k₁ : ℝ := Real.sqrt (C₀ * C₁)
+  refine ⟨k₁, by positivity, ?_⟩
+  intro t
   let z : ℂ := (1 / 2 : ℂ) + (t : ℂ) * Complex.I
   let R : ℝ := ‖(Q : ℂ) + z‖
   let L : ℝ := ‖Complex.log ((Q : ℂ) + z)‖
-  let k₁ : ℝ := Real.sqrt (C₀ * C₁)
   have hRpos : 0 < R := by
     apply norm_pos_iff.mpr
     intro h
@@ -2218,7 +2223,7 @@ theorem A_critical_line_quarter_log {Q t : ℝ} (hQ : (1 : ℝ) < Q) :
         (k₁ * (R ^ (5 / 4 : ℝ) * L)) ^ 2 := by
     have hsquare' :
         ‖zetaSurrogate z‖ ^ 2 ≤ ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := by
-      simpa [z] using hsquare
+      simpa [z] using hsquare t
     calc
       ‖zetaSurrogate z‖ ^ 2
           ≤ ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := hsquare'
@@ -2237,7 +2242,6 @@ theorem A_critical_line_quarter_log {Q t : ℝ} (hQ : (1 : ℝ) < Q) :
     simp [z, Complex.add_re, Complex.mul_re] at hre
   have hsurrogate_eq : zetaSurrogate z = backlundA z := by
     simp [zetaSurrogate, backlundA, hz_ne]
-  refine ⟨k₁, by positivity, ?_⟩
   rw [show ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) = z by rfl]
   rw [← hsurrogate_eq]
   simpa [R, L] using hsurrogate_le
