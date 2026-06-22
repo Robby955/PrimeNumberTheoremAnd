@@ -434,6 +434,27 @@ theorem backlundA_conj (z : ℂ) :
     backlundA (star z) = star (backlundA z) := by
   simp [backlundA, riemannZeta_conj]
 
+theorem differentiableAt_backlundA {s : ℂ} (hs : s ≠ 1) :
+    DifferentiableAt ℂ backlundA s := by
+  change DifferentiableAt ℂ (fun s : ℂ => (s - 1) * riemannZeta s) s
+  exact
+    (differentiableAt_id.sub_const 1).mul (differentiableAt_riemannZeta hs)
+
+theorem hasDerivAt_backlundA_horizontal {x T : ℝ}
+    (hs : ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1) :
+    HasDerivAt
+      (fun u : ℝ => backlundA ((u : ℂ) + (T : ℂ) * Complex.I))
+      (deriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I)) x := by
+  let path : ℝ → ℂ := fun u => (u : ℂ) + (T : ℂ) * Complex.I
+  have hpath : HasDerivAt path 1 x := by
+    simpa [path] using
+      (Complex.ofRealCLM.hasDerivAt (x := x)).add_const ((T : ℂ) * Complex.I)
+  have hA :
+      HasDerivAt backlundA (deriv backlundA (path x)) (path x) :=
+    (differentiableAt_backlundA (s := path x) (by simpa [path] using hs)).hasDerivAt
+  change HasDerivAt (backlundA ∘ path) (deriv backlundA (path x)) x
+  simpa using hA.comp x hpath
+
 noncomputable def backlundAHorizontalPathFrom (x₀ D T : ℝ) (hT : T ≠ 0) :
     C(Set.Icc (0 : ℝ) D, ℂ) where
   toFun d := backlundA (((x₀ + (d : ℝ) : ℝ) : ℂ) + (T : ℂ) * Complex.I)
