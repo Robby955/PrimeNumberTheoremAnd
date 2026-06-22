@@ -4,6 +4,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.kadiriRhs
 #check Backlund.zeta_one_line_le_const_mul_log
 #check Backlund.backlundA
+#check Backlund.backlundA_conj
+#check Backlund.backlundF
+#check Backlund.backlundF_real_eq_re
+#check Backlund.backlundF_real_eq_zero_iff
 #check Backlund.backlundA_zero_line_le_const_mul_log
 #check Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog
 #check Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog
@@ -64,6 +68,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.kadiriRhs
 #print axioms Backlund.zeta_one_line_le_const_mul_log
 #print axioms Backlund.backlundA
+#print axioms Backlund.backlundA_conj
+#print axioms Backlund.backlundF
+#print axioms Backlund.backlundF_real_eq_re
+#print axioms Backlund.backlundF_real_eq_zero_iff
 #print axioms Backlund.backlundA_zero_line_le_const_mul_log
 #print axioms Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog
 #print axioms Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog

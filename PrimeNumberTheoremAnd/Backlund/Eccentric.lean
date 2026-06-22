@@ -52,6 +52,44 @@ theorem zeta_one_line_le_const_mul_log :
 
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 
+theorem backlundA_conj (z : ℂ) :
+    backlundA (star z) = star (backlundA z) := by
+  simp [backlundA, riemannZeta_conj]
+
+/--
+Backlund's real-part auxiliary
+`F_N(z) = (A(z+iT)^N + A(z-iT)^N)/2`.
+-/
+noncomputable def backlundF (N : ℕ) (T : ℝ) (z : ℂ) : ℂ :=
+  (1 / 2 : ℂ) *
+    (backlundA (z + (T : ℂ) * Complex.I) ^ N +
+      backlundA (z - (T : ℂ) * Complex.I) ^ N)
+
+theorem backlundF_real_eq_re (N : ℕ) (σ T : ℝ) :
+    backlundF N T (σ : ℂ) =
+      ((backlundA ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N).re : ℂ) := by
+  have hreflect :
+      (σ : ℂ) - (T : ℂ) * Complex.I =
+        star ((σ : ℂ) + (T : ℂ) * Complex.I) := by
+    apply Complex.ext
+    · simp [Complex.add_re, Complex.sub_re, Complex.mul_re]
+    · simp [Complex.add_im, Complex.sub_im, Complex.mul_im]
+  unfold backlundF
+  rw [hreflect, backlundA_conj]
+  rw [← star_pow]
+  let w : ℂ := backlundA ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N
+  change (1 / 2 : ℂ) * (w + star w) = (w.re : ℂ)
+  apply Complex.ext
+  · simp [Complex.mul_re, Complex.add_re]
+    ring
+  · simp [Complex.mul_im, Complex.add_im]
+
+theorem backlundF_real_eq_zero_iff (N : ℕ) (σ T : ℝ) :
+    backlundF N T (σ : ℂ) = 0 ↔
+      (backlundA ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N).re = 0 := by
+  rw [backlundF_real_eq_re]
+  exact Complex.ofReal_eq_zero
+
 private lemma sin_pi_one_add_mul_I (y : ℝ) :
     Complex.sin ((Real.pi : ℂ) * ((1 : ℂ) + (y : ℂ) * Complex.I)) =
       -((Real.sinh (Real.pi * y) : ℝ) : ℂ) * Complex.I := by
