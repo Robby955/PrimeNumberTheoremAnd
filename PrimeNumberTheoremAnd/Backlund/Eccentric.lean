@@ -966,7 +966,11 @@ noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
 
 /-- The guaranteed paired-zero count in Backlund's ordered pairing lemma. -/
 noncomputable def backlundOrderedPairingLowerCount (N n : ℕ) (E : ℝ) : ℕ :=
-  n - 1 - backlundPairingLoss N E
+  n - 2 - backlundPairingLoss N E
+
+theorem backlundOrderedPairingLowerCount_eq_source (N n : ℕ) (E : ℝ) :
+    backlundOrderedPairingLowerCount N n E =
+      n - 2 - backlundPairingLoss N E := rfl
 
 /-- Backlund's eccentric Jensen center offset `η = 3/50`. -/
 noncomputable def backlundEta : ℝ := 3 / 50
