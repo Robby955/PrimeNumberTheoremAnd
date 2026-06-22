@@ -2278,6 +2278,39 @@ theorem cosZeroTarget_firstHit_pairs_product_le_pairingH_pow {D ε : ℝ}
       intro i
       exact hle i)
 
+theorem firstHit_pairs_product_le_pairingH_pow_of_abs_error_targets {D ε : ℝ}
+    (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
+    {m : ℕ} {leftTarget rightTarget : Fin m → ℝ}
+    (hstart : ∀ i : Fin m, v ⟨0, by exact ⟨le_rfl, hD⟩⟩ < leftTarget i)
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < ε)
+    (hgap : ∀ i : Fin m, leftTarget i + ε ≤ rightTarget i)
+    (hright : ∀ i : Fin m, (firstHitRealSet D u (rightTarget i)).Nonempty)
+    (hright_bound : ∀ i : Fin m,
+      (1 / 2 : ℝ) + firstHit u (rightTarget i) (hright i) ≤ 1 + backlundEta) :
+    ∃ hleft : ∀ i : Fin m, (firstHitRealSet D v (leftTarget i)).Nonempty,
+      (∏ i : Fin m,
+        (‖((((1 / 2 : ℝ) +
+              firstHit u (rightTarget i) (hright i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖ *
+          ‖((((1 / 2 : ℝ) -
+              firstHit v (leftTarget i) (hleft i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖)) ≤
+        backlundPairingH ^ (2 * m) := by
+  obtain ⟨hleft, hle⟩ :=
+    firstHits_le_firstHits_of_abs_error_targets
+      (u := u) (v := v) hD hstart herr hgap hright
+  refine ⟨hleft, ?_⟩
+  exact prod_norm_pairs_of_backlund_reflected_dist_le_pairingH_pow
+    (rightDist := fun i : Fin m => firstHit u (rightTarget i) (hright i))
+    (leftDist := fun i : Fin m => firstHit v (leftTarget i) (hleft i))
+    hright_bound
+    (by
+      intro i
+      exact (firstHit_mem_Icc v (leftTarget i) (hleft i)).1)
+    (by
+      intro i
+      exact hle i)
+
 theorem cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
     {D ε : ℝ}
     (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
