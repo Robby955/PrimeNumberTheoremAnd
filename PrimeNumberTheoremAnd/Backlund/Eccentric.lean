@@ -1241,6 +1241,34 @@ theorem norm_pair_of_backlund_reflected_le_pairingH_sq {a b : ℝ}
     nlinarith [sq_nonneg (b - 1 / 2)]
   exact hmul.trans hquad
 
+theorem prod_norm_pairs_of_backlund_reflected_le_pairingH_pow {m : ℕ}
+    {right left : Fin m → ℝ}
+    (hright : ∀ i : Fin m, right i ≤ 1 + backlundEta)
+    (hleft : ∀ i : Fin m, left i ≤ 1 / 2)
+    (hpair : ∀ i : Fin m, 1 - left i ≤ right i) :
+    (∏ i : Fin m,
+        (‖((right i : ℂ) - backlundEccentricCenter backlundEta)‖ *
+          ‖((left i : ℂ) - backlundEccentricCenter backlundEta)‖)) ≤
+      backlundPairingH ^ (2 * m) := by
+  have hprod :
+      (∏ i : Fin m,
+          (‖((right i : ℂ) - backlundEccentricCenter backlundEta)‖ *
+            ‖((left i : ℂ) - backlundEccentricCenter backlundEta)‖)) ≤
+        ∏ _i : Fin m, backlundPairingH ^ 2 := by
+    refine Finset.prod_le_prod ?_ ?_
+    · intro i _hi
+      exact mul_nonneg (norm_nonneg _) (norm_nonneg _)
+    · intro i _hi
+      exact norm_pair_of_backlund_reflected_le_pairingH_sq
+        (a := right i) (b := left i) (hright i) (hleft i) (hpair i)
+  calc
+    (∏ i : Fin m,
+        (‖((right i : ℂ) - backlundEccentricCenter backlundEta)‖ *
+          ‖((left i : ℂ) - backlundEccentricCenter backlundEta)‖))
+        ≤ ∏ _i : Fin m, backlundPairingH ^ 2 := hprod
+    _ = (backlundPairingH ^ 2) ^ m := by simp
+    _ = backlundPairingH ^ (2 * m) := by rw [pow_mul]
+
 theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
     {σ₁ x : ℝ}
     (hσ₁ : σ₁ ≤ 1 + backlundEta) (hx : x ∈ Set.Icc (1 - σ₁) σ₁) :
