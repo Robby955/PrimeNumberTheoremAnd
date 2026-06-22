@@ -1190,6 +1190,52 @@ theorem midpointReflectedProduct_norm_midline (f : ℂ → ℂ) (t : ℝ) :
   rw [one_sub_star_midline]
   simp [pow_two]
 
+theorem midpointReflectedProductMajorant_norm_midline
+    {Q C₀ C₁ t : ℝ} (hQ : (1 : ℝ) < Q) :
+    ‖midpointReflectedProductMajorant Q C₀ C₁
+        ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ =
+      |C₀| * |C₁| *
+        ‖(Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ (5 / 2 : ℝ) *
+        ‖Complex.log ((Q : ℂ) + ((1 / 2 : ℂ) + (t : ℂ) * Complex.I))‖ ^ 2 := by
+  let z : ℂ := (1 / 2 : ℂ) + (t : ℂ) * Complex.I
+  let qz : ℂ := (Q : ℂ) + z
+  have hqz_re : (0 : ℝ) < qz.re := by
+    simp [qz, z, Complex.add_re, Complex.mul_re]
+    linarith
+  have hqz_ne : qz ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    rw [h] at hqz_re
+    simp at hqz_re
+  have hreflect : (((Q + 1 : ℝ) : ℂ) - z) = star qz := by
+    apply Complex.ext
+    · simp [qz, z, Complex.sub_re, Complex.add_re, Complex.mul_re]
+      ring_nf
+    · simp [qz, z, Complex.sub_im, Complex.add_im, Complex.mul_im]
+  have harg_ne : qz.arg ≠ Real.pi := by
+    intro harg
+    have harg' := Complex.arg_eq_pi_iff.mp harg
+    linarith
+  have hlog_conj : Complex.log (star qz) = star (Complex.log qz) := by
+    simpa using Complex.log_conj qz harg_ne
+  have hcpow :
+      ‖qz ^ (((3 / 2 : ℝ) : ℂ) : ℂ)‖ = ‖qz‖ ^ (3 / 2 : ℝ) := by
+    rw [Complex.norm_cpow_of_ne_zero hqz_ne]
+    simp
+  unfold midpointReflectedProductMajorant
+  simp only [z, qz] at *
+  rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, hreflect, hlog_conj]
+  simp only [norm_star]
+  have hqz_pos : 0 < ‖qz‖ := norm_pos_iff.mpr hqz_ne
+  have hpow : ‖qz‖ ^ (3 / 2 : ℝ) * ‖qz‖ = ‖qz‖ ^ (5 / 2 : ℝ) := by
+    calc
+      ‖qz‖ ^ (3 / 2 : ℝ) * ‖qz‖ =
+          ‖qz‖ ^ (3 / 2 : ℝ) * ‖qz‖ ^ (1 : ℝ) := by rw [Real.rpow_one]
+      _ = ‖qz‖ ^ ((3 / 2 : ℝ) + 1) := by rw [← Real.rpow_add hqz_pos]
+      _ = ‖qz‖ ^ (5 / 2 : ℝ) := by norm_num
+  rw [hpow]
+  simp [qz, z, pow_two, mul_comm, mul_left_comm, mul_assoc]
+
 /--
 Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
 has PL growth and unit boundary control on the two strip edges, its midpoint
