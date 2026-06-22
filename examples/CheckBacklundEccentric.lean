@@ -122,6 +122,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.prod_fin_append
 #check Backlund.strictMono_fin_append
 #check Backlund.backlundOrderedRealPartZeros_append
+#check Backlund.backlundOrderedRealPartZeros_append_three
+#check Backlund.prod_fin_append_leftRev_pairingShape
 #check Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
 #check Backlund.firstHit_rightCoordinate_le_one_add_eta
 #check Backlund.backlundCosZeroLeftFirstHits_orderedRealPartZeros
@@ -408,6 +410,8 @@ example
 #print axioms Backlund.prod_fin_append
 #print axioms Backlund.strictMono_fin_append
 #print axioms Backlund.backlundOrderedRealPartZeros_append
+#print axioms Backlund.backlundOrderedRealPartZeros_append_three
+#print axioms Backlund.prod_fin_append_leftRev_pairingShape
 #print axioms Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
 #print axioms Backlund.firstHit_rightCoordinate_le_one_add_eta
 #print axioms Backlund.backlundCosZeroLeftFirstHits_orderedRealPartZeros

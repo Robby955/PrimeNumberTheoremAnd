@@ -2173,6 +2173,42 @@ theorem backlundOrderedRealPartZeros_append {N m n : ℕ} {T a b : ℝ}
     · intro ir
       simpa [Fin.append] using hys.2 ir
 
+theorem backlundOrderedRealPartZeros_append_three {N k l m : ℕ} {T a b : ℝ}
+    {xs : Fin k → ℝ} {ys : Fin l → ℝ} {zs : Fin m → ℝ}
+    (hxs : backlundOrderedRealPartZeros N k T a b xs)
+    (hys : backlundOrderedRealPartZeros N l T a b ys)
+    (hzs : backlundOrderedRealPartZeros N m T a b zs)
+    (hxy : ∀ i j, xs i < ys j)
+    (hxz : ∀ i j, xs i < zs j)
+    (hyz : ∀ i j, ys i < zs j) :
+    backlundOrderedRealPartZeros N (k + (l + m)) T a b
+      (Fin.append xs (Fin.append ys zs)) := by
+  have hyz_order :
+      backlundOrderedRealPartZeros N (l + m) T a b (Fin.append ys zs) :=
+    backlundOrderedRealPartZeros_append hys hzs hyz
+  refine backlundOrderedRealPartZeros_append hxs hyz_order ?_
+  intro i j
+  refine Fin.addCases
+    (motive := fun j => xs i < Fin.append ys zs j) ?_ ?_ j
+  · intro jl
+    simpa [Fin.append] using hxy i jl
+  · intro jr
+    simpa [Fin.append] using hxz i jr
+
+theorem prod_fin_append_leftRev_pairingShape {q m : ℕ} {α : Type*} [CommMonoid α]
+    (left rightPair : Fin m → α) (rightUnpaired : Fin (q + 1) → α) :
+    (∏ i : Fin (m + ((q + 1) + m)),
+        Fin.append (fun i : Fin m => left (Fin.rev i))
+          (Fin.append rightUnpaired rightPair) i) =
+      (∏ i : Fin (q + 1), rightUnpaired i) *
+        (∏ i : Fin m, rightPair i * left i) := by
+  rw [prod_fin_append, prod_fin_append]
+  rw [Finset.prod_mul_distrib]
+  have hrev : (∏ i : Fin m, left (Fin.rev i)) = ∏ i : Fin m, left i := by
+    simpa using (Equiv.prod_comp (Fin.revPerm (n := m)) left)
+  rw [hrev]
+  ac_rfl
+
 theorem backlundOrderedRealPartZeros_count_le {N k : ℕ} {T a b : ℝ} {xs : Fin k → ℝ}
     (hfin : (backlundRealPartZeroSet N T a b).Finite)
     (hxs : backlundOrderedRealPartZeros N k T a b xs) :
