@@ -9,6 +9,7 @@ import PrimeNumberTheoremAnd.Backlund.ZeroCountCrude
 import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 import PrimeNumberTheoremAnd.ZetaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.CriticalLineDecay
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaBinet
 import Mathlib.Analysis.Complex.Hadamard
 import Mathlib.Analysis.Complex.PhragmenLindelof
 import Mathlib.Analysis.SpecialFunctions.Exp
@@ -168,6 +169,19 @@ theorem abs_arg_le_abs_im_div_re_of_re_pos {z : ℂ} (hre : 0 < z.re) :
     |z.arg| ≤ |z.im / z.re| := by
   rw [arg_eq_arctan_im_div_re_of_re_pos hre]
   exact abs_arctan_le_abs_self _
+
+theorem abs_im_digamma_sub_log_sub_half_inv_le {z : ℂ}
+    (hz : (1 / 4 : ℝ) ≤ z.re) :
+    |(Complex.digamma z).im - (Complex.log z - z⁻¹ / 2).im| ≤
+      1 / (6 * ‖z‖ ^ 2) := by
+  have h := Complex.digamma_second_order_full_norm (z := z) hz
+  have h_im : |(Complex.digamma z - (Complex.log z - z⁻¹ / 2)).im| ≤
+      ‖Complex.digamma z - (Complex.log z - z⁻¹ / 2)‖ :=
+    Complex.abs_im_le_norm _
+  have h_eq : (Complex.digamma z - (Complex.log z - z⁻¹ / 2)).im =
+      (Complex.digamma z).im - (Complex.log z - z⁻¹ / 2).im := by simp
+  rw [h_eq] at h_im
+  exact h_im.trans h
 
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :

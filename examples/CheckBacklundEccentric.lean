@@ -15,6 +15,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.abs_arctan_le_abs_self
 #check Backlund.arg_eq_arctan_im_div_re_of_re_pos
 #check Backlund.abs_arg_le_abs_im_div_re_of_re_pos
+#check Backlund.abs_im_digamma_sub_log_sub_half_inv_le
 #check Backlund.abs_im_HIntegral_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
@@ -144,6 +145,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.abs_arctan_le_abs_self
 #print axioms Backlund.arg_eq_arctan_im_div_re_of_re_pos
 #print axioms Backlund.abs_arg_le_abs_im_div_re_of_re_pos
+#print axioms Backlund.abs_im_digamma_sub_log_sub_half_inv_le
 #print axioms Backlund.abs_im_HIntegral_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
