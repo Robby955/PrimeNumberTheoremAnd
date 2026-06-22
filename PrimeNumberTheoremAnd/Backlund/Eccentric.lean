@@ -183,6 +183,55 @@ theorem abs_im_digamma_sub_log_sub_half_inv_le {z : ℂ}
   rw [h_eq] at h_im
   exact h_im.trans h
 
+theorem abs_im_inv_le_inv_abs_im {z : ℂ} (him : z.im ≠ 0) :
+    |(z⁻¹).im| ≤ 1 / |z.im| := by
+  have him_norm : |z.im| ≤ ‖z‖ := Complex.abs_im_le_norm z
+  have him_pos : 0 < |z.im| := abs_pos.mpr him
+  calc
+    |(z⁻¹).im| ≤ ‖z⁻¹‖ := Complex.abs_im_le_norm _
+    _ = ‖z‖⁻¹ := norm_inv z
+    _ ≤ |z.im|⁻¹ := inv_anti₀ him_pos him_norm
+    _ = 1 / |z.im| := by ring
+
+theorem abs_im_inv_horizontal_le {x T : ℝ} (hT : T ≠ 0) :
+    |(((x : ℂ) + (T : ℂ) * Complex.I)⁻¹).im| ≤ 1 / |T| := by
+  have him : (((x : ℂ) + (T : ℂ) * Complex.I).im) ≠ 0 := by
+    simpa [Complex.add_im, Complex.mul_im] using hT
+  simpa [Complex.add_im, Complex.mul_im] using
+    abs_im_inv_le_inv_abs_im
+      (z := (x : ℂ) + (T : ℂ) * Complex.I) him
+
+theorem abs_im_inv_half_horizontal_le {x T : ℝ} (hT : T ≠ 0) :
+    |(((((x : ℂ) + (T : ℂ) * Complex.I) / 2)⁻¹).im)| ≤ 2 / |T| := by
+  have him : ((((x : ℂ) + (T : ℂ) * Complex.I) / 2).im) ≠ 0 := by
+    simp [Complex.add_im, Complex.mul_im, hT]
+  have h :=
+    abs_im_inv_le_inv_abs_im
+      (z := ((x : ℂ) + (T : ℂ) * Complex.I) / 2) him
+  calc
+    |(((((x : ℂ) + (T : ℂ) * Complex.I) / 2)⁻¹).im)|
+        ≤ 1 / |(((x : ℂ) + (T : ℂ) * Complex.I) / 2).im| := h
+    _ = 2 / |T| := by
+          norm_num [Complex.div_im, Complex.normSq, Complex.add_im,
+            Complex.mul_im, abs_div]
+
+theorem abs_im_inv_reflected_half_horizontal_le {x T : ℝ} (hT : T ≠ 0) :
+    |(((((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)⁻¹).im)| ≤
+      2 / |T| := by
+  have him :
+      ((((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2).im) ≠ 0 := by
+    simp [Complex.sub_im, Complex.add_im, Complex.mul_im, hT]
+  have h :=
+    abs_im_inv_le_inv_abs_im
+      (z := ((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2) him
+  calc
+    |(((((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)⁻¹).im)|
+        ≤ 1 /
+          |((((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2).im)| := h
+    _ = 2 / |T| := by
+          norm_num [Complex.div_im, Complex.normSq, Complex.sub_im,
+            Complex.add_im, Complex.mul_im, abs_div]
+
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :
       ∀ x ∈ [[x₁, x₂]],
