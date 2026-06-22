@@ -379,6 +379,31 @@ theorem firstHit_phaseLift_re_pow_eq_zero {D : ℝ}
     (θ.exp_phase (firstHitPoint θ.phase target hne))).2
     (by simpa [hphase] using hcos)
 
+/-- Target phases whose `N`-fold argument has zero cosine. -/
+noncomputable def backlundCosZeroTarget (N k : ℕ) : ℝ :=
+  (Real.pi / 2 + (k : ℝ) * Real.pi) / (N : ℝ)
+
+theorem backlundCosZeroTarget_cos_eq_zero {N k : ℕ} (hN : 0 < N) :
+    Real.cos ((N : ℝ) * backlundCosZeroTarget N k) = 0 := by
+  have hNne : (N : ℝ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hN
+  have hmul :
+      (N : ℝ) * backlundCosZeroTarget N k =
+        Real.pi / 2 + (k : ℝ) * Real.pi := by
+    unfold backlundCosZeroTarget
+    field_simp [hNne]
+  rw [hmul]
+  have hk : (k : ℝ) * Real.pi = ((k : ℤ) : ℝ) * Real.pi := by norm_num
+  rw [hk, Real.cos_add]
+  simp [Real.cos_pi_div_two, Real.sin_pi_div_two]
+
+theorem strictMono_backlundCosZeroTarget {N m : ℕ} (hN : 0 < N) :
+    StrictMono fun i : Fin m => backlundCosZeroTarget N (i : ℕ) := by
+  intro i j hij
+  unfold backlundCosZeroTarget
+  have hNpos : (0 : ℝ) < N := by exact_mod_cast hN
+  have hij' : ((i : ℕ) : ℝ) < ((j : ℕ) : ℝ) := by exact_mod_cast hij
+  exact div_lt_div_of_pos_right (by nlinarith [Real.pi_pos]) hNpos
+
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 
 theorem backlundA_conj (z : ℂ) :

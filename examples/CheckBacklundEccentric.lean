@@ -30,6 +30,9 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #check Backlund.firstHit_strictMono_of_strictMono_targets
 #check Backlund.firstHit_phaseLift_re_pow_eq_zero
+#check Backlund.backlundCosZeroTarget
+#check Backlund.backlundCosZeroTarget_cos_eq_zero
+#check Backlund.strictMono_backlundCosZeroTarget
 #check Backlund.backlundA
 #check Backlund.backlundA_conj
 #check Backlund.backlundAHorizontalPathFrom
@@ -217,6 +220,9 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #print axioms Backlund.firstHit_strictMono_of_strictMono_targets
 #print axioms Backlund.firstHit_phaseLift_re_pow_eq_zero
+#print axioms Backlund.backlundCosZeroTarget
+#print axioms Backlund.backlundCosZeroTarget_cos_eq_zero
+#print axioms Backlund.strictMono_backlundCosZeroTarget
 #print axioms Backlund.backlundA
 #print axioms Backlund.backlundA_conj
 #print axioms Backlund.backlundAHorizontalPathFrom
