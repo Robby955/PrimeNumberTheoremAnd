@@ -1466,6 +1466,47 @@ theorem prod_norm_pairs_of_backlund_reflected_dist_le_pairingH_pow {m : ℕ}
     (by intro i; linarith [hleft_nonneg i])
     (by intro i; linarith [hpair i])
 
+theorem cosZeroTarget_firstHit_pairs_product_le_pairingH_pow {D ε : ℝ}
+    (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
+    {N q m : ℕ} (hN : 0 < N)
+    (hε : (N : ℝ) * ε ≤ ((q + 1 : ℕ) : ℝ) * Real.pi)
+    (hstart : ∀ i : Fin m,
+      v ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < ε)
+    (hright : ∀ i : Fin m,
+      (firstHitRealSet D u
+        (backlundCosZeroTarget N ((i : ℕ) + q + 1))).Nonempty)
+    (hright_bound : ∀ i : Fin m,
+      (1 / 2 : ℝ) +
+          firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1)) (hright i) ≤
+        1 + backlundEta) :
+    ∃ hleft : ∀ i : Fin m,
+      (firstHitRealSet D v (backlundCosZeroTarget N (i : ℕ))).Nonempty,
+      (∏ i : Fin m,
+        (‖((((1 / 2 : ℝ) +
+              firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1)) (hright i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖ *
+          ‖((((1 / 2 : ℝ) -
+              firstHit v (backlundCosZeroTarget N (i : ℕ)) (hleft i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖)) ≤
+        backlundPairingH ^ (2 * m) := by
+  obtain ⟨hleft, hle⟩ :=
+    cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
+      (u := u) (v := v) hD hN hε hstart herr hright
+  refine ⟨hleft, ?_⟩
+  exact prod_norm_pairs_of_backlund_reflected_dist_le_pairingH_pow
+    (rightDist := fun i : Fin m =>
+      firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1)) (hright i))
+    (leftDist := fun i : Fin m =>
+      firstHit v (backlundCosZeroTarget N (i : ℕ)) (hleft i))
+    hright_bound
+    (by
+      intro i
+      exact (firstHit_mem_Icc v (backlundCosZeroTarget N (i : ℕ)) (hleft i)).1)
+    (by
+      intro i
+      exact hle i)
+
 theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
     {σ₁ x : ℝ}
     (hσ₁ : σ₁ ≤ 1 + backlundEta) (hx : x ∈ Set.Icc (1 - σ₁) σ₁) :

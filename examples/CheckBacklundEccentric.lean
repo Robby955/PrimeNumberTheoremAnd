@@ -97,6 +97,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundCosZeroTarget_add_le_of_mul_le
 #check Backlund.nat_mul_error_lt_pairingLoss_succ_mul_pi
 #check Backlund.cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
+#check Backlund.cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
 #check Backlund.backlundOrderedPairingLowerCount
 #check Backlund.backlundOrderedPairingLowerCount_eq_source
 #check Backlund.backlundEta
@@ -294,6 +295,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundCosZeroTarget_add_le_of_mul_le
 #print axioms Backlund.nat_mul_error_lt_pairingLoss_succ_mul_pi
 #print axioms Backlund.cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
+#print axioms Backlund.cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
 #print axioms Backlund.backlundOrderedPairingLowerCount
 #print axioms Backlund.backlundOrderedPairingLowerCount_eq_source
 #print axioms Backlund.backlundEta
