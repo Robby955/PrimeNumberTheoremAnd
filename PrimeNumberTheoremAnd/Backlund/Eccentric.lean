@@ -1448,6 +1448,24 @@ theorem prod_norm_pairs_of_backlund_reflected_le_pairingH_pow {m : ℕ}
     _ = (backlundPairingH ^ 2) ^ m := by simp
     _ = backlundPairingH ^ (2 * m) := by rw [pow_mul]
 
+theorem prod_norm_pairs_of_backlund_reflected_dist_le_pairingH_pow {m : ℕ}
+    {rightDist leftDist : Fin m → ℝ}
+    (hright : ∀ i : Fin m, (1 / 2 : ℝ) + rightDist i ≤ 1 + backlundEta)
+    (hleft_nonneg : ∀ i : Fin m, 0 ≤ leftDist i)
+    (hpair : ∀ i : Fin m, leftDist i ≤ rightDist i) :
+    (∏ i : Fin m,
+        (‖((((1 / 2 : ℝ) + rightDist i : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖ *
+          ‖((((1 / 2 : ℝ) - leftDist i : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖)) ≤
+      backlundPairingH ^ (2 * m) := by
+  exact prod_norm_pairs_of_backlund_reflected_le_pairingH_pow
+    (right := fun i : Fin m => (1 / 2 : ℝ) + rightDist i)
+    (left := fun i : Fin m => (1 / 2 : ℝ) - leftDist i)
+    hright
+    (by intro i; linarith [hleft_nonneg i])
+    (by intro i; linarith [hpair i])
+
 theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
     {σ₁ x : ℝ}
     (hσ₁ : σ₁ ≤ 1 + backlundEta) (hx : x ∈ Set.Icc (1 - σ₁) σ₁) :
