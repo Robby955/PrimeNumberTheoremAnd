@@ -271,6 +271,22 @@ theorem backlundRealPartZeroCount_eq_toFinset_card {N : ℕ} {T a b : ℝ}
       hfin.toFinset.card := by
   exact Set.ncard_eq_toFinset_card _ hfin
 
+def backlundOrderedRealPartZeros (N k : ℕ) (T a b : ℝ) (xs : Fin k → ℝ) : Prop :=
+  StrictMono xs ∧ ∀ i, xs i ∈ backlundRealPartZeroSet N T a b
+
+theorem backlundOrderedRealPartZeros_count_le {N k : ℕ} {T a b : ℝ} {xs : Fin k → ℝ}
+    (hfin : (backlundRealPartZeroSet N T a b).Finite)
+    (hxs : backlundOrderedRealPartZeros N k T a b xs) :
+    k ≤ backlundRealPartZeroCount N T a b := by
+  have hsub : Set.range xs ⊆ backlundRealPartZeroSet N T a b := by
+    rintro x ⟨i, rfl⟩
+    exact hxs.2 i
+  have hrange_card : (Set.range xs).ncard = k := by
+    rw [Set.ncard_range_of_injective hxs.1.injective]
+    simp
+  rw [backlundRealPartZeroCount, ← hrange_card]
+  exact Set.ncard_le_ncard hsub hfin
+
 /-- The ordered-pairing loss `⌊N E / π⌋` from the argument-symmetry error. -/
 noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
   Nat.floor ((N : ℝ) * E / Real.pi)
