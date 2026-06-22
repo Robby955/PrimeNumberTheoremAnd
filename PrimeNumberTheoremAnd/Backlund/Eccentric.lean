@@ -5077,6 +5077,262 @@ theorem eccentric_jensen_corrected_zero_count_of_orderedRealPartZeros_product_on
       (N := N) (k := m) (T := T) (σ₁ := σ₁) (xs := xs) hσ₁ hxs)
     hprod
 
+theorem eccentric_jensen_corrected_zero_count_of_ordered_pairing
+    {D E T α r : ℝ} {N q m n : ℕ}
+    (hD : (0 : ℝ) ≤ D)
+    (hDhi : (1 / 2 : ℝ) + D ≤ 1 + backlundEta)
+    (hT : T ≠ 0)
+    (hcenter :
+      backlundFEntire N T (backlundEccentricCenter backlundEta) ≠ 0)
+    (hr : 0 < r)
+    (hrlog : 0 < Real.log r)
+    (hEnonneg : 0 ≤ E)
+    (hR_eq : backlundLargeRadius = r * backlundPairingH)
+    (hfR : ∀ x, backlundAHorizontalPathFrom (1 / 2) D T hT x ≠ 0)
+    (hfL : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θR : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalPathFrom (1 / 2) D T hT) hfR))
+    (θL : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hfL))
+    (hN : 0 < N)
+    (hα : 0 ≤ α)
+    (hEgap : (N : ℝ) * E ≤ (q : ℝ) * Real.pi)
+    (hcosR : ∀ k : ℕ,
+      Real.cos
+        ((N : ℝ) * θR.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ +
+          backlundRightPairingTarget α k) = 0)
+    (hcosL : ∀ k : ℕ,
+      Real.cos
+        ((N : ℝ) * θL.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ -
+          backlundLeftPairingTarget α k) = 0)
+    (hstartR_unpaired : ∀ i : Fin (q + 1),
+      (phaseLiftScaledChange N hD θR) ⟨0, by exact ⟨le_rfl, hD⟩⟩ <
+        backlundRightPairingTarget α (i : ℕ))
+    (hstartR_pair : ∀ i : Fin m,
+      (phaseLiftScaledChange N hD θR) ⟨0, by exact ⟨le_rfl, hD⟩⟩ <
+        backlundRightPairingTarget α ((i : ℕ) + q + 1))
+    (hstartL : ∀ i : Fin m,
+      (phaseLiftNegScaledChange N hD θL) ⟨0, by exact ⟨le_rfl, hD⟩⟩ <
+        backlundLeftPairingTarget α (i : ℕ))
+    (hsum : ∀ x : Set.Icc (0 : ℝ) D,
+      |θR.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x +
+        θL.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x| < E)
+    (hright_unpaired : ∀ i : Fin (q + 1),
+      (firstHitRealSet D (phaseLiftScaledChange N hD θR)
+        (backlundRightPairingTarget α (i : ℕ))).Nonempty)
+    (hright_pair : ∀ i : Fin m,
+      (firstHitRealSet D (phaseLiftScaledChange N hD θR)
+        (backlundRightPairingTarget α ((i : ℕ) + q + 1))).Nonempty)
+    (hcount :
+      2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ) ≤
+        ((m + ((q + 1) + m) : ℕ) : ℝ)) :
+    (n : ℝ) ≤
+      backlundEccentricJensenZeroCountRhsEntireCorrected N T backlundEta
+        backlundLargeRadius r E := by
+  let u : C(Set.Icc (0 : ℝ) D, ℝ) := phaseLiftScaledChange N hD θR
+  let v : C(Set.Icc (0 : ℝ) D, ℝ) := phaseLiftNegScaledChange N hD θL
+  let leftTarget : Fin m → ℝ := fun i => backlundLeftPairingTarget α (i : ℕ)
+  let rightUnpairedTarget : Fin (q + 1) → ℝ :=
+    fun i => backlundRightPairingTarget α (i : ℕ)
+  let rightPairTarget : Fin m → ℝ :=
+    fun i => backlundRightPairingTarget α ((i : ℕ) + q + 1)
+  obtain ⟨hleft, hleft_ordered_small, hprod_split⟩ :=
+    backlund_ordered_pairing_from_phase_error
+      (D := D) (E := E) (T := T) (α := α) hD hDhi hT hfR hfL θR θL hN hα
+      hEgap hcosL hstartL hsum hright_unpaired hright_pair
+  let leftXs : Fin m → ℝ := fun i =>
+    (1 / 2 : ℝ) -
+      firstHit v (leftTarget (Fin.rev i)) (hleft (Fin.rev i))
+  let rightUnpairedXs : Fin (q + 1) → ℝ := fun i =>
+    (1 / 2 : ℝ) + firstHit u (rightUnpairedTarget i) (hright_unpaired i)
+  let rightPairXs : Fin m → ℝ := fun i =>
+    (1 / 2 : ℝ) + firstHit u (rightPairTarget i) (hright_pair i)
+  let xs : Fin (m + ((q + 1) + m)) → ℝ :=
+    Fin.append leftXs (Fin.append rightUnpairedXs rightPairXs)
+  have hright_unpaired_ordered_small :
+      backlundOrderedRealPartZeros N (q + 1) T (1 / 2) ((1 / 2 : ℝ) + D)
+        rightUnpairedXs := by
+    exact phaseLiftScaledChange_firstHits_orderedRealPartZeros
+      (x₀ := (1 / 2 : ℝ)) (D := D) (T := T) hD hT hfR θR
+      (target := rightUnpairedTarget)
+      (by simpa [u, rightUnpairedTarget] using hstartR_unpaired)
+      (strictMono_backlundRightPairingTarget α)
+      (fun i => hcosR (i : ℕ))
+      (by simpa [u, rightUnpairedTarget] using hright_unpaired)
+  have hrightPairTarget_strict : StrictMono rightPairTarget := by
+    intro i j hij
+    unfold rightPairTarget backlundRightPairingTarget
+    have hnat : (i : ℕ) + q + 1 < (j : ℕ) + q + 1 := by omega
+    have hnatR :
+        (((i : ℕ) + q + 1 : ℕ) : ℝ) <
+          (((j : ℕ) + q + 1 : ℕ) : ℝ) := by
+      exact_mod_cast hnat
+    nlinarith [mul_lt_mul_of_pos_right hnatR Real.pi_pos]
+  have hright_pair_ordered_small :
+      backlundOrderedRealPartZeros N m T (1 / 2) ((1 / 2 : ℝ) + D)
+        rightPairXs := by
+    exact phaseLiftScaledChange_firstHits_orderedRealPartZeros
+      (x₀ := (1 / 2 : ℝ)) (D := D) (T := T) hD hT hfR θR
+      (target := rightPairTarget)
+      (by simpa [u, rightPairTarget] using hstartR_pair)
+      hrightPairTarget_strict
+      (fun i => hcosR ((i : ℕ) + q + 1))
+      (by simpa [u, rightPairTarget] using hright_pair)
+  have hleft_full :
+      backlundOrderedRealPartZeros N m T
+        (1 - ((1 / 2 : ℝ) + D)) ((1 / 2 : ℝ) + D) leftXs := by
+    constructor
+    · simpa [leftXs, v, leftTarget] using hleft_ordered_small.1
+    · intro i
+      exact backlundRealPartZeroSet_mono_interval
+        (N := N) (T := T) (σ := leftXs i)
+        (a := (1 / 2 : ℝ) - D) (b := (1 / 2 : ℝ))
+        (c := 1 - ((1 / 2 : ℝ) + D)) (d := (1 / 2 : ℝ) + D)
+        (by ring_nf; exact le_rfl) (by linarith [hD])
+        (by simpa [leftXs, v, leftTarget] using hleft_ordered_small.2 i)
+  have hright_unpaired_full :
+      backlundOrderedRealPartZeros N (q + 1) T
+        (1 - ((1 / 2 : ℝ) + D)) ((1 / 2 : ℝ) + D) rightUnpairedXs := by
+    constructor
+    · exact hright_unpaired_ordered_small.1
+    · intro i
+      exact backlundRealPartZeroSet_mono_interval
+        (N := N) (T := T) (σ := rightUnpairedXs i)
+        (a := (1 / 2 : ℝ)) (b := (1 / 2 : ℝ) + D)
+        (c := 1 - ((1 / 2 : ℝ) + D)) (d := (1 / 2 : ℝ) + D)
+        (by linarith [hD]) le_rfl
+        (hright_unpaired_ordered_small.2 i)
+  have hright_pair_full :
+      backlundOrderedRealPartZeros N m T
+        (1 - ((1 / 2 : ℝ) + D)) ((1 / 2 : ℝ) + D) rightPairXs := by
+    constructor
+    · exact hright_pair_ordered_small.1
+    · intro i
+      exact backlundRealPartZeroSet_mono_interval
+        (N := N) (T := T) (σ := rightPairXs i)
+        (a := (1 / 2 : ℝ)) (b := (1 / 2 : ℝ) + D)
+        (c := 1 - ((1 / 2 : ℝ) + D)) (d := (1 / 2 : ℝ) + D)
+        (by linarith [hD]) le_rfl
+        (hright_pair_ordered_small.2 i)
+  have hleft_lt_half : ∀ i : Fin m, leftXs i < (1 / 2 : ℝ) := by
+    intro i
+    have hpos := firstHit_pos_of_start_lt_target
+      (u := v) hD (hstartL (Fin.rev i)) (hleft (Fin.rev i))
+    simp [leftXs]
+    linarith
+  have hright_unpaired_gt_half : ∀ i : Fin (q + 1), (1 / 2 : ℝ) < rightUnpairedXs i := by
+    intro i
+    have hpos := firstHit_pos_of_start_lt_target
+      (u := u) hD (hstartR_unpaired i) (hright_unpaired i)
+    simp [rightUnpairedXs]
+    linarith
+  have hright_pair_gt_half : ∀ i : Fin m, (1 / 2 : ℝ) < rightPairXs i := by
+    intro i
+    have hpos := firstHit_pos_of_start_lt_target
+      (u := u) hD (hstartR_pair i) (hright_pair i)
+    simp [rightPairXs]
+    linarith
+  have hright_unpaired_lt_pair : ∀ i : Fin (q + 1), ∀ j : Fin m,
+      rightUnpairedXs i < rightPairXs j := by
+    intro i j
+    have htarget_lt :
+        rightUnpairedTarget i < rightPairTarget j := by
+      unfold rightUnpairedTarget rightPairTarget backlundRightPairingTarget
+      have hnat : (i : ℕ) < (j : ℕ) + q + 1 := by
+        have hiq : (i : ℕ) < q + 1 := i.isLt
+        have hle : q + 1 ≤ (j : ℕ) + q + 1 := by omega
+        exact lt_of_lt_of_le hiq hle
+      have hnatR : ((i : ℕ) : ℝ) < (((j : ℕ) + q + 1 : ℕ) : ℝ) := by
+        exact_mod_cast hnat
+      nlinarith [mul_lt_mul_of_pos_right hnatR Real.pi_pos]
+    obtain ⟨hneU', hlt⟩ := firstHit_lt_firstHit_of_start_lt_of_target_lt
+      (u := u) (target₁ := rightUnpairedTarget i) (target₂ := rightPairTarget j)
+      hD (by simpa [u, rightUnpairedTarget] using hstartR_unpaired i)
+      htarget_lt (by simpa [u, rightPairTarget] using hright_pair j)
+    have heq := firstHit_eq_of_nonempty u (rightUnpairedTarget i)
+      hneU' (by simpa [u, rightUnpairedTarget] using hright_unpaired i)
+    simp [rightUnpairedXs, rightPairXs]
+    simpa [heq, u, rightUnpairedTarget, rightPairTarget] using hlt
+  have hxs :
+      backlundOrderedRealPartZeros N (m + ((q + 1) + m)) T
+        (1 - ((1 / 2 : ℝ) + D)) ((1 / 2 : ℝ) + D) xs := by
+    exact backlundOrderedRealPartZeros_append_three
+      hleft_full hright_unpaired_full hright_pair_full
+      (fun i j => (hleft_lt_half i).trans (hright_unpaired_gt_half j))
+      (fun i j => (hleft_lt_half i).trans (hright_pair_gt_half j))
+      hright_unpaired_lt_pair
+  let leftNorm : Fin m → ℝ := fun i =>
+    ‖((((1 / 2 : ℝ) -
+        firstHit v (leftTarget i) (hleft i) : ℝ) : ℂ) -
+      backlundEccentricCenter backlundEta)‖
+  let rightUnpairedNorm : Fin (q + 1) → ℝ := fun i =>
+    ‖((((1 / 2 : ℝ) +
+        firstHit u (rightUnpairedTarget i) (hright_unpaired i) : ℝ) : ℂ) -
+      backlundEccentricCenter backlundEta)‖
+  let rightPairNorm : Fin m → ℝ := fun i =>
+    ‖((((1 / 2 : ℝ) +
+        firstHit u (rightPairTarget i) (hright_pair i) : ℝ) : ℂ) -
+      backlundEccentricCenter backlundEta)‖
+  have hprod_eq :
+      (∏ i : Fin (m + ((q + 1) + m)),
+          ‖((xs i : ℂ) - backlundEccentricCenter backlundEta)‖) =
+        (∏ i : Fin (q + 1), rightUnpairedNorm i) *
+          (∏ i : Fin m, rightPairNorm i * leftNorm i) := by
+    calc
+      (∏ i : Fin (m + ((q + 1) + m)),
+          ‖((xs i : ℂ) - backlundEccentricCenter backlundEta)‖)
+          =
+        ∏ i : Fin (m + ((q + 1) + m)),
+          Fin.append (fun i : Fin m => leftNorm (Fin.rev i))
+            (Fin.append rightUnpairedNorm rightPairNorm) i := by
+            apply Finset.prod_congr rfl
+            intro i _hi
+            refine Fin.addCases
+              (motive := fun i =>
+                ‖((xs i : ℂ) - backlundEccentricCenter backlundEta)‖ =
+                  Fin.append (fun i : Fin m => leftNorm (Fin.rev i))
+                    (Fin.append rightUnpairedNorm rightPairNorm) i)
+              ?_ ?_ i
+            · intro il
+              simp [xs, leftXs, leftNorm, leftTarget, v]
+            · intro ir
+              refine Fin.addCases
+                (motive := fun ir =>
+                  ‖((xs (Fin.natAdd m ir) : ℂ) -
+                      backlundEccentricCenter backlundEta)‖ =
+                    Fin.append (fun i : Fin m => leftNorm (Fin.rev i))
+                      (Fin.append rightUnpairedNorm rightPairNorm) (Fin.natAdd m ir))
+                ?_ ?_ ir
+              · intro iu
+                simp [xs, rightUnpairedXs, rightUnpairedNorm, rightUnpairedTarget, u]
+              · intro ip
+                simp [xs, rightPairXs, rightPairNorm, rightPairTarget, u]
+      _ =
+        (∏ i : Fin (q + 1), rightUnpairedNorm i) *
+          (∏ i : Fin m, rightPairNorm i * leftNorm i) :=
+            prod_fin_append_leftRev_pairingShape
+              (q := q) (m := m) (left := leftNorm) (rightPair := rightPairNorm)
+              (rightUnpaired := rightUnpairedNorm)
+  have hprod :
+      (∏ i : Fin (m + ((q + 1) + m)),
+          ‖((xs i : ℂ) - backlundEccentricCenter backlundEta)‖) ≤
+        backlundPairingH ^ (m + ((q + 1) + m)) := by
+    have hpow :
+        backlundPairingH ^ ((q + 1) + 2 * m) =
+          backlundPairingH ^ (m + ((q + 1) + m)) := by
+      congr 1
+      omega
+    rw [hprod_eq]
+    exact hprod_split.trans_eq hpow
+  exact eccentric_jensen_corrected_zero_count_of_orderedRealPartZeros_product_on_backlundInterval
+    (N := N) (n := n) (m := m + ((q + 1) + m)) (T := T)
+    (σ₁ := (1 / 2 : ℝ) + D) (H := backlundPairingH) (r := r) (E := E)
+    (xs := xs) hcenter hr hrlog hEnonneg backlundPairingH_pos hR_eq hDhi
+    hcount hxs
+    (fun i => ofReal_add_mul_I_ne_one_of_ne_zero (xs i) T hT)
+    (fun i => ofReal_sub_mul_I_ne_one_of_ne_zero (xs i) T hT)
+    hprod
+
 theorem midpointReflectedProduct_zetaSurrogate_eq (z : ℂ) :
     midpointReflectedProduct zetaSurrogate z =
       zetaSurrogate z * zetaSurrogate ((1 : ℂ) - z) := by
