@@ -1835,6 +1835,132 @@ theorem backlundEccentricTranslatedDivisor_one_le_of_orderedRealPartZeros
     (N := N) (T := T) (η := η) (a := a) (b := b) (σ := xs i)
     hnot (hxs.2 i) (hplus i) (hminus i)
 
+private theorem finset_sum_fun_apply {α β γ : Type*} [AddCommMonoid β]
+    (s : Finset α) (f : α → γ → β) (x : γ) :
+    (∑ a ∈ s, f a) x = ∑ a ∈ s, f a x := by
+  classical
+  induction s using Finset.induction with
+  | empty =>
+      simp
+  | insert a s ha ih =>
+      simp [ha]
+
+theorem logCounting_lower_bound_of_product
+    {m : ℕ} {D : Function.locallyFinsupp ℂ ℤ} {zs : Fin m → ℂ}
+    {R H r : ℝ}
+    (hDnonneg : 0 ≤ D)
+    (hR : 1 ≤ R)
+    (hr : 0 < r)
+    (hH : 0 < H)
+    (hR_eq : R = r * H)
+    (hinj : Function.Injective zs)
+    (hz0 : ∀ i : Fin m, zs i ≠ 0)
+    (hzD : ∀ i : Fin m, (1 : ℤ) ≤ D (zs i))
+    (hzR : ∀ i : Fin m, ‖zs i‖ ≤ R)
+    (hprod : (∏ i : Fin m, ‖zs i‖) ≤ H ^ m) :
+    (m : ℝ) * Real.log r ≤ Function.locallyFinsuppWithin.logCounting D R := by
+  classical
+  have hSle :
+      (∑ i : Fin m, Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) ≤ D := by
+    intro z
+    by_cases hz : ∃ i : Fin m, zs i = z
+    · rcases hz with ⟨i, rfl⟩
+      have hsum :
+          (∑ j : Fin m,
+              Function.locallyFinsuppWithin.single (zs j) (1 : ℤ) (zs i)) =
+            (1 : ℤ) := by
+        rw [Finset.sum_eq_single i]
+        · simp
+        · intro j _hj hji
+          have hne : zs i ≠ zs j := by
+            intro h
+            exact hji (hinj h.symm)
+          simp [Function.locallyFinsuppWithin.single_apply, hne]
+        · intro hi
+          exact False.elim (hi (Finset.mem_univ i))
+      rw [Function.locallyFinsuppWithin.coe_sum]
+      rw [finset_sum_fun_apply (s := Finset.univ)
+        (f := fun j : Fin m =>
+          (Function.locallyFinsuppWithin.single (zs j) (1 : ℤ) : ℂ → ℤ))
+        (x := zs i)]
+      change (∑ j : Fin m,
+        Function.locallyFinsuppWithin.single (zs j) (1 : ℤ) (zs i)) ≤ D (zs i)
+      rw [hsum]
+      exact hzD i
+    · have hsum :
+          (∑ j : Fin m,
+              Function.locallyFinsuppWithin.single (zs j) (1 : ℤ) z) = 0 := by
+        refine Finset.sum_eq_zero ?_
+        intro j _hj
+        have hne : z ≠ zs j := by
+          intro h
+          exact hz ⟨j, h.symm⟩
+        simp [Function.locallyFinsuppWithin.single_apply, hne]
+      rw [Function.locallyFinsuppWithin.coe_sum]
+      rw [finset_sum_fun_apply (s := Finset.univ)
+        (f := fun j : Fin m =>
+          (Function.locallyFinsuppWithin.single (zs j) (1 : ℤ) : ℂ → ℤ))
+        (x := z)]
+      change (∑ j : Fin m,
+        Function.locallyFinsuppWithin.single (zs j) (1 : ℤ) z) ≤ D z
+      rw [hsum]
+      exact hDnonneg z
+  have hSlog_le :
+      Function.locallyFinsuppWithin.logCounting
+          (∑ i : Fin m, Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) R ≤
+        Function.locallyFinsuppWithin.logCounting D R :=
+    Function.locallyFinsuppWithin.logCounting_le hSle hR
+  have hSlog :
+      Function.locallyFinsuppWithin.logCounting
+          (∑ i : Fin m, Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) R =
+        ∑ i : Fin m,
+          Function.locallyFinsuppWithin.logCounting
+            (Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) R := by
+    simp [map_sum]
+  have hsingle :
+      ∀ i : Fin m,
+        Function.locallyFinsuppWithin.logCounting
+            (Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) R =
+          Real.log R - Real.log ‖zs i‖ := by
+    intro i
+    simpa using
+      (Function.locallyFinsuppWithin.logCounting_single_eq_log_sub_const
+        (e := zs i) (r := R) (n := (1 : ℤ)) (hr := hzR i))
+  have hlogS :
+      Function.locallyFinsuppWithin.logCounting
+          (∑ i : Fin m, Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) R =
+        ∑ i : Fin m, (Real.log R - Real.log ‖zs i‖) := by
+    rw [hSlog]
+    exact Finset.sum_congr rfl fun i _ => hsingle i
+  have hprod_pos : 0 < ∏ i : Fin m, ‖zs i‖ :=
+    Finset.prod_pos fun i _ => norm_pos_iff.mpr (hz0 i)
+  have hHpow_pos : 0 < H ^ m := pow_pos hH m
+  have hsum_log_le :
+      (∑ i : Fin m, Real.log ‖zs i‖) ≤ (m : ℝ) * Real.log H := by
+    have hlogprod_le : Real.log (∏ i : Fin m, ‖zs i‖) ≤ Real.log (H ^ m) :=
+      Real.log_le_log hprod_pos hprod
+    rw [Real.log_prod (s := Finset.univ)
+        (f := fun i : Fin m => ‖zs i‖)
+        (by intro i _; exact norm_ne_zero_iff.mpr (hz0 i)),
+      Real.log_pow] at hlogprod_le
+    simpa using hlogprod_le
+  have hsum_lower :
+      (m : ℝ) * Real.log r ≤
+        ∑ i : Fin m, (Real.log R - Real.log ‖zs i‖) := by
+    have hlogR : Real.log R = Real.log r + Real.log H := by
+      rw [hR_eq, Real.log_mul hr.ne' hH.ne']
+    have hsum_const :
+        (∑ _i : Fin m, Real.log R) = (m : ℝ) * Real.log R := by
+      simp
+    rw [Finset.sum_sub_distrib, hsum_const, hlogR]
+    nlinarith
+  calc
+    (m : ℝ) * Real.log r
+        ≤ ∑ i : Fin m, (Real.log R - Real.log ‖zs i‖) := hsum_lower
+    _ = Function.locallyFinsuppWithin.logCounting
+          (∑ i : Fin m, Function.locallyFinsuppWithin.single (zs i) (1 : ℤ)) R := hlogS.symm
+    _ ≤ Function.locallyFinsuppWithin.logCounting D R := hSlog_le
+
 noncomputable def backlundEccentricJensenLogCountingTerm
     (N : ℕ) (T η R : ℝ) : ℝ :=
   Function.locallyFinsuppWithin.logCounting
@@ -1843,6 +1969,26 @@ noncomputable def backlundEccentricJensenLogCountingTerm
       ‖meromorphicTrailingCoeffAt
         (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η)) 0‖ -
     Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖
+
+theorem backlundEccentricJensenLogCountingTerm_eq_logCounting_of_center_ne_zero
+    {N : ℕ} {T η R : ℝ}
+    (hcenter : backlundFEntire N T (backlundEccentricCenter η) ≠ 0) :
+    backlundEccentricJensenLogCountingTerm N T η R =
+      Function.locallyFinsuppWithin.logCounting
+        (backlundEccentricTranslatedDivisor N T η) R := by
+  let f : ℂ → ℂ := fun z => backlundFEntire N T (z + backlundEccentricCenter η)
+  have hf : Differentiable ℂ f := backlundFEntire_translate_differentiable N T η
+  have htrail : meromorphicTrailingCoeffAt f 0 = f 0 := by
+    exact (hf.analyticAt 0).meromorphicTrailingCoeffAt_of_ne_zero (by simpa [f] using hcenter)
+  rw [backlundEccentricJensenLogCountingTerm]
+  change Function.locallyFinsuppWithin.logCounting
+      (backlundEccentricTranslatedDivisor N T η) R +
+        Real.log ‖meromorphicTrailingCoeffAt f 0‖ -
+        Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖ =
+      Function.locallyFinsuppWithin.logCounting
+        (backlundEccentricTranslatedDivisor N T η) R
+  rw [htrail]
+  simp [f]
 
 theorem backlundPairingLoss_le {N : ℕ} {E : ℝ} (hE : 0 ≤ E) :
     (backlundPairingLoss N E : ℝ) ≤ (N : ℝ) * E / Real.pi := by
