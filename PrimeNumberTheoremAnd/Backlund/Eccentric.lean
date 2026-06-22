@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robby Sneiderman
 -/
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
+import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
 import PrimeNumberTheoremAnd.Backlund.ZeroCountCrude
 import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 import PrimeNumberTheoremAnd.ZetaBounds
@@ -69,6 +70,29 @@ theorem logDeriv_backlundA_eq_zeta {s : ℂ}
     differentiableAt_riemannZeta hs1
   rw [logDeriv_mul s hfactor hζ hfactor_diff hzeta_diff]
   simp [logDeriv_apply, div_eq_mul_inv]
+
+theorem logDeriv_backlundA_add_reflected_eq_archimedean {s : ℂ}
+    (hs0 : s ≠ 0) (hs1 : s ≠ 1)
+    (hζs : riemannZeta s ≠ 0)
+    (hζ1s : riemannZeta (1 - s) ≠ 0) :
+    logDeriv backlundA s + logDeriv backlundA (1 - s) =
+      1 / (s - 1) + 1 / ((1 - s) - 1) +
+        ((Real.log Real.pi : ℝ) : ℂ) -
+        (1 / 2 : ℂ) * (Complex.digamma (s / 2) +
+          Complex.digamma ((1 - s) / 2)) := by
+  have h1s_ne_one : (1 : ℂ) - s ≠ 1 := by
+    intro h
+    apply hs0
+    calc
+      s = 1 - (1 - s) := by ring
+      _ = 0 := by rw [h]; ring
+  have hs_log := logDeriv_backlundA_eq_zeta (s := s) hs1 hζs
+  have h1s_log := logDeriv_backlundA_eq_zeta (s := 1 - s) h1s_ne_one hζ1s
+  have hfe := Kadiri.zeta_logDeriv_functional_eq
+    (s := s) hs1 hs0 hζs hζ1s
+  rw [Complex.ofReal_neg] at hfe
+  rw [hs_log, h1s_log]
+  linear_combination -hfe
 
 /--
 Backlund's real-part auxiliary

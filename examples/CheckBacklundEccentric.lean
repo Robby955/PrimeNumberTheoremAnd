@@ -5,7 +5,9 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.zeta_one_line_le_const_mul_log
 #check Backlund.backlundA
 #check Backlund.backlundA_conj
+#check Kadiri.zeta_logDeriv_functional_eq
 #check Backlund.logDeriv_backlundA_eq_zeta
+#check Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
 #check Backlund.backlundF
 #check Backlund.backlundF_real_eq_re
 #check Backlund.backlundF_real_eq_zero_iff
@@ -106,7 +108,9 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.zeta_one_line_le_const_mul_log
 #print axioms Backlund.backlundA
 #print axioms Backlund.backlundA_conj
+#print axioms Kadiri.zeta_logDeriv_functional_eq
 #print axioms Backlund.logDeriv_backlundA_eq_zeta
+#print axioms Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
 #print axioms Backlund.backlundF
 #print axioms Backlund.backlundF_real_eq_re
 #print axioms Backlund.backlundF_real_eq_zero_iff
