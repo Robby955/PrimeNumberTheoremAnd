@@ -90,6 +90,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundRealPartZeroCount_eq_toFinset_card
 #check Backlund.backlundOrderedRealPartZeros
 #check Backlund.backlundOrderedRealPartZeros_count_le
+#check Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
 #check Backlund.backlundPairingLoss
 #check Backlund.backlundOrderedPairingLowerCount
 #check Backlund.backlundOrderedPairingLowerCount_eq_source
@@ -280,6 +281,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundRealPartZeroCount_eq_toFinset_card
 #print axioms Backlund.backlundOrderedRealPartZeros
 #print axioms Backlund.backlundOrderedRealPartZeros_count_le
+#print axioms Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
 #print axioms Backlund.backlundPairingLoss
 #print axioms Backlund.backlundOrderedPairingLowerCount
 #print axioms Backlund.backlundOrderedPairingLowerCount_eq_source

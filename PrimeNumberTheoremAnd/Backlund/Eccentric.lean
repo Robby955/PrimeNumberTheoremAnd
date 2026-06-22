@@ -1214,6 +1214,35 @@ theorem backlundOrderedRealPartZeros_count_le {N k : ℕ} {T a b : ℝ} {xs : Fi
   rw [backlundRealPartZeroCount, ← hrange_card]
   exact Set.ncard_le_ncard hsub hfin
 
+theorem backlundCosZeroFirstHits_orderedRealPartZeros {x₀ D T : ℝ}
+    (hD : (0 : ℝ) ≤ D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalPathFrom x₀ D T hT x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath (backlundAHorizontalPathFrom x₀ D T hT) hf))
+    {N m : ℕ} (hN : 0 < N)
+    (hstart : ∀ i : Fin m,
+      θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
+    (hne : ∀ i : Fin m,
+      (firstHitRealSet D θ.phase (backlundCosZeroTarget N (i : ℕ))).Nonempty) :
+    backlundOrderedRealPartZeros N m T x₀ (x₀ + D)
+      (fun i : Fin m =>
+        x₀ + firstHit θ.phase (backlundCosZeroTarget N (i : ℕ)) (hne i)) := by
+  constructor
+  · have htargets : StrictMono fun i : Fin m => backlundCosZeroTarget N (i : ℕ) :=
+      strictMono_backlundCosZeroTarget hN
+    have hhits :
+        StrictMono fun i : Fin m =>
+          firstHit θ.phase (backlundCosZeroTarget N (i : ℕ)) (hne i) :=
+      firstHit_strictMono_of_strictMono_targets
+        (u := θ.phase)
+        (targets := fun i : Fin m => backlundCosZeroTarget N (i : ℕ))
+        hD hstart htargets hne
+    intro i j hij
+    simpa [add_comm, add_left_comm, add_assoc] using add_lt_add_left (hhits hij) x₀
+  · intro i
+    exact firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet
+      (x₀ := x₀) (D := D) (T := T) hT hf θ N
+      (backlundCosZeroTarget_cos_eq_zero hN) (hne i)
+
 /-- The ordered-pairing loss `⌊N E / π⌋` from the argument-symmetry error. -/
 noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
   Nat.floor ((N : ℝ) * E / Real.pi)
