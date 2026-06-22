@@ -58,6 +58,18 @@ theorem backlundA_conj (z : ℂ) :
     backlundA (star z) = star (backlundA z) := by
   simp [backlundA, riemannZeta_conj]
 
+theorem logDeriv_backlundA_eq_zeta {s : ℂ}
+    (hs1 : s ≠ 1) (hζ : riemannZeta s ≠ 0) :
+    logDeriv backlundA s = 1 / (s - 1) + deriv riemannZeta s / riemannZeta s := by
+  unfold backlundA
+  have hfactor : (fun z : ℂ => z - 1) s ≠ 0 := sub_ne_zero.mpr hs1
+  have hfactor_diff : DifferentiableAt ℂ (fun z : ℂ => z - 1) s := by
+    fun_prop
+  have hzeta_diff : DifferentiableAt ℂ riemannZeta s :=
+    differentiableAt_riemannZeta hs1
+  rw [logDeriv_mul s hfactor hζ hfactor_diff hzeta_diff]
+  simp [logDeriv_apply, div_eq_mul_inv]
+
 /--
 Backlund's real-part auxiliary
 `F_N(z) = (A(z+iT)^N + A(z-iT)^N)/2`.
