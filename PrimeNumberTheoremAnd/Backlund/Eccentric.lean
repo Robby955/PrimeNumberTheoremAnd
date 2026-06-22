@@ -1798,6 +1798,22 @@ theorem zetaSurrogate_midpointReflectedProduct_right_boundary_le_one_of_re_eq_on
   exact zetaSurrogate_midpointReflectedProduct_right_boundary_le_one_of_edge_bounds
     hQ hC₀ hC₁ hzero hone w.im
 
+theorem zetaSurrogate_midpointReflectedProduct_boundary_controls {Q : ℝ} (hQ : (1 : ℝ) < Q) :
+    ∃ C₀ > 0, ∃ C₁ > 0,
+      (∀ w : ℂ, w.re = 0 →
+        ‖midpointReflectedProduct zetaSurrogate w /
+          midpointReflectedProductMajorant Q C₀ C₁ w‖ ≤ 1) ∧
+      (∀ w : ℂ, w.re = 1 →
+        ‖midpointReflectedProduct zetaSurrogate w /
+          midpointReflectedProductMajorant Q C₀ C₁ w‖ ≤ 1) := by
+  obtain ⟨C₀, hC₀, hzero⟩ := zetaSurrogate_zero_line_le_const_mul_shiftedLog_global hQ
+  obtain ⟨C₁, hC₁, hone⟩ := zetaSurrogate_one_line_le_const_mul_shiftedLog_global hQ
+  refine ⟨C₀, hC₀, C₁, hC₁, ?_, ?_⟩
+  · exact zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_re_eq_zero
+      hQ hC₀ hC₁ hzero hone
+  · exact zetaSurrogate_midpointReflectedProduct_right_boundary_le_one_of_re_eq_one
+      hQ hC₀ hC₁ hzero hone
+
 /--
 Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
 has PL growth and unit boundary control on the two strip edges, its midpoint
