@@ -1773,6 +1773,68 @@ noncomputable def backlundEccentricTranslatedDivisor (N : ℕ) (T η : ℝ) :
     (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η))
     (Set.univ : Set ℂ)
 
+theorem backlundEccentricTranslatedDivisor_one_le_of_zero
+    {N : ℕ} {T η : ℝ} {z : ℂ}
+    (hnot :
+      ∃ w : ℂ, backlundFEntire N T (w + backlundEccentricCenter η) ≠ 0)
+    (hz : backlundFEntire N T (z + backlundEccentricCenter η) = 0) :
+    (1 : ℤ) ≤ backlundEccentricTranslatedDivisor N T η z := by
+  let f : ℂ → ℂ := fun w => backlundFEntire N T (w + backlundEccentricCenter η)
+  have hf : Differentiable ℂ f := backlundFEntire_translate_differentiable N T η
+  have hz' : f z = 0 := hz
+  have hnotTop : analyticOrderAt f z ≠ ⊤ :=
+    Complex.Hadamard.analyticOrderAt_ne_top_of_exists_ne_zero hf hnot z
+  have horder_ne_zero : analyticOrderNatAt f z ≠ 0 := by
+    intro hzero
+    have hcast : (analyticOrderNatAt f z : ENat) = analyticOrderAt f z :=
+      Nat.cast_analyticOrderNatAt (f := f) (z₀ := z) hnotTop
+    have horder_zero : analyticOrderAt f z = 0 := by
+      simpa [hzero] using hcast.symm
+    exact ((hf.analyticAt z).analyticOrderAt_ne_zero.mpr hz') horder_zero
+  have horder_pos : 0 < analyticOrderNatAt f z :=
+    Nat.pos_of_ne_zero horder_ne_zero
+  rw [backlundEccentricTranslatedDivisor]
+  change (1 : ℤ) ≤ MeromorphicOn.divisor f (Set.univ : Set ℂ) z
+  rw [Complex.Hadamard.divisor_univ_eq_analyticOrderNatAt_int (f := f) hf z]
+  exact_mod_cast horder_pos
+
+theorem backlundEccentricTranslatedDivisor_one_le_of_realPartZero
+    {N : ℕ} {T η a b σ : ℝ}
+    (hnot :
+      ∃ w : ℂ, backlundFEntire N T (w + backlundEccentricCenter η) ≠ 0)
+    (hσ : σ ∈ backlundRealPartZeroSet N T a b)
+    (hplus : ((σ : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hminus : ((σ : ℂ) - (T : ℂ) * Complex.I) ≠ 1) :
+    (1 : ℤ) ≤
+      backlundEccentricTranslatedDivisor N T η
+        ((σ : ℂ) - backlundEccentricCenter η) := by
+  have hraw : backlundF N T (σ : ℂ) = 0 :=
+    (mem_backlundRealPartZeroSet_iff_backlundF N T a b σ).1 hσ |>.2
+  have hentire : backlundFEntire N T (σ : ℂ) = 0 := by
+    rw [backlundFEntire_eq_backlundF_of_shift_ne_one
+      (N := N) (T := T) (z := (σ : ℂ)) hplus hminus]
+    exact hraw
+  refine backlundEccentricTranslatedDivisor_one_le_of_zero
+    (N := N) (T := T) (η := η)
+    (z := (σ : ℂ) - backlundEccentricCenter η) hnot ?_
+  simpa using hentire
+
+theorem backlundEccentricTranslatedDivisor_one_le_of_orderedRealPartZeros
+    {N k : ℕ} {T η a b : ℝ} {xs : Fin k → ℝ}
+    (hnot :
+      ∃ w : ℂ, backlundFEntire N T (w + backlundEccentricCenter η) ≠ 0)
+    (hxs : backlundOrderedRealPartZeros N k T a b xs)
+    (hplus : ∀ i : Fin k, ((xs i : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hminus : ∀ i : Fin k, ((xs i : ℂ) - (T : ℂ) * Complex.I) ≠ 1) :
+    ∀ i : Fin k,
+      (1 : ℤ) ≤
+        backlundEccentricTranslatedDivisor N T η
+          ((xs i : ℂ) - backlundEccentricCenter η) := by
+  intro i
+  exact backlundEccentricTranslatedDivisor_one_le_of_realPartZero
+    (N := N) (T := T) (η := η) (a := a) (b := b) (σ := xs i)
+    hnot (hxs.2 i) (hplus i) (hminus i)
+
 noncomputable def backlundEccentricJensenLogCountingTerm
     (N : ℕ) (T η R : ℝ) : ℝ :=
   Function.locallyFinsuppWithin.logCounting
