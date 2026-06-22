@@ -616,6 +616,81 @@ theorem zetaSurrogate_zero_line_le_const_mul_shiftedLog_global {Q : ℝ}
         _ ≤ C := le_max_right _ _
     exact hmain.trans (mul_le_mul_of_nonneg_right hM_le_C (le_of_lt (hD_pos t)))
 
+theorem zetaSurrogate_one_line_le_const_mul_shiftedLog_global {Q : ℝ}
+    (hQ : (1 : ℝ) < Q) :
+    ∃ C > 0, ∀ t : ℝ,
+      ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        C * (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖) := by
+  obtain ⟨Chigh, hChigh, hhigh⟩ :=
+    zetaSurrogate_one_line_le_const_mul_shiftedLog hQ
+  let D : ℝ → ℝ := fun t =>
+    ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+      ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖
+  have hD_pos : ∀ t : ℝ, 0 < D t := by
+    intro t
+    have hbase_re : (1 : ℝ) <
+        ((((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I).re) := by
+      simp [Complex.add_re, Complex.mul_re]
+      linarith
+    have hbase_ne : (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I) ≠ 0 := by
+      intro h
+      have hre := congrArg Complex.re h
+      simp [Complex.add_re, Complex.mul_re] at hre
+      linarith
+    have hnorm_pos :
+        0 < ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ :=
+      norm_pos_iff.mpr hbase_ne
+    have hlog_pos :
+        0 < ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖ :=
+      norm_pos_iff.mpr (log_ne_zero_of_one_lt_re hbase_re)
+    exact mul_pos hnorm_pos hlog_pos
+  have hratio_cont : ContinuousOn
+      (fun t : ℝ => ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ / D t)
+      (Set.Icc (-3 : ℝ) 3) := by
+    have hpath_cont : Continuous fun t : ℝ => (1 : ℂ) + (t : ℂ) * Complex.I := by fun_prop
+    have hnum_cont : Continuous fun t : ℝ =>
+        ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ :=
+      (zetaSurrogate_differentiable.continuous.comp hpath_cont).norm
+    have hshift_cont : Continuous fun t : ℝ =>
+        ((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I := by fun_prop
+    have hlog_cont : Continuous fun t : ℝ =>
+        Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I) := by
+      refine hshift_cont.clog ?_
+      intro t
+      refine Or.inl ?_
+      simp [Complex.add_re, Complex.mul_re]
+      linarith
+    have hD_cont : Continuous D := by
+      change Continuous (fun t : ℝ =>
+        ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖)
+      exact hshift_cont.norm.mul hlog_cont.norm
+    exact hnum_cont.continuousOn.div hD_cont.continuousOn
+      (fun t _ => ne_of_gt (hD_pos t))
+  obtain ⟨M, hM⟩ := isCompact_Icc.exists_bound_of_continuousOn hratio_cont
+  let C : ℝ := max Chigh (M + 1)
+  refine ⟨C, lt_of_lt_of_le hChigh (le_max_left _ _), ?_⟩
+  intro t
+  by_cases ht : (3 : ℝ) < |t|
+  · exact (hhigh t ht).trans
+      (mul_le_mul_of_nonneg_right (le_max_left Chigh (M + 1))
+        (le_of_lt (hD_pos t)))
+  · have habs : |t| ≤ (3 : ℝ) := le_of_not_gt ht
+    have htIcc : t ∈ Set.Icc (-3 : ℝ) 3 := by
+      simpa [Set.mem_Icc] using (abs_le.mp habs)
+    have hratio_le_M :
+        ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ / D t ≤ M := by
+      exact (le_abs_self _).trans (hM t htIcc)
+    have hmain :
+        ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤ M * D t :=
+      (div_le_iff₀ (hD_pos t)).mp hratio_le_M
+    have hM_le_C : M ≤ C := by
+      calc
+        M ≤ M + 1 := by linarith
+        _ ≤ C := le_max_right _ _
+    exact hmain.trans (mul_le_mul_of_nonneg_right hM_le_C (le_of_lt (hD_pos t)))
+
 /-- On a shifted vertical closed strip with positive real part, `Q + z` is in the slit plane. -/
 theorem shifted_mem_slitPlane_on_verticalClosedStrip {Q σ₀ σ₁ : ℝ} {z : ℂ}
     (hQ : (0 : ℝ) < Q + σ₀)

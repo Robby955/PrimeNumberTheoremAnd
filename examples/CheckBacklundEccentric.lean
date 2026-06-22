@@ -8,6 +8,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog
 #check Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog
 #check Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog_global
+#check Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog_global
 #check Backlund.eccentricHighRhs_le_kadiriRhs
 #check Backlund.log_ne_zero_of_one_lt_re
 #check Backlund.shifted_mem_slitPlane_on_verticalClosedStrip
@@ -54,6 +55,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog
 #print axioms Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog
 #print axioms Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog_global
+#print axioms Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog_global
 #print axioms Backlund.eccentricHighRhs_le_kadiriRhs
 #print axioms Backlund.log_ne_zero_of_one_lt_re
 #print axioms Backlund.shifted_mem_slitPlane_on_verticalClosedStrip
