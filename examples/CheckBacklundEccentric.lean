@@ -13,6 +13,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.PhaseLift
 #check Backlund.PhaseLift.change
 #check Backlund.PhaseLift.leftEndpointChange
+#check Backlund.phaseLiftScaledChange
+#check Backlund.phaseLiftNegScaledChange
+#check Backlund.phaseLiftScaledChange_sub_negScaledChange_eq
+#check Backlund.phaseLiftScaledChange_abs_sub_negScaledChange_lt
 #check Backlund.circlePathOnUnitInterval
 #check Backlund.phaseLiftOfCirclePath
 #check Backlund.phaseLiftOfCirclePath_exp_phase
@@ -243,6 +247,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.PhaseLift
 #print axioms Backlund.PhaseLift.change
 #print axioms Backlund.PhaseLift.leftEndpointChange
+#print axioms Backlund.phaseLiftScaledChange
+#print axioms Backlund.phaseLiftNegScaledChange
+#print axioms Backlund.phaseLiftScaledChange_sub_negScaledChange_eq
+#print axioms Backlund.phaseLiftScaledChange_abs_sub_negScaledChange_lt
 #print axioms Backlund.circlePathOnUnitInterval
 #print axioms Backlund.phaseLiftOfCirclePath
 #print axioms Backlund.phaseLiftOfCirclePath_exp_phase

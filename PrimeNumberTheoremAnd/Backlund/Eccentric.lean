@@ -168,6 +168,51 @@ noncomputable def PhaseLift.leftEndpointChange {a b : ℝ} (h : a ≤ b)
     {γ : C(Set.Icc a b, Circle)} (θ : PhaseLift γ) (x : Set.Icc a b) : ℝ :=
   θ.change ⟨a, by exact ⟨le_rfl, h⟩⟩ x
 
+noncomputable def phaseLiftScaledChange {D : ℝ} (N : ℕ) (hD : (0 : ℝ) ≤ D)
+    {γ : C(Set.Icc (0 : ℝ) D, Circle)} (θ : PhaseLift γ) :
+    C(Set.Icc (0 : ℝ) D, ℝ) where
+  toFun x := (N : ℝ) * θ.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x
+  continuous_toFun := by
+    dsimp [PhaseLift.change]
+    exact continuous_const.mul (θ.phase.continuous.sub continuous_const)
+
+noncomputable def phaseLiftNegScaledChange {D : ℝ} (N : ℕ) (hD : (0 : ℝ) ≤ D)
+    {γ : C(Set.Icc (0 : ℝ) D, Circle)} (θ : PhaseLift γ) :
+    C(Set.Icc (0 : ℝ) D, ℝ) where
+  toFun x := -((N : ℝ) * θ.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x)
+  continuous_toFun := by
+    dsimp [PhaseLift.change]
+    exact (continuous_const.mul (θ.phase.continuous.sub continuous_const)).neg
+
+theorem phaseLiftScaledChange_sub_negScaledChange_eq
+    {D : ℝ} (N : ℕ) (hD : (0 : ℝ) ≤ D)
+    {γR γL : C(Set.Icc (0 : ℝ) D, Circle)}
+    (θR : PhaseLift γR) (θL : PhaseLift γL)
+    (x : Set.Icc (0 : ℝ) D) :
+    phaseLiftScaledChange N hD θR x - phaseLiftNegScaledChange N hD θL x =
+      (N : ℝ) *
+        (θR.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x +
+          θL.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x) := by
+  simp [phaseLiftScaledChange, phaseLiftNegScaledChange]
+  ring
+
+theorem phaseLiftScaledChange_abs_sub_negScaledChange_lt
+    {D E : ℝ} (hD : (0 : ℝ) ≤ D)
+    {γR γL : C(Set.Icc (0 : ℝ) D, Circle)}
+    (θR : PhaseLift γR) (θL : PhaseLift γL)
+    {N : ℕ} (hN : 0 < N)
+    (hsum : ∀ x : Set.Icc (0 : ℝ) D,
+      |θR.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x +
+        θL.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x| < E) :
+    ∀ x : Set.Icc (0 : ℝ) D,
+      |phaseLiftScaledChange N hD θR x - phaseLiftNegScaledChange N hD θL x| <
+        (N : ℝ) * E := by
+  intro x
+  rw [phaseLiftScaledChange_sub_negScaledChange_eq]
+  have hNpos : (0 : ℝ) < N := by exact_mod_cast hN
+  rw [abs_mul, abs_of_pos hNpos]
+  exact mul_lt_mul_of_pos_left (hsum x) hNpos
+
 noncomputable def circlePathOnUnitInterval {a b : ℝ} (h : a < b)
     (γ : C(Set.Icc a b, Circle)) : C(unitInterval, Circle) :=
   γ.comp ((iccHomeoI a b h).symm : C(unitInterval, Set.Icc a b))
