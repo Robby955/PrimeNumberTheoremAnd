@@ -5,12 +5,14 @@ Authors: Robby Sneiderman
 -/
 import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 import PrimeNumberTheoremAnd.Backlund.ZeroCountCrude
+import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 import PrimeNumberTheoremAnd.ZetaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.CriticalLineDecay
 import Mathlib.Analysis.Complex.Hadamard
 import Mathlib.Analysis.Complex.PhragmenLindelof
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.MeasureTheory.Integral.CircleAverage
 
 /-!
 # Eccentric Backlund route constants
@@ -89,6 +91,139 @@ theorem backlundF_real_eq_zero_iff (N : ℕ) (σ T : ℝ) :
       (backlundA ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N).re = 0 := by
   rw [backlundF_real_eq_re]
   exact Complex.ofReal_eq_zero
+
+/-! ### Local surfaces for the eccentric Backlund pairing -/
+
+/--
+Unwrapped horizontal argument variation of `A(s)` along `x + iT`,
+represented as the imaginary part of the logarithmic-derivative integral.
+-/
+noncomputable def backlundAHorizontalArgumentVariation (x₁ x₂ T : ℝ) : ℝ :=
+  (HIntegral (logDeriv backlundA) x₁ x₂ T).im
+
+theorem backlundAHorizontalArgumentVariation_self (x T : ℝ) :
+    backlundAHorizontalArgumentVariation x x T = 0 := by
+  simp [backlundAHorizontalArgumentVariation, HIntegral]
+
+theorem backlundAHorizontalArgumentVariation_symm (x₁ x₂ T : ℝ) :
+    backlundAHorizontalArgumentVariation x₁ x₂ T =
+      -backlundAHorizontalArgumentVariation x₂ x₁ T := by
+  rw [backlundAHorizontalArgumentVariation, backlundAHorizontalArgumentVariation,
+    HIntegral_symm]
+  simp
+
+/--
+The symmetry defect in Backlund's argument comparison. The intended lemma 4
+bounds the absolute value of this quantity by the gamma/functional-equation
+error term.
+-/
+noncomputable def backlundArgumentSymmetryDefect (σ₁ T : ℝ) : ℝ :=
+  backlundAHorizontalArgumentVariation (1 / 2) σ₁ T +
+    backlundAHorizontalArgumentVariation (1 - σ₁) (1 / 2) (-T)
+
+theorem backlundArgumentSymmetryDefect_self (T : ℝ) :
+    backlundArgumentSymmetryDefect (1 / 2) T = 0 := by
+  rw [backlundArgumentSymmetryDefect]
+  norm_num
+  simp [backlundAHorizontalArgumentVariation_self]
+
+/-- The high-height gamma/functional-equation error budget used in lemma 4. -/
+noncomputable def backlundArgumentSymmetryErrorBound (T₀ : ℝ) : ℝ :=
+  4.4 / T₀
+
+theorem backlundArgumentSymmetryErrorBound_pos {T₀ : ℝ} (hT₀ : 0 < T₀) :
+    0 < backlundArgumentSymmetryErrorBound T₀ := by
+  unfold backlundArgumentSymmetryErrorBound
+  positivity
+
+/--
+Zeros of the real part `Re(A(σ+iT)^N)` on a real interval. These are the
+ordered zeros used by Backlund's pairing argument, not zeta zeros.
+-/
+def backlundRealPartZeroSet (N : ℕ) (T a b : ℝ) : Set ℝ :=
+  {σ | σ ∈ Set.Icc a b ∧
+    (backlundA ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N).re = 0}
+
+theorem mem_backlundRealPartZeroSet_iff (N : ℕ) (T a b σ : ℝ) :
+    σ ∈ backlundRealPartZeroSet N T a b ↔
+      σ ∈ Set.Icc a b ∧
+        (backlundA ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N).re = 0 := by
+  rfl
+
+theorem mem_backlundRealPartZeroSet_iff_backlundF (N : ℕ) (T a b σ : ℝ) :
+    σ ∈ backlundRealPartZeroSet N T a b ↔
+      σ ∈ Set.Icc a b ∧ backlundF N T (σ : ℂ) = 0 := by
+  rw [mem_backlundRealPartZeroSet_iff, backlundF_real_eq_zero_iff]
+
+noncomputable def backlundRealPartZeroCount (N : ℕ) (T a b : ℝ) : ℕ :=
+  (backlundRealPartZeroSet N T a b).ncard
+
+theorem backlundRealPartZeroCount_eq_toFinset_card {N : ℕ} {T a b : ℝ}
+    (hfin : (backlundRealPartZeroSet N T a b).Finite) :
+    backlundRealPartZeroCount N T a b =
+      hfin.toFinset.card := by
+  exact Set.ncard_eq_toFinset_card _ hfin
+
+/-- The ordered-pairing loss `⌊N E / π⌋` from the argument-symmetry error. -/
+noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
+  Nat.floor ((N : ℝ) * E / Real.pi)
+
+/-- The guaranteed paired-zero count in Backlund's ordered pairing lemma. -/
+noncomputable def backlundOrderedPairingLowerCount (N n : ℕ) (E : ℝ) : ℕ :=
+  n - 1 - backlundPairingLoss N E
+
+/-- Backlund's eccentric Jensen center offset `η = 3/50`. -/
+noncomputable def backlundEta : ℝ := 3 / 50
+
+/-- Backlund's eccentric Jensen small radius `r = 52/25`. -/
+noncomputable def backlundSmallRadius : ℝ := 52 / 25
+
+/-- The paired-product height parameter `H = 14/25`. -/
+noncomputable def backlundPairingH : ℝ := 14 / 25
+
+/-- Backlund's eccentric Jensen large radius `R = 728/625`. -/
+noncomputable def backlundLargeRadius : ℝ := 728 / 625
+
+noncomputable def backlundPhi₁ : ℝ := Real.arcsin (75 / 1456)
+
+noncomputable def backlundPhi₂ : ℝ := Real.arcsin (25 / 52)
+
+noncomputable def backlundPhi₃ : ℝ := Real.arcsin (1325 / 1456)
+
+theorem backlundEta_pos : 0 < backlundEta := by
+  norm_num [backlundEta]
+
+theorem backlundSmallRadius_pos : 0 < backlundSmallRadius := by
+  norm_num [backlundSmallRadius]
+
+theorem backlundPairingH_pos : 0 < backlundPairingH := by
+  norm_num [backlundPairingH]
+
+theorem backlundLargeRadius_pos : 0 < backlundLargeRadius := by
+  norm_num [backlundLargeRadius]
+
+/-- The center `1 + η` of the eccentric Jensen disk. -/
+noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
+  ((1 + η : ℝ) : ℂ)
+
+/-- The circle integrand `log |F_N(center + R e^{iφ})|` in lemma 6. -/
+noncomputable def backlundEccentricJensenIntegrand (N : ℕ) (T η R φ : ℝ) : ℝ :=
+  Real.log ‖backlundF N T (circleMap (backlundEccentricCenter η) R φ)‖
+
+/--
+The unnormalized Jensen circle integral
+`J_N = ∫ log |F_N(1+η+R e^{iφ})| dφ`.
+-/
+noncomputable def backlundEccentricJensenIntegral (N : ℕ) (T η R : ℝ) : ℝ :=
+  ∫ φ in (0 : ℝ)..(2 * Real.pi),
+    backlundEccentricJensenIntegrand N T η R φ
+
+/-- The lemma-6 eccentric Jensen bound RHS, with the factor-2 denominator `4π log r`. -/
+noncomputable def backlundEccentricJensenZeroCountRhs
+    (N : ℕ) (T η R r E : ℝ) : ℝ :=
+  backlundEccentricJensenIntegral N T η R / (4 * Real.pi * Real.log r) -
+    Real.log ‖backlundF N T (backlundEccentricCenter η)‖ / (2 * Real.log r) +
+      1 / 2 + (N : ℝ) * E / (2 * Real.pi)
 
 private lemma sin_pi_one_add_mul_I (y : ℝ) :
     Complex.sin ((Real.pi : ℂ) * ((1 : ℂ) + (y : ℂ) * Complex.I)) =

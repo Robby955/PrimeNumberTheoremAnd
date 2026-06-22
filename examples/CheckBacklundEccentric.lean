@@ -8,6 +8,35 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundF
 #check Backlund.backlundF_real_eq_re
 #check Backlund.backlundF_real_eq_zero_iff
+#check Backlund.backlundAHorizontalArgumentVariation
+#check Backlund.backlundAHorizontalArgumentVariation_self
+#check Backlund.backlundAHorizontalArgumentVariation_symm
+#check Backlund.backlundArgumentSymmetryDefect
+#check Backlund.backlundArgumentSymmetryDefect_self
+#check Backlund.backlundArgumentSymmetryErrorBound
+#check Backlund.backlundArgumentSymmetryErrorBound_pos
+#check Backlund.backlundRealPartZeroSet
+#check Backlund.mem_backlundRealPartZeroSet_iff
+#check Backlund.mem_backlundRealPartZeroSet_iff_backlundF
+#check Backlund.backlundRealPartZeroCount
+#check Backlund.backlundRealPartZeroCount_eq_toFinset_card
+#check Backlund.backlundPairingLoss
+#check Backlund.backlundOrderedPairingLowerCount
+#check Backlund.backlundEta
+#check Backlund.backlundSmallRadius
+#check Backlund.backlundPairingH
+#check Backlund.backlundLargeRadius
+#check Backlund.backlundPhi₁
+#check Backlund.backlundPhi₂
+#check Backlund.backlundPhi₃
+#check Backlund.backlundEta_pos
+#check Backlund.backlundSmallRadius_pos
+#check Backlund.backlundPairingH_pos
+#check Backlund.backlundLargeRadius_pos
+#check Backlund.backlundEccentricCenter
+#check Backlund.backlundEccentricJensenIntegrand
+#check Backlund.backlundEccentricJensenIntegral
+#check Backlund.backlundEccentricJensenZeroCountRhs
 #check Backlund.backlundA_zero_line_le_const_mul_log
 #check Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog
 #check Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog
@@ -72,6 +101,35 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundF
 #print axioms Backlund.backlundF_real_eq_re
 #print axioms Backlund.backlundF_real_eq_zero_iff
+#print axioms Backlund.backlundAHorizontalArgumentVariation
+#print axioms Backlund.backlundAHorizontalArgumentVariation_self
+#print axioms Backlund.backlundAHorizontalArgumentVariation_symm
+#print axioms Backlund.backlundArgumentSymmetryDefect
+#print axioms Backlund.backlundArgumentSymmetryDefect_self
+#print axioms Backlund.backlundArgumentSymmetryErrorBound
+#print axioms Backlund.backlundArgumentSymmetryErrorBound_pos
+#print axioms Backlund.backlundRealPartZeroSet
+#print axioms Backlund.mem_backlundRealPartZeroSet_iff
+#print axioms Backlund.mem_backlundRealPartZeroSet_iff_backlundF
+#print axioms Backlund.backlundRealPartZeroCount
+#print axioms Backlund.backlundRealPartZeroCount_eq_toFinset_card
+#print axioms Backlund.backlundPairingLoss
+#print axioms Backlund.backlundOrderedPairingLowerCount
+#print axioms Backlund.backlundEta
+#print axioms Backlund.backlundSmallRadius
+#print axioms Backlund.backlundPairingH
+#print axioms Backlund.backlundLargeRadius
+#print axioms Backlund.backlundPhi₁
+#print axioms Backlund.backlundPhi₂
+#print axioms Backlund.backlundPhi₃
+#print axioms Backlund.backlundEta_pos
+#print axioms Backlund.backlundSmallRadius_pos
+#print axioms Backlund.backlundPairingH_pos
+#print axioms Backlund.backlundLargeRadius_pos
+#print axioms Backlund.backlundEccentricCenter
+#print axioms Backlund.backlundEccentricJensenIntegrand
+#print axioms Backlund.backlundEccentricJensenIntegral
+#print axioms Backlund.backlundEccentricJensenZeroCountRhs
 #print axioms Backlund.backlundA_zero_line_le_const_mul_log
 #print axioms Backlund.zetaSurrogate_zero_line_le_const_mul_shiftedLog
 #print axioms Backlund.zetaSurrogate_one_line_le_const_mul_shiftedLog
