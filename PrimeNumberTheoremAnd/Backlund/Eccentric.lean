@@ -380,6 +380,127 @@ theorem backlundA_zero_line_le_const_mul_log :
             _ = C * ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
                     R ^ (3 / 2 : ℝ) * Real.log |t|) := by ring
 
+private lemma log_abs_im_le_norm_log {z : ℂ} {t : ℝ}
+    (him : z.im = t) (ht : (1 : ℝ) < |t|) :
+    Real.log |t| ≤ ‖Complex.log z‖ := by
+  have him_le_norm : |t| ≤ ‖z‖ := by
+    have h := Complex.abs_im_le_norm z
+    simpa [him] using h
+  have hlog_le : Real.log |t| ≤ Real.log ‖z‖ :=
+    Real.log_le_log (by linarith) him_le_norm
+  have hlog_norm_le : Real.log ‖z‖ ≤ ‖Complex.log z‖ := by
+    rw [← Complex.log_re]
+    exact le_trans (le_abs_self _) (Complex.abs_re_le_norm _)
+  exact hlog_le.trans hlog_norm_le
+
+private lemma norm_one_add_vertical_le_norm_shifted_vertical {Q t : ℝ}
+    (hQ : (1 : ℝ) ≤ Q) :
+    ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ≤ ‖(Q : ℂ) + (t : ℂ) * Complex.I‖ := by
+  refine (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp ?_
+  rw [← Complex.normSq_eq_norm_sq, ← Complex.normSq_eq_norm_sq]
+  simp [Complex.normSq_apply, Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im]
+  nlinarith
+
+theorem zetaSurrogate_zero_line_le_const_mul_shiftedLog {Q : ℝ} (hQ : (1 : ℝ) < Q) :
+    ∃ C > 0, ∀ t : ℝ, 3 < |t| →
+      ‖zetaSurrogate ((t : ℂ) * Complex.I)‖ ≤
+        C * (‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖) := by
+  obtain ⟨C, hC, hA⟩ := backlundA_zero_line_le_const_mul_log
+  let C₀ : ℝ := C * (2 * Real.pi) ^ (-(1 / 2 : ℝ))
+  have hfactor_pos : (0 : ℝ) < (2 * Real.pi) ^ (-(1 / 2 : ℝ)) :=
+    Real.rpow_pos_of_pos (by positivity) _
+  refine ⟨C₀, by positivity, ?_⟩
+  intro t ht
+  have ht_ne : t ≠ 0 := by
+    intro h
+    rw [h, abs_zero] at ht
+    norm_num at ht
+  have hsurrogate_eq : zetaSurrogate ((t : ℂ) * Complex.I) =
+      backlundA ((t : ℂ) * Complex.I) := by
+    have hs : (t : ℂ) * Complex.I ≠ 1 := by
+      intro h
+      have hre := congrArg Complex.re h
+      simp at hre
+    simp [zetaSurrogate, backlundA, hs]
+  have hR_le :
+      ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) ≤
+        ‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) :=
+    Real.rpow_le_rpow (norm_nonneg _)
+      (norm_one_add_vertical_le_norm_shifted_vertical hQ.le) (by norm_num)
+  have hlog_le :
+      Real.log |t| ≤ ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖ :=
+    log_abs_im_le_norm_log
+      (z := (Q : ℂ) + (t : ℂ) * Complex.I) (t := t) (by simp) (by linarith)
+  have hlog_nonneg : 0 ≤ Real.log |t| := (Real.log_pos (by linarith)).le
+  have htarget_pow_nonneg :
+      0 ≤ ‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) :=
+    Real.rpow_nonneg (norm_nonneg _) _
+  have hprod_le :
+      ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) * Real.log |t| ≤
+        ‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖ :=
+    mul_le_mul hR_le hlog_le hlog_nonneg htarget_pow_nonneg
+  rw [hsurrogate_eq]
+  calc
+    ‖backlundA ((t : ℂ) * Complex.I)‖
+        ≤ C * ((2 * Real.pi) ^ (-(1 / 2 : ℝ)) *
+          ‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) * Real.log |t|) := hA t ht
+    _ = C₀ * (‖(1 : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          Real.log |t|) := by ring
+    _ ≤ C₀ * (‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖) := by
+        exact mul_le_mul_of_nonneg_left hprod_le (by positivity)
+
+theorem zetaSurrogate_one_line_le_const_mul_shiftedLog {Q : ℝ} (_hQ : (1 : ℝ) < Q) :
+    ∃ C > 0, ∀ t : ℝ, 3 < |t| →
+      ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        C * (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖) := by
+  obtain ⟨C, hC, hζ⟩ := zeta_one_line_le_const_mul_log
+  refine ⟨C, hC, ?_⟩
+  intro t ht
+  have ht_ne : t ≠ 0 := by
+    intro h
+    rw [h, abs_zero] at ht
+    norm_num at ht
+  have hs : ((1 : ℂ) + (t : ℂ) * Complex.I) ≠ 1 := by
+    intro h
+    have him := congrArg Complex.im h
+    simp [ht_ne] at him
+  have hsurrogate_eq :
+      zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I) =
+        ((t : ℂ) * Complex.I) * riemannZeta ((1 : ℂ) + (t : ℂ) * Complex.I) := by
+    rw [zetaSurrogate, if_neg hs]
+    ring
+  have him_le :
+      |t| ≤ ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ := by
+    have h := Complex.abs_im_le_norm (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)
+    simpa [Complex.add_im, Complex.mul_im] using h
+  have hlog_le :
+      Real.log |t| ≤ ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖ :=
+    log_abs_im_le_norm_log
+      (z := ((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I) (t := t) (by simp) (by linarith)
+  have hlog_nonneg : 0 ≤ Real.log |t| := (Real.log_pos (by linarith)).le
+  have hnorm_nonneg : 0 ≤ ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ := norm_nonneg _
+  have hprod_le :
+      |t| * Real.log |t| ≤
+        ‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖ :=
+    mul_le_mul him_le hlog_le hlog_nonneg hnorm_nonneg
+  have hnorm_t : ‖(t : ℂ) * Complex.I‖ = |t| := by simp
+  rw [hsurrogate_eq, norm_mul]
+  have hζt := hζ t ht
+  calc
+    ‖(t : ℂ) * Complex.I‖ * ‖riemannZeta ((1 : ℂ) + (t : ℂ) * Complex.I)‖
+        = |t| * ‖riemannZeta ((1 : ℂ) + (t : ℂ) * Complex.I)‖ := by rw [hnorm_t]
+    _ ≤ |t| * (C * Real.log |t|) := by
+          exact mul_le_mul_of_nonneg_left hζt (abs_nonneg t)
+    _ = C * (|t| * Real.log |t|) := by ring
+    _ ≤ C * (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖) := by
+        exact mul_le_mul_of_nonneg_left hprod_le hC.le
+
 /--
 At the high-height cutoff from the eccentric-Jensen route, the sharper local RHS is
 bounded by Kadiri's published RHS.
