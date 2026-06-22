@@ -41,6 +41,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #check Backlund.firstHit_strictMono_of_strictMono_targets
 #check Backlund.firstHit_phaseLift_re_pow_eq_zero
+#check Backlund.firstHit_phaseLiftScaledChange_re_pow_eq_zero
+#check Backlund.firstHit_phaseLiftNegScaledChange_re_pow_eq_zero
 #check Backlund.backlundCosZeroTarget
 #check Backlund.backlundCosZeroTarget_cos_eq_zero
 #check Backlund.strictMono_backlundCosZeroTarget
@@ -106,6 +108,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.mem_backlundRealPartZeroSet_iff_backlundF
 #check Backlund.firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet
 #check Backlund.firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
+#check Backlund.firstHit_phaseLiftScaledChange_backlundAHorizontalPathFrom_mem_realPartZeroSet
+#check Backlund.firstHit_phaseLiftNegScaledChange_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
 #check Backlund.backlundRealPartZeroCount
 #check Backlund.backlundRealPartZeroCount_eq_toFinset_card
 #check Backlund.backlundOrderedRealPartZeros
@@ -113,6 +117,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
 #check Backlund.firstHit_rightCoordinate_le_one_add_eta
 #check Backlund.backlundCosZeroLeftFirstHits_orderedRealPartZeros
+#check Backlund.phaseLiftScaledChange_firstHits_orderedRealPartZeros
+#check Backlund.phaseLiftNegScaledChange_leftFirstHits_orderedRealPartZeros
 #check Backlund.backlundPairingLoss
 #check Backlund.backlundCosZeroTarget_add_gap
 #check Backlund.backlundCosZeroTarget_add_le_of_mul_le
@@ -128,6 +134,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_pairs_product_le_pairingH_pow_of_abs_error_targets
 #check Backlund.cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
 #check Backlund.backlund_ordered_pairing_from_phase_error
+
 #check Backlund.backlundOrderedPairingLowerCount
 #check Backlund.backlundOrderedPairingLowerCount_eq_source
 #check Backlund.backlundEta
@@ -275,6 +282,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #print axioms Backlund.firstHit_strictMono_of_strictMono_targets
 #print axioms Backlund.firstHit_phaseLift_re_pow_eq_zero
+#print axioms Backlund.firstHit_phaseLiftScaledChange_re_pow_eq_zero
+#print axioms Backlund.firstHit_phaseLiftNegScaledChange_re_pow_eq_zero
 #print axioms Backlund.backlundCosZeroTarget
 #print axioms Backlund.backlundCosZeroTarget_cos_eq_zero
 #print axioms Backlund.strictMono_backlundCosZeroTarget
@@ -340,6 +349,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.mem_backlundRealPartZeroSet_iff_backlundF
 #print axioms Backlund.firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet
 #print axioms Backlund.firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
+#print axioms Backlund.firstHit_phaseLiftScaledChange_backlundAHorizontalPathFrom_mem_realPartZeroSet
+#print axioms Backlund.firstHit_phaseLiftNegScaledChange_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
 #print axioms Backlund.backlundRealPartZeroCount
 #print axioms Backlund.backlundRealPartZeroCount_eq_toFinset_card
 #print axioms Backlund.backlundOrderedRealPartZeros
@@ -347,6 +358,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
 #print axioms Backlund.firstHit_rightCoordinate_le_one_add_eta
 #print axioms Backlund.backlundCosZeroLeftFirstHits_orderedRealPartZeros
+#print axioms Backlund.phaseLiftScaledChange_firstHits_orderedRealPartZeros
+#print axioms Backlund.phaseLiftNegScaledChange_leftFirstHits_orderedRealPartZeros
 #print axioms Backlund.backlundPairingLoss
 #print axioms Backlund.backlundCosZeroTarget_add_gap
 #print axioms Backlund.backlundCosZeroTarget_add_le_of_mul_le

@@ -697,6 +697,55 @@ theorem firstHit_phaseLift_re_pow_eq_zero {D : ℝ}
     (θ.exp_phase (firstHitPoint θ.phase target hne))).2
     (by simpa [hphase] using hcos)
 
+theorem firstHit_phaseLiftScaledChange_re_pow_eq_zero {D : ℝ} (hD : (0 : ℝ) ≤ D)
+    (f : C(Set.Icc (0 : ℝ) D, ℂ)) (hf : ∀ x, f x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath f hf)) (N : ℕ) {target : ℝ}
+    (hcos : Real.cos
+      ((N : ℝ) * θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ + target) = 0)
+    (hne : (firstHitRealSet D (phaseLiftScaledChange N hD θ) target).Nonempty) :
+    (f (firstHitPoint (phaseLiftScaledChange N hD θ) target hne) ^ N).re = 0 := by
+  let x₀ : Set.Icc (0 : ℝ) D := ⟨0, by exact ⟨le_rfl, hD⟩⟩
+  let xhit : Set.Icc (0 : ℝ) D :=
+    firstHitPoint (phaseLiftScaledChange N hD θ) target hne
+  have hhit :
+      (N : ℝ) * (θ.phase xhit - θ.phase x₀) = target := by
+    have h :=
+      (firstHitPoint_isLeast (phaseLiftScaledChange N hD θ) target hne).1
+    change (phaseLiftScaledChange N hD θ) xhit = target at h
+    simpa [phaseLiftScaledChange, PhaseLift.change, x₀, xhit] using h
+  have hphase :
+      (N : ℝ) * θ.phase xhit =
+        (N : ℝ) * θ.phase x₀ + target := by
+    rw [← hhit]
+    ring
+  exact (re_pow_eq_zero_iff_cos_phase_eq_zero N (hf xhit)
+    (θ.exp_phase xhit)).2 (by simpa [hphase] using hcos)
+
+theorem firstHit_phaseLiftNegScaledChange_re_pow_eq_zero {D : ℝ}
+    (hD : (0 : ℝ) ≤ D)
+    (f : C(Set.Icc (0 : ℝ) D, ℂ)) (hf : ∀ x, f x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath f hf)) (N : ℕ) {target : ℝ}
+    (hcos : Real.cos
+      ((N : ℝ) * θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ - target) = 0)
+    (hne : (firstHitRealSet D (phaseLiftNegScaledChange N hD θ) target).Nonempty) :
+    (f (firstHitPoint (phaseLiftNegScaledChange N hD θ) target hne) ^ N).re = 0 := by
+  let x₀ : Set.Icc (0 : ℝ) D := ⟨0, by exact ⟨le_rfl, hD⟩⟩
+  let xhit : Set.Icc (0 : ℝ) D :=
+    firstHitPoint (phaseLiftNegScaledChange N hD θ) target hne
+  have hhit :
+      -((N : ℝ) * (θ.phase xhit - θ.phase x₀)) = target := by
+    have h :=
+      (firstHitPoint_isLeast (phaseLiftNegScaledChange N hD θ) target hne).1
+    change (phaseLiftNegScaledChange N hD θ) xhit = target at h
+    simpa [phaseLiftNegScaledChange, PhaseLift.change, x₀, xhit] using h
+  have hphase :
+      (N : ℝ) * θ.phase xhit =
+        (N : ℝ) * θ.phase x₀ - target := by
+    rw [← hhit]
+    ring
+  exact (re_pow_eq_zero_iff_cos_phase_eq_zero N (hf xhit)
+    (θ.exp_phase xhit)).2 (by simpa [hphase] using hcos)
+
 /-- Target phases whose `N`-fold argument has zero cosine. -/
 noncomputable def backlundCosZeroTarget (N k : ℕ) : ℝ :=
   (Real.pi / 2 + (k : ℝ) * Real.pi) / (N : ℝ)
@@ -1964,6 +2013,51 @@ theorem firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
     · linarith [hI.1]
   · simpa [backlundAHorizontalLeftPathFromCenter, firstHit] using hzero
 
+theorem firstHit_phaseLiftScaledChange_backlundAHorizontalPathFrom_mem_realPartZeroSet
+    {x₀ D T : ℝ} (hD : (0 : ℝ) ≤ D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalPathFrom x₀ D T hT x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath (backlundAHorizontalPathFrom x₀ D T hT) hf))
+    (N : ℕ) {target : ℝ}
+    (hcos : Real.cos
+      ((N : ℝ) * θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ + target) = 0)
+    (hne : (firstHitRealSet D (phaseLiftScaledChange N hD θ) target).Nonempty) :
+    x₀ + firstHit (phaseLiftScaledChange N hD θ) target hne ∈
+      backlundRealPartZeroSet N T x₀ (x₀ + D) := by
+  have hI :
+      firstHit (phaseLiftScaledChange N hD θ) target hne ∈ Set.Icc (0 : ℝ) D :=
+    firstHit_mem_Icc (phaseLiftScaledChange N hD θ) target hne
+  have hzero := firstHit_phaseLiftScaledChange_re_pow_eq_zero
+    (hD := hD) (f := backlundAHorizontalPathFrom x₀ D T hT) (hf := hf)
+    (θ := θ) (N := N) hcos hne
+  constructor
+  · constructor
+    · simpa [add_comm] using add_le_add_left hI.1 x₀
+    · simpa [add_comm] using add_le_add_left hI.2 x₀
+  · simpa [backlundAHorizontalPathFrom, firstHit, add_assoc] using hzero
+
+theorem firstHit_phaseLiftNegScaledChange_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
+    {D T : ℝ} (hD : (0 : ℝ) ≤ D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θ : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hf))
+    (N : ℕ) {target : ℝ}
+    (hcos : Real.cos
+      ((N : ℝ) * θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ - target) = 0)
+    (hne : (firstHitRealSet D (phaseLiftNegScaledChange N hD θ) target).Nonempty) :
+    (1 / 2 : ℝ) - firstHit (phaseLiftNegScaledChange N hD θ) target hne ∈
+      backlundRealPartZeroSet N T ((1 / 2 : ℝ) - D) (1 / 2) := by
+  have hI :
+      firstHit (phaseLiftNegScaledChange N hD θ) target hne ∈ Set.Icc (0 : ℝ) D :=
+    firstHit_mem_Icc (phaseLiftNegScaledChange N hD θ) target hne
+  have hzero := firstHit_phaseLiftNegScaledChange_re_pow_eq_zero
+    (hD := hD) (f := backlundAHorizontalLeftPathFromCenter D T hT) (hf := hf)
+    (θ := θ) (N := N) hcos hne
+  constructor
+  · constructor
+    · linarith [hI.2]
+    · linarith [hI.1]
+  · simpa [backlundAHorizontalLeftPathFromCenter, firstHit] using hzero
+
 noncomputable def backlundRealPartZeroCount (N : ℕ) (T a b : ℝ) : ℕ :=
   (backlundRealPartZeroSet N T a b).ncard
 
@@ -2051,6 +2145,68 @@ theorem backlundCosZeroLeftFirstHits_orderedRealPartZeros {D T : ℝ}
     exact firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
       (D := D) (T := T) hT hf θ N
       (backlundCosZeroTarget_cos_eq_zero hN) (hne (Fin.rev i))
+
+theorem phaseLiftScaledChange_firstHits_orderedRealPartZeros {x₀ D T : ℝ}
+    (hD : (0 : ℝ) ≤ D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalPathFrom x₀ D T hT x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath (backlundAHorizontalPathFrom x₀ D T hT) hf))
+    {N m : ℕ} {target : Fin m → ℝ}
+    (hstart : ∀ i : Fin m,
+      (phaseLiftScaledChange N hD θ) ⟨0, by exact ⟨le_rfl, hD⟩⟩ < target i)
+    (htarget : StrictMono target)
+    (hcos : ∀ i : Fin m,
+      Real.cos ((N : ℝ) * θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ + target i) = 0)
+    (hne : ∀ i : Fin m,
+      (firstHitRealSet D (phaseLiftScaledChange N hD θ) (target i)).Nonempty) :
+    backlundOrderedRealPartZeros N m T x₀ (x₀ + D)
+      (fun i : Fin m =>
+        x₀ + firstHit (phaseLiftScaledChange N hD θ) (target i) (hne i)) := by
+  constructor
+  · have hhits :
+        StrictMono fun i : Fin m =>
+          firstHit (phaseLiftScaledChange N hD θ) (target i) (hne i) :=
+      firstHit_strictMono_of_strictMono_targets
+        (u := phaseLiftScaledChange N hD θ)
+        (targets := target) hD hstart htarget hne
+    intro i j hij
+    simpa [add_comm, add_left_comm, add_assoc] using add_lt_add_left (hhits hij) x₀
+  · intro i
+    exact firstHit_phaseLiftScaledChange_backlundAHorizontalPathFrom_mem_realPartZeroSet
+      (x₀ := x₀) (D := D) (T := T) hD hT hf θ N (hcos i) (hne i)
+
+theorem phaseLiftNegScaledChange_leftFirstHits_orderedRealPartZeros {D T : ℝ}
+    (hD : (0 : ℝ) ≤ D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θ : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hf))
+    {N m : ℕ} {target : Fin m → ℝ}
+    (hstart : ∀ i : Fin m,
+      (phaseLiftNegScaledChange N hD θ) ⟨0, by exact ⟨le_rfl, hD⟩⟩ < target i)
+    (htarget : StrictMono target)
+    (hcos : ∀ i : Fin m,
+      Real.cos ((N : ℝ) * θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ - target i) = 0)
+    (hne : ∀ i : Fin m,
+      (firstHitRealSet D (phaseLiftNegScaledChange N hD θ) (target i)).Nonempty) :
+    backlundOrderedRealPartZeros N m T ((1 / 2 : ℝ) - D) (1 / 2)
+      (fun i : Fin m =>
+        (1 / 2 : ℝ) -
+          firstHit (phaseLiftNegScaledChange N hD θ) (target (Fin.rev i))
+            (hne (Fin.rev i))) := by
+  constructor
+  · have hhits :
+        StrictMono fun i : Fin m =>
+          firstHit (phaseLiftNegScaledChange N hD θ) (target i) (hne i) :=
+      firstHit_strictMono_of_strictMono_targets
+        (u := phaseLiftNegScaledChange N hD θ)
+        (targets := target) hD hstart htarget hne
+    intro i j hij
+    have hrev : Fin.rev j < Fin.rev i := by
+      exact (Fin.rev_lt_rev (i := j) (j := i)).2 hij
+    have hhit := hhits hrev
+    linarith
+  · intro i
+    exact firstHit_phaseLiftNegScaledChange_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
+      (D := D) (T := T) hD hT hf θ N (hcos (Fin.rev i)) (hne (Fin.rev i))
 
 /-- The ordered-pairing loss `⌊N E / π⌋` from the argument-symmetry error. -/
 noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
