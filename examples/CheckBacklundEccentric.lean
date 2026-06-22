@@ -23,6 +23,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_mem
 #check Backlund.firstHit_isLeast
 #check Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
+#check Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #check Backlund.backlundA
 #check Backlund.backlundA_conj
 #check Kadiri.zeta_logDeriv_functional_eq
@@ -200,6 +201,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.firstHit_mem
 #print axioms Backlund.firstHit_isLeast
 #print axioms Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
+#print axioms Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #print axioms Backlund.backlundA
 #print axioms Backlund.backlundA_conj
 #print axioms Kadiri.zeta_logDeriv_functional_eq

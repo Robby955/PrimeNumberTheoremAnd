@@ -228,6 +228,49 @@ theorem firstHit_le_of_start_lt_target_of_target_lt_value {D : ℝ}
     (firstHit_isLeast u target hne).2 hx_hit
   exact hfirst_le_x.trans hxI.2
 
+theorem firstHit_lt_firstHit_of_start_lt_of_target_lt {D : ℝ}
+    (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target₁ target₂ : ℝ}
+    (hD : (0 : ℝ) ≤ D)
+    (hstart : u ⟨0, by exact ⟨le_rfl, hD⟩⟩ < target₁)
+    (htarget : target₁ < target₂)
+    (hne₂ : (firstHitRealSet D u target₂).Nonempty) :
+    ∃ hne₁ : (firstHitRealSet D u target₁).Nonempty,
+      firstHit u target₁ hne₁ < firstHit u target₂ hne₂ := by
+  let d₂ : ℝ := firstHit u target₂ hne₂
+  have hd₂ : d₂ ∈ Set.Icc (0 : ℝ) D := by
+    simpa [d₂] using firstHit_mem_Icc u target₂ hne₂
+  have hhit₂ := firstHit_mem u target₂ hne₂
+  have hval₂ : u ⟨d₂, hd₂⟩ = target₂ := by
+    rcases hhit₂ with ⟨hd₂', hval₂'⟩
+    have hsub : (⟨d₂, hd₂'⟩ : Set.Icc (0 : ℝ) D) = ⟨d₂, hd₂⟩ :=
+      Subtype.ext rfl
+    simpa [d₂, hsub] using hval₂'
+  have hstart' :
+      u ⟨0, by exact ⟨le_rfl, le_trans hd₂.1 hd₂.2⟩⟩ < target₁ := by
+    simpa using hstart
+  obtain ⟨hne₁, hle⟩ :=
+    firstHit_le_of_start_lt_target_of_target_lt_value
+      (u := u) (target := target₁) (d := d₂) hd₂ hstart'
+      (by simpa [hval₂] using htarget)
+  refine ⟨hne₁, lt_of_le_of_ne hle ?_⟩
+  intro heq
+  have hhit₁ := firstHit_mem u target₁ hne₁
+  have hd₁ : firstHit u target₁ hne₁ ∈ Set.Icc (0 : ℝ) D :=
+    firstHit_mem_Icc u target₁ hne₁
+  have hval₁ : u ⟨firstHit u target₁ hne₁, hd₁⟩ = target₁ := by
+    rcases hhit₁ with ⟨hd₁', hval₁'⟩
+    have hsub :
+        (⟨firstHit u target₁ hne₁, hd₁'⟩ : Set.Icc (0 : ℝ) D) =
+          ⟨firstHit u target₁ hne₁, hd₁⟩ :=
+      Subtype.ext rfl
+    simpa [hsub] using hval₁'
+  have hsubeq :
+      (⟨firstHit u target₁ hne₁, hd₁⟩ : Set.Icc (0 : ℝ) D) = ⟨d₂, hd₂⟩ :=
+    Subtype.ext heq
+  have hval₁_at_d₂ : u ⟨d₂, hd₂⟩ = target₁ := by
+    simpa [hsubeq] using hval₁
+  linarith
+
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 
 theorem backlundA_conj (z : ℂ) :
