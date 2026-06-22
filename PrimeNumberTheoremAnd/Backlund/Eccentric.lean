@@ -2044,6 +2044,29 @@ theorem nat_mul_error_lt_pairingLoss_succ_mul_pi {N : ℕ} {E : ℝ} (_hE : 0 �
     norm_num
   simpa [hleft, hright] using hmul
 
+theorem firstHits_le_firstHits_of_abs_error_targets {D ε : ℝ}
+    (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
+    {m : ℕ} {leftTarget rightTarget : Fin m → ℝ}
+    (hstart : ∀ i : Fin m, v ⟨0, by exact ⟨le_rfl, hD⟩⟩ < leftTarget i)
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < ε)
+    (hgap : ∀ i : Fin m, leftTarget i + ε ≤ rightTarget i)
+    (hright : ∀ i : Fin m, (firstHitRealSet D u (rightTarget i)).Nonempty) :
+    ∃ hleft : ∀ i : Fin m, (firstHitRealSet D v (leftTarget i)).Nonempty,
+      ∀ i : Fin m,
+        firstHit v (leftTarget i) (hleft i) ≤
+          firstHit u (rightTarget i) (hright i) := by
+  have hpair : ∀ i : Fin m,
+      ∃ hleft : (firstHitRealSet D v (leftTarget i)).Nonempty,
+        firstHit v (leftTarget i) hleft ≤
+          firstHit u (rightTarget i) (hright i) := by
+    intro i
+    exact firstHit_le_firstHit_of_abs_error_at_firstHit
+      (u := u) (v := v) hD
+      (leftTarget := leftTarget i) (rightTarget := rightTarget i)
+      (ε := ε) (hright i) (hstart i) herr (hgap i)
+  exact ⟨fun i => Classical.choose (hpair i),
+    fun i => Classical.choose_spec (hpair i)⟩
+
 theorem cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits {D ε : ℝ}
     (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
     {N q m : ℕ} (hN : 0 < N)
