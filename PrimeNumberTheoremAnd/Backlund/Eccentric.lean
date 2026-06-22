@@ -1514,6 +1514,39 @@ theorem midpointReflectedProductMajorant_norm_midline
   rw [hpow]
   simp [qz, z, pow_two, mul_comm, mul_left_comm, mul_assoc]
 
+theorem midpointReflectedProductMajorant_norm_left_boundary
+    {Q C₀ C₁ t : ℝ} (hQ : (1 : ℝ) < Q) :
+    ‖midpointReflectedProductMajorant Q C₀ C₁ ((t : ℂ) * Complex.I)‖ =
+      |C₀| * |C₁| *
+        (‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖) *
+        (‖((Q + 1 : ℝ) : ℂ) + ((-t : ℝ) : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + ((-t : ℝ) : ℂ) * Complex.I)‖) := by
+  let z : ℂ := (t : ℂ) * Complex.I
+  let qz : ℂ := (Q : ℂ) + z
+  have hqz_re : (0 : ℝ) < qz.re := by
+    simp [qz, z, Complex.add_re, Complex.mul_re]
+    linarith
+  have hqz_ne : qz ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    rw [h] at hqz_re
+    simp at hqz_re
+  have hreflect :
+      (((Q + 1 : ℝ) : ℂ) - z) =
+        ((Q + 1 : ℝ) : ℂ) + ((-t : ℝ) : ℂ) * Complex.I := by
+    apply Complex.ext
+    · simp [z, Complex.sub_re, Complex.add_re, Complex.mul_re]
+    · simp [z, Complex.sub_im, Complex.add_im, Complex.mul_im]
+  have hcpow :
+      ‖qz ^ (((3 / 2 : ℝ) : ℂ) : ℂ)‖ = ‖qz‖ ^ (3 / 2 : ℝ) := by
+    rw [Complex.norm_cpow_of_ne_zero hqz_ne]
+    simp
+  unfold midpointReflectedProductMajorant
+  simp only [z, qz] at *
+  rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, hreflect]
+  simp [mul_comm, mul_left_comm, mul_assoc]
+
 /--
 Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
 has PL growth and unit boundary control on the two strip edges, its midpoint
