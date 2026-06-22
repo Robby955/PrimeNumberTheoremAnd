@@ -170,6 +170,113 @@ theorem abs_arg_le_abs_im_div_re_of_re_pos {z : ℂ} (hre : 0 < z.re) :
   rw [arg_eq_arctan_im_div_re_of_re_pos hre]
   exact abs_arctan_le_abs_self _
 
+theorem arg_add_mem_Ioc_of_re_pos {z w : ℂ} (hz : 0 < z.re) (hw : 0 < w.re) :
+    z.arg + w.arg ∈ Set.Ioc (-Real.pi) Real.pi := by
+  have hzlo : -(Real.pi / 2) < z.arg := by
+    rw [Complex.neg_pi_div_two_lt_arg_iff]
+    exact Or.inl hz
+  have hzhi : z.arg < Real.pi / 2 := by
+    rw [Complex.arg_lt_pi_div_two_iff]
+    exact Or.inl hz
+  have hwlo : -(Real.pi / 2) < w.arg := by
+    rw [Complex.neg_pi_div_two_lt_arg_iff]
+    exact Or.inl hw
+  have hwhi : w.arg < Real.pi / 2 := by
+    rw [Complex.arg_lt_pi_div_two_iff]
+    exact Or.inl hw
+  constructor <;> linarith
+
+theorem abs_im_log_add_log_le_mul_im_div_re {z w : ℂ}
+    (hz : 0 < z.re) (hw : 0 < w.re) (hzw : 0 < (z * w).re) :
+    |(Complex.log z + Complex.log w).im| ≤ |(z * w).im / (z * w).re| := by
+  have hzne : z ≠ 0 := by
+    intro h
+    rw [h] at hz
+    norm_num at hz
+  have hwne : w ≠ 0 := by
+    intro h
+    rw [h] at hw
+    norm_num at hw
+  have hlog := Complex.log_mul hzne hwne (arg_add_mem_Ioc_of_re_pos hz hw)
+  rw [← hlog, Complex.log_im]
+  exact abs_arg_le_abs_im_div_re_of_re_pos hzw
+
+theorem half_reflected_half_product_re (x T : ℝ) :
+    ((((x : ℂ) + (T : ℂ) * Complex.I) / 2) *
+      (((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)).re =
+        (x * (3 - x) + T ^ 2) / 4 := by
+  norm_num [Complex.mul_re, Complex.div_re, Complex.div_im, Complex.normSq,
+    Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im,
+    Complex.mul_re, Complex.mul_im]
+  ring
+
+theorem half_reflected_half_product_im (x T : ℝ) :
+    ((((x : ℂ) + (T : ℂ) * Complex.I) / 2) *
+      (((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)).im =
+        T * (3 - 2 * x) / 4 := by
+  norm_num [Complex.mul_im, Complex.div_re, Complex.div_im, Complex.normSq,
+    Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im,
+    Complex.mul_re, Complex.mul_im]
+  ring
+
+theorem abs_half_reflected_half_product_im_div_re_le {x T : ℝ}
+    (hxl : (1 / 2 : ℝ) ≤ x) (hxu : x ≤ 1 + 3 / 50) (hT : 0 < T) :
+    let p : ℂ := (((x : ℂ) + (T : ℂ) * Complex.I) / 2) *
+      (((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)
+    |(p.im / p.re)| ≤ 2 / T := by
+  dsimp only
+  rw [half_reflected_half_product_re, half_reflected_half_product_im]
+  have hx_nonneg : 0 ≤ x := by linarith
+  have hx3_nonneg : 0 ≤ 3 - x := by linarith
+  have hprod_nonneg : 0 ≤ x * (3 - x) := mul_nonneg hx_nonneg hx3_nonneg
+  have hden_pos : 0 < (x * (3 - x) + T ^ 2) / 4 := by positivity
+  have hden_ge : T ^ 2 / 4 ≤ (x * (3 - x) + T ^ 2) / 4 := by nlinarith
+  have hbase_pos : 0 < T ^ 2 / 4 := by positivity
+  have habs : |3 - 2 * x| ≤ 2 := by
+    rw [abs_le]
+    constructor <;> linarith
+  have hnum : |T * (3 - 2 * x) / 4| ≤ T / 2 := by
+    rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 4), abs_mul, abs_of_pos hT]
+    nlinarith [mul_le_mul_of_nonneg_left habs hT.le]
+  calc
+    |(T * (3 - 2 * x) / 4) / ((x * (3 - x) + T ^ 2) / 4)|
+        = |T * (3 - 2 * x) / 4| / ((x * (3 - x) + T ^ 2) / 4) := by
+          rw [abs_div, abs_of_pos hden_pos]
+    _ ≤ (T / 2) / (T ^ 2 / 4) := by
+          exact div_le_div₀ (by positivity) hnum hbase_pos hden_ge
+    _ = 2 / T := by
+          field_simp [hT.ne']
+          ring
+
+theorem abs_im_log_half_add_log_reflected_half_horizontal_le {x T : ℝ}
+    (hxl : (1 / 2 : ℝ) ≤ x) (hxu : x ≤ 1 + 3 / 50) (hT : 0 < T) :
+    |(Complex.log (((x : ℂ) + (T : ℂ) * Complex.I) / 2) +
+        Complex.log (((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)).im| ≤
+      2 / T := by
+  let z : ℂ := ((x : ℂ) + (T : ℂ) * Complex.I) / 2
+  let w : ℂ := ((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2
+  have hz : 0 < z.re := by
+    dsimp [z]
+    norm_num [Complex.div_re, Complex.normSq, Complex.add_re, Complex.mul_re]
+    linarith
+  have hw : 0 < w.re := by
+    dsimp [w]
+    norm_num [Complex.div_re, Complex.normSq, Complex.sub_re, Complex.add_re,
+      Complex.mul_re]
+    linarith
+  have hzw : 0 < (z * w).re := by
+    dsimp [z, w]
+    rw [half_reflected_half_product_re]
+    have hx_nonneg : 0 ≤ x := by linarith
+    have hx3_nonneg : 0 ≤ 3 - x := by linarith
+    have hprod_nonneg : 0 ≤ x * (3 - x) := mul_nonneg hx_nonneg hx3_nonneg
+    positivity
+  have hlog : |(Complex.log z + Complex.log w).im| ≤ |(z * w).im / (z * w).re| :=
+    abs_im_log_add_log_le_mul_im_div_re hz hw hzw
+  have hratio : |(z * w).im / (z * w).re| ≤ 2 / T := by
+    exact abs_half_reflected_half_product_im_div_re_le hxl hxu hT
+  exact hlog.trans hratio
+
 theorem abs_im_digamma_sub_log_sub_half_inv_le {z : ℂ}
     (hz : (1 / 4 : ℝ) ≤ z.re) :
     |(Complex.digamma z).im - (Complex.log z - z⁻¹ / 2).im| ≤

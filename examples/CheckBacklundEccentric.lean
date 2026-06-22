@@ -15,6 +15,12 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.abs_arctan_le_abs_self
 #check Backlund.arg_eq_arctan_im_div_re_of_re_pos
 #check Backlund.abs_arg_le_abs_im_div_re_of_re_pos
+#check Backlund.arg_add_mem_Ioc_of_re_pos
+#check Backlund.abs_im_log_add_log_le_mul_im_div_re
+#check Backlund.half_reflected_half_product_re
+#check Backlund.half_reflected_half_product_im
+#check Backlund.abs_half_reflected_half_product_im_div_re_le
+#check Backlund.abs_im_log_half_add_log_reflected_half_horizontal_le
 #check Backlund.abs_im_digamma_sub_log_sub_half_inv_le
 #check Backlund.abs_im_inv_le_inv_abs_im
 #check Backlund.abs_im_inv_horizontal_le
@@ -149,6 +155,12 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.abs_arctan_le_abs_self
 #print axioms Backlund.arg_eq_arctan_im_div_re_of_re_pos
 #print axioms Backlund.abs_arg_le_abs_im_div_re_of_re_pos
+#print axioms Backlund.arg_add_mem_Ioc_of_re_pos
+#print axioms Backlund.abs_im_log_add_log_le_mul_im_div_re
+#print axioms Backlund.half_reflected_half_product_re
+#print axioms Backlund.half_reflected_half_product_im
+#print axioms Backlund.abs_half_reflected_half_product_im_div_re_le
+#print axioms Backlund.abs_im_log_half_add_log_reflected_half_horizontal_le
 #print axioms Backlund.abs_im_digamma_sub_log_sub_half_inv_le
 #print axioms Backlund.abs_im_inv_le_inv_abs_im
 #print axioms Backlund.abs_im_inv_horizontal_le
