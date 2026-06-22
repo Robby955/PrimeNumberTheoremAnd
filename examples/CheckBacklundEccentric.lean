@@ -174,6 +174,9 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundEccentricJensenIntegralEntire
 #print axioms Backlund.backlundEccentricJensenZeroCountRhsEntire
 #print axioms Backlund.backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage
+#print axioms Backlund.backlundFEntire_differentiable
+#print axioms Backlund.backlundFEntire_translate_differentiable
+#print axioms Backlund.backlundFEntire_translate_jensen_logCounting
 #print axioms Backlund.midpointReflectedProduct_zetaSurrogate_eq
 #print axioms Backlund.reflectedShifted_mem_slitPlane_on_verticalClosedStrip
 #print axioms Backlund.reflectedShifted_log_ne_zero_on_verticalClosedStrip

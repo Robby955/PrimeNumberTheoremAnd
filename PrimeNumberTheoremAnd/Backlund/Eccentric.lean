@@ -1547,6 +1547,43 @@ theorem backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage
     backlundEccentricJensenIntegrandEntire, smul_eq_mul]
   field_simp [Real.pi_ne_zero]
 
+theorem backlundFEntire_differentiable (N : ℕ) (T : ℝ) :
+    Differentiable ℂ (backlundFEntire N T) := by
+  unfold backlundFEntire
+  have hplus : Differentiable ℂ (fun z : ℂ => z + (T : ℂ) * Complex.I) :=
+    differentiable_id.add (differentiable_const ((T : ℂ) * Complex.I))
+  have hminus : Differentiable ℂ (fun z : ℂ => z - (T : ℂ) * Complex.I) :=
+    differentiable_id.sub (differentiable_const ((T : ℂ) * Complex.I))
+  have hplusA : Differentiable ℂ (fun z : ℂ =>
+      zetaSurrogate (z + (T : ℂ) * Complex.I)) :=
+    zetaSurrogate_differentiable.comp hplus
+  have hminusA : Differentiable ℂ (fun z : ℂ =>
+      zetaSurrogate (z - (T : ℂ) * Complex.I)) :=
+    zetaSurrogate_differentiable.comp hminus
+  exact ((hplusA.pow N).add (hminusA.pow N)).const_mul (1 / 2 : ℂ)
+
+theorem backlundFEntire_translate_differentiable (N : ℕ) (T η : ℝ) :
+    Differentiable ℂ (fun z : ℂ =>
+      backlundFEntire N T (z + backlundEccentricCenter η)) := by
+  exact (backlundFEntire_differentiable N T).comp
+    (differentiable_id.add (differentiable_const (backlundEccentricCenter η)))
+
+theorem backlundFEntire_translate_jensen_logCounting
+    (N : ℕ) (T η : ℝ) {R : ℝ} (hR : R ≠ 0) :
+    Function.locallyFinsuppWithin.logCounting
+        (MeromorphicOn.divisor
+          (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η))
+          (Set.univ : Set ℂ)) R =
+      Real.circleAverage
+          (fun z : ℂ =>
+            Real.log ‖backlundFEntire N T (z + backlundEccentricCenter η)‖)
+          0 R -
+        Real.log
+          ‖meromorphicTrailingCoeffAt
+            (fun z : ℂ => backlundFEntire N T (z + backlundEccentricCenter η)) 0‖ := by
+  exact Complex.Hadamard.jensen_formula_logCounting_eq_circleAverage_sub_log_trailingCoeff
+    (backlundFEntire_translate_differentiable N T η) hR
+
 theorem midpointReflectedProduct_zetaSurrogate_eq (z : ℂ) :
     midpointReflectedProduct zetaSurrogate z =
       zetaSurrogate z * zetaSurrogate ((1 : ℂ) - z) := by
