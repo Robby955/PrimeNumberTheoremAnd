@@ -103,6 +103,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundArgumentSymmetryDefect_self
 #check Backlund.backlundArgumentSymmetryErrorBound
 #check Backlund.backlundArgumentSymmetryErrorBound_pos
+#check Backlund.selectedPhaseLift_change_sum_lt_backlundArgumentSymmetryErrorBound
 #check Backlund.backlundRealPartZeroSet
 #check Backlund.mem_backlundRealPartZeroSet_iff
 #check Backlund.mem_backlundRealPartZeroSet_iff_backlundF
@@ -134,6 +135,43 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_pairs_product_le_pairingH_pow_of_abs_error_targets
 #check Backlund.cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
 #check Backlund.backlund_ordered_pairing_from_phase_error
+
+example
+    {D E T α : ℝ} (hD : (0 : ℝ) ≤ D)
+    (hDhi : (1 / 2 : ℝ) + D ≤ 1 + Backlund.backlundEta)
+    (hT : T ≠ 0)
+    (hfR : ∀ x, Backlund.backlundAHorizontalPathFrom (1 / 2) D T hT x ≠ 0)
+    (hfL : ∀ x, Backlund.backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θR : Backlund.PhaseLift
+      (Backlund.normalizeNonzeroPath
+        (Backlund.backlundAHorizontalPathFrom (1 / 2) D T hT) hfR))
+    (θL : Backlund.PhaseLift
+      (Backlund.normalizeNonzeroPath
+        (Backlund.backlundAHorizontalLeftPathFromCenter D T hT) hfL))
+    {N q m : ℕ} (hN : 0 < N)
+    (hα : 0 ≤ α)
+    (hE : (N : ℝ) * E ≤ (q : ℝ) * Real.pi)
+    (hcosL : ∀ k : ℕ,
+      Real.cos
+        ((N : ℝ) * θL.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ -
+          Backlund.backlundLeftPairingTarget α k) = 0)
+    (hstartL : ∀ i : Fin m,
+      (Backlund.phaseLiftNegScaledChange N hD θL) ⟨0, by exact ⟨le_rfl, hD⟩⟩ <
+        Backlund.backlundLeftPairingTarget α (i : ℕ))
+    (hsum : ∀ x : Set.Icc (0 : ℝ) D,
+      |θR.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x +
+        θL.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x| < E)
+    (hright_unpaired : ∀ i : Fin (q + 1),
+      (Backlund.firstHitRealSet D (Backlund.phaseLiftScaledChange N hD θR)
+        (Backlund.backlundRightPairingTarget α (i : ℕ))).Nonempty)
+    (hright_pair : ∀ i : Fin m,
+      (Backlund.firstHitRealSet D (Backlund.phaseLiftScaledChange N hD θR)
+        (Backlund.backlundRightPairingTarget α ((i : ℕ) + q + 1))).Nonempty) :
+    True := by
+  have _pairing := Backlund.backlund_ordered_pairing_from_phase_error
+    hD hDhi hT hfR hfL θR θL hN hα hE hcosL hstartL hsum
+    hright_unpaired hright_pair
+  trivial
 
 #check Backlund.backlundOrderedPairingLowerCount
 #check Backlund.backlundOrderedPairingLowerCount_eq_source
@@ -344,6 +382,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundArgumentSymmetryDefect_self
 #print axioms Backlund.backlundArgumentSymmetryErrorBound
 #print axioms Backlund.backlundArgumentSymmetryErrorBound_pos
+#print axioms Backlund.selectedPhaseLift_change_sum_lt_backlundArgumentSymmetryErrorBound
 #print axioms Backlund.backlundRealPartZeroSet
 #print axioms Backlund.mem_backlundRealPartZeroSet_iff
 #print axioms Backlund.mem_backlundRealPartZeroSet_iff_backlundF

@@ -2637,7 +2637,7 @@ theorem cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
       rw [← pow_add]
 
 theorem backlund_ordered_pairing_from_phase_error
-    {D E T : ℝ} (hD : (0 : ℝ) ≤ D)
+    {D E T α : ℝ} (hD : (0 : ℝ) ≤ D)
     (hDhi : (1 / 2 : ℝ) + D ≤ 1 + backlundEta)
     (hT : T ≠ 0)
     (hfR : ∀ x, backlundAHorizontalPathFrom (1 / 2) D T hT x ≠ 0)
@@ -2647,47 +2647,142 @@ theorem backlund_ordered_pairing_from_phase_error
     (θL : PhaseLift
       (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hfL))
     {N q m : ℕ} (hN : 0 < N)
-    (hE : (N : ℝ) * E ≤ ((q + 1 : ℕ) : ℝ) * Real.pi)
+    (hα : 0 ≤ α)
+    (hE : (N : ℝ) * E ≤ (q : ℝ) * Real.pi)
+    (hcosL : ∀ k : ℕ,
+      Real.cos
+        ((N : ℝ) * θL.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ -
+          backlundLeftPairingTarget α k) = 0)
     (hstartL : ∀ i : Fin m,
-      θL.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
-    (herr : ∀ x : Set.Icc (0 : ℝ) D, |θR.phase x - θL.phase x| < E)
+      (phaseLiftNegScaledChange N hD θL) ⟨0, by exact ⟨le_rfl, hD⟩⟩ <
+        backlundLeftPairingTarget α (i : ℕ))
+    (hsum : ∀ x : Set.Icc (0 : ℝ) D,
+      |θR.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x +
+        θL.change ⟨0, by exact ⟨le_rfl, hD⟩⟩ x| < E)
     (hright_unpaired : ∀ i : Fin (q + 1),
-      (firstHitRealSet D θR.phase (backlundCosZeroTarget N (i : ℕ))).Nonempty)
+      (firstHitRealSet D (phaseLiftScaledChange N hD θR)
+        (backlundRightPairingTarget α (i : ℕ))).Nonempty)
     (hright_pair : ∀ i : Fin m,
-      (firstHitRealSet D θR.phase
-        (backlundCosZeroTarget N ((i : ℕ) + q + 1))).Nonempty) :
+      (firstHitRealSet D (phaseLiftScaledChange N hD θR)
+        (backlundRightPairingTarget α ((i : ℕ) + q + 1))).Nonempty) :
     ∃ hleft : ∀ i : Fin m,
-      (firstHitRealSet D θL.phase (backlundCosZeroTarget N (i : ℕ))).Nonempty,
+      (firstHitRealSet D (phaseLiftNegScaledChange N hD θL)
+        (backlundLeftPairingTarget α (i : ℕ))).Nonempty,
       backlundOrderedRealPartZeros N m T ((1 / 2 : ℝ) - D) (1 / 2)
         (fun i : Fin m =>
           (1 / 2 : ℝ) -
-            firstHit θL.phase (backlundCosZeroTarget N ((Fin.rev i : Fin m) : ℕ))
+            firstHit (phaseLiftNegScaledChange N hD θL)
+              (backlundLeftPairingTarget α ((Fin.rev i : Fin m) : ℕ))
               (hleft (Fin.rev i))) ∧
       (∏ i : Fin (q + 1),
           ‖((((1 / 2 : ℝ) +
-              firstHit θR.phase (backlundCosZeroTarget N (i : ℕ))
+              firstHit (phaseLiftScaledChange N hD θR)
+                (backlundRightPairingTarget α (i : ℕ))
                 (hright_unpaired i) : ℝ) : ℂ) -
             backlundEccentricCenter backlundEta)‖) *
         (∏ i : Fin m,
           (‖((((1 / 2 : ℝ) +
-                firstHit θR.phase (backlundCosZeroTarget N ((i : ℕ) + q + 1))
+                firstHit (phaseLiftScaledChange N hD θR)
+                  (backlundRightPairingTarget α ((i : ℕ) + q + 1))
                   (hright_pair i) : ℝ) : ℂ) -
               backlundEccentricCenter backlundEta)‖ *
             ‖((((1 / 2 : ℝ) -
-                firstHit θL.phase (backlundCosZeroTarget N (i : ℕ)) (hleft i) : ℝ) : ℂ) -
+                firstHit (phaseLiftNegScaledChange N hD θL)
+                  (backlundLeftPairingTarget α (i : ℕ)) (hleft i) : ℝ) : ℂ) -
               backlundEccentricCenter backlundEta)‖)) ≤
         backlundPairingH ^ ((q + 1) + 2 * m) := by
+  let u : C(Set.Icc (0 : ℝ) D, ℝ) := phaseLiftScaledChange N hD θR
+  let v : C(Set.Icc (0 : ℝ) D, ℝ) := phaseLiftNegScaledChange N hD θL
+  let leftTarget : Fin m → ℝ := fun i => backlundLeftPairingTarget α (i : ℕ)
+  let rightTarget : Fin m → ℝ :=
+    fun i => backlundRightPairingTarget α ((i : ℕ) + q + 1)
+  let unpairedTarget : Fin (q + 1) → ℝ :=
+    fun i => backlundRightPairingTarget α (i : ℕ)
+  have herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < (N : ℝ) * E := by
+    intro x
+    exact phaseLiftScaledChange_abs_sub_negScaledChange_lt
+      (hD := hD) θR θL hN hsum x
+  have hgap : ∀ i : Fin m, leftTarget i + (N : ℝ) * E ≤ rightTarget i := by
+    intro i
+    exact backlundPairingTarget_left_add_le_right_shift
+      (α := α) (ε := (N : ℝ) * E) (j := (i : ℕ)) (q := q) hα hE
   obtain ⟨hleft, hprod⟩ :=
-    cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
-      (u := θR.phase) (v := θL.phase) hD hN hE hstartL herr
-      hright_unpaired hright_pair
+    firstHit_pairs_product_le_pairingH_pow_of_abs_error_targets
+      (u := u) (v := v) hD
+      (leftTarget := leftTarget) (rightTarget := rightTarget)
+      hstartL herr hgap hright_pair
       (fun i => firstHit_rightCoordinate_le_one_add_eta
-        (u := θR.phase) (hright_unpaired i) hDhi)
-      (fun i => firstHit_rightCoordinate_le_one_add_eta
-        (u := θR.phase) (hright_pair i) hDhi)
-  refine ⟨hleft, ?_, hprod⟩
-  exact backlundCosZeroLeftFirstHits_orderedRealPartZeros
-    (D := D) (T := T) hD hT hfL θL hN hstartL hleft
+        (u := u) (target := rightTarget i) (hright_pair i) hDhi)
+  have hunpaired :
+      (∏ i : Fin (q + 1),
+          ‖((((1 / 2 : ℝ) +
+              firstHit u (unpairedTarget i) (hright_unpaired i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖) ≤
+        backlundPairingH ^ (q + 1) := by
+    have hprod_unpaired :
+        (∏ i : Fin (q + 1),
+            ‖((((1 / 2 : ℝ) +
+                firstHit u (unpairedTarget i) (hright_unpaired i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖) ≤
+          ∏ _i : Fin (q + 1), backlundPairingH := by
+      refine Finset.prod_le_prod ?_ ?_
+      · intro i _hi
+        exact norm_nonneg _
+      · intro i _hi
+        have hI := firstHit_mem_Icc u (unpairedTarget i) (hright_unpaired i)
+        exact norm_ofReal_sub_backlundEccentricCenter_le_pairingH
+          (by linarith [hI.1])
+          (firstHit_rightCoordinate_le_one_add_eta
+            (u := u) (target := unpairedTarget i) (hright_unpaired i) hDhi)
+    simpa using hprod_unpaired
+  have hpair_nonneg :
+      0 ≤
+        (∏ i : Fin m,
+          (‖((((1 / 2 : ℝ) +
+                firstHit u (rightTarget i) (hright_pair i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖ *
+            ‖((((1 / 2 : ℝ) -
+                firstHit v (leftTarget i) (hleft i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖)) := by
+    exact Finset.prod_nonneg fun i _ =>
+      mul_nonneg (norm_nonneg _) (norm_nonneg _)
+  have hprod_all :
+      (∏ i : Fin (q + 1),
+          ‖((((1 / 2 : ℝ) +
+              firstHit u (unpairedTarget i) (hright_unpaired i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖) *
+        (∏ i : Fin m,
+          (‖((((1 / 2 : ℝ) +
+                firstHit u (rightTarget i) (hright_pair i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖ *
+            ‖((((1 / 2 : ℝ) -
+                firstHit v (leftTarget i) (hleft i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖)) ≤
+        backlundPairingH ^ ((q + 1) + 2 * m) := by
+    calc
+      (∏ i : Fin (q + 1),
+          ‖((((1 / 2 : ℝ) +
+              firstHit u (unpairedTarget i) (hright_unpaired i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖) *
+        (∏ i : Fin m,
+          (‖((((1 / 2 : ℝ) +
+                firstHit u (rightTarget i) (hright_pair i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖ *
+            ‖((((1 / 2 : ℝ) -
+                firstHit v (leftTarget i) (hleft i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖))
+          ≤ backlundPairingH ^ (q + 1) * backlundPairingH ^ (2 * m) := by
+            exact mul_le_mul hunpaired hprod hpair_nonneg
+              (pow_nonneg backlundPairingH_pos.le (q + 1))
+      _ = backlundPairingH ^ ((q + 1) + 2 * m) := by
+        rw [← pow_add]
+  refine ⟨hleft, ?_, ?_⟩
+  · exact phaseLiftNegScaledChange_leftFirstHits_orderedRealPartZeros
+      (D := D) (T := T) hD hT hfL θL
+      (target := leftTarget) hstartL
+      (strictMono_backlundLeftPairingTarget α)
+      (fun i => hcosL (i : ℕ)) hleft
+  · simpa [u, v, leftTarget, rightTarget, unpairedTarget] using hprod_all
 
 theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
     {σ₁ x : ℝ}
@@ -2776,6 +2871,70 @@ theorem backlund_argument_symmetry_error {σ₁ T T₀ : ℝ}
     (abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_lt_errorBound
       (σ₁ := σ₁) (T := T) (T₀ := T₀) hle hσ₁ hT₀ hT hint_arch)
     le_rfl
+
+theorem selectedPhaseLift_change_sum_lt_backlundArgumentSymmetryErrorBound
+    {D T T₀ E : ℝ} (hD : (0 : ℝ) < D) (hT : T ≠ 0)
+    (hfR : ∀ x, backlundAHorizontalPathFrom (1 / 2) D T hT x ≠ 0)
+    (hfL : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (hIR : Continuous fun x : Set.Icc (0 : ℝ) D =>
+      ∫ u in (0 : ℝ)..(x : ℝ),
+        logDeriv backlundA ((((1 / 2 : ℝ) + u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+    (hExpR : ∀ x : Set.Icc (0 : ℝ) D,
+      Complex.exp (∫ u in (0 : ℝ)..(x : ℝ),
+          logDeriv backlundA
+            ((((1 / 2 : ℝ) + u : ℝ) : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundAHorizontalPathFrom (1 / 2) D T hT x /
+          backlundAHorizontalPathFrom (1 / 2) D T hT
+            ⟨0, by exact ⟨le_rfl, hD.le⟩⟩)
+    (hIL : Continuous fun x : Set.Icc (0 : ℝ) D =>
+      ∫ u in (0 : ℝ)..(x : ℝ),
+        -logDeriv backlundA ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I))
+    (hExpL : ∀ x : Set.Icc (0 : ℝ) D,
+      Complex.exp (∫ u in (0 : ℝ)..(x : ℝ),
+          -logDeriv backlundA
+            ((((1 / 2 : ℝ) - u : ℝ) : ℂ) + (T : ℂ) * Complex.I)) =
+        backlundAHorizontalLeftPathFromCenter D T hT x /
+          backlundAHorizontalLeftPathFromCenter D T hT
+            ⟨0, by exact ⟨le_rfl, hD.le⟩⟩)
+    (hs0 : ∀ x : Set.Icc (0 : ℝ) D,
+      ∀ y ∈ [[(1 / 2 : ℝ), (1 / 2 : ℝ) + (x : ℝ)]],
+        ((y : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hs1 : ∀ x : Set.Icc (0 : ℝ) D,
+      ∀ y ∈ [[(1 / 2 : ℝ), (1 / 2 : ℝ) + (x : ℝ)]],
+        ((y : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hζ : ∀ x : Set.Icc (0 : ℝ) D,
+      ∀ y ∈ [[(1 / 2 : ℝ), (1 / 2 : ℝ) + (x : ℝ)]],
+        riemannZeta ((y : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hζref : ∀ x : Set.Icc (0 : ℝ) D,
+      ∀ y ∈ [[(1 / 2 : ℝ), (1 / 2 : ℝ) + (x : ℝ)]],
+        riemannZeta (1 - ((y : ℂ) + (T : ℂ) * Complex.I)) ≠ 0)
+    (hint : ∀ x : Set.Icc (0 : ℝ) D,
+      IntervalIntegrable
+        (fun y : ℝ => logDeriv backlundA ((y : ℂ) + (T : ℂ) * Complex.I))
+        volume (1 / 2) ((1 / 2 : ℝ) + (x : ℝ)))
+    (hint_ref : ∀ x : Set.Icc (0 : ℝ) D,
+      IntervalIntegrable
+        (fun y : ℝ => logDeriv backlundA (1 - ((y : ℂ) + (T : ℂ) * Complex.I)))
+        volume (1 / 2) ((1 / 2 : ℝ) + (x : ℝ)))
+    (harch : ∀ x : Set.Icc (0 : ℝ) D,
+      |(HIntegral backlundArchimedeanSymmetryIntegrand
+        (1 / 2) ((1 / 2 : ℝ) + (x : ℝ)) T).im| < E)
+    (hE : E ≤ backlundArgumentSymmetryErrorBound T₀) :
+    ∀ x : Set.Icc (0 : ℝ) D,
+      |(phaseLiftOfNonzeroPath hD
+          (backlundAHorizontalPathFrom (1 / 2) D T hT) hfR).change
+          ⟨0, by exact ⟨le_rfl, hD.le⟩⟩ x +
+        (phaseLiftOfNonzeroPath hD
+          (backlundAHorizontalLeftPathFromCenter D T hT) hfL).change
+          ⟨0, by exact ⟨le_rfl, hD.le⟩⟩ x| <
+      backlundArgumentSymmetryErrorBound T₀ := by
+  intro x
+  rw [selectedPhaseLift_change_sum_eq_backlundArgumentSymmetryDefect_at
+    (D := D) (T := T) hD hT hfR hfL hIR hExpR hIL hExpL x]
+  exact backlundArgumentSymmetryError_of_archimedeanIntegral_bound
+    (σ₁ := (1 / 2 : ℝ) + (x : ℝ)) (T := T) (T₀ := T₀) (E := E)
+    (hs0 x) (hs1 x) (hζ x) (hζref x) (hint x) (hint_ref x)
+    (harch x) hE
 
 /-- The raw circle integrand `log |F_N(center + R e^{iφ})|`. -/
 noncomputable def backlundEccentricJensenIntegrand (N : ℕ) (T η R φ : ℝ) : ℝ :=
