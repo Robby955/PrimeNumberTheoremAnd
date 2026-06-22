@@ -1992,6 +1992,27 @@ theorem mem_backlundRealPartZeroSet_iff_backlundF (N : ℕ) (T a b σ : ℝ) :
       σ ∈ Set.Icc a b ∧ backlundF N T (σ : ℂ) = 0 := by
   rw [mem_backlundRealPartZeroSet_iff, backlundF_real_eq_zero_iff]
 
+theorem backlundRealPartZeroSet_mono_interval {N : ℕ} {T a b c d σ : ℝ}
+    (hac : c ≤ a) (hbd : b ≤ d)
+    (hσ : σ ∈ backlundRealPartZeroSet N T a b) :
+    σ ∈ backlundRealPartZeroSet N T c d := by
+  rcases hσ with ⟨⟨hlo, hhi⟩, hzero⟩
+  exact ⟨⟨hac.trans hlo, hhi.trans hbd⟩, hzero⟩
+
+theorem ofReal_add_mul_I_ne_one_of_ne_zero (x T : ℝ) (hT : T ≠ 0) :
+    ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1 := by
+  intro h
+  have him : T = 0 := by
+    simpa using congrArg Complex.im h
+  exact hT him
+
+theorem ofReal_sub_mul_I_ne_one_of_ne_zero (x T : ℝ) (hT : T ≠ 0) :
+    ((x : ℂ) - (T : ℂ) * Complex.I) ≠ 1 := by
+  intro h
+  have him : -T = 0 := by
+    simpa using congrArg Complex.im h
+  exact hT (neg_eq_zero.mp him)
+
 theorem firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet {x₀ D T : ℝ}
     (hT : T ≠ 0)
     (hf : ∀ x, backlundAHorizontalPathFrom x₀ D T hT x ≠ 0)
