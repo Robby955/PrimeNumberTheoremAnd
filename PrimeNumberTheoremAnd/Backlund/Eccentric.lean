@@ -463,6 +463,16 @@ theorem deriv_backlundA_horizontal_div_eq_logDeriv {x T : ℝ}
   rw [logDeriv_apply]
   rw [(hasDerivAt_backlundA_horizontal (x := x) (T := T) hs).deriv]
 
+theorem hasDerivAt_log_backlundA_horizontal {x T : ℝ}
+    (hs : ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hslit :
+      backlundA ((x : ℂ) + (T : ℂ) * Complex.I) ∈ Complex.slitPlane) :
+    HasDerivAt
+      (fun u : ℝ => Complex.log (backlundA ((u : ℂ) + (T : ℂ) * Complex.I)))
+      (logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I)) x := by
+  simpa [logDeriv_apply] using
+    (hasDerivAt_backlundA_horizontal (x := x) (T := T) hs).clog_real hslit
+
 noncomputable def backlundAHorizontalPathFrom (x₀ D T : ℝ) (hT : T ≠ 0) :
     C(Set.Icc (0 : ℝ) D, ℂ) where
   toFun d := backlundA (((x₀ + (d : ℝ) : ℝ) : ℂ) + (T : ℂ) * Complex.I)
