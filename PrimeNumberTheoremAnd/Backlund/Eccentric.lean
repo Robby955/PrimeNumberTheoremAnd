@@ -2090,6 +2090,68 @@ theorem backlundRealPartZeroCount_eq_toFinset_card {N : ℕ} {T a b : ℝ}
 def backlundOrderedRealPartZeros (N k : ℕ) (T a b : ℝ) (xs : Fin k → ℝ) : Prop :=
   StrictMono xs ∧ ∀ i, xs i ∈ backlundRealPartZeroSet N T a b
 
+theorem prod_fin_append {m n : ℕ} {α : Type*} [CommMonoid α]
+    (xs : Fin m → α) (ys : Fin n → α) :
+    (∏ i : Fin (m + n), Fin.append xs ys i) =
+      (∏ i : Fin m, xs i) * (∏ j : Fin n, ys j) := by
+  classical
+  rw [← Equiv.prod_comp finSumFinEquiv
+    (fun i : Fin (m + n) => Fin.append xs ys i)]
+  rw [Fintype.prod_sum_type]
+  simp [Fin.append, finSumFinEquiv_apply_left, finSumFinEquiv_apply_right]
+
+theorem strictMono_fin_append {m n : ℕ} {xs : Fin m → ℝ} {ys : Fin n → ℝ}
+    (hxs : StrictMono xs) (hys : StrictMono ys)
+    (hcross : ∀ i j, xs i < ys j) :
+    StrictMono (Fin.append xs ys) := by
+  intro i j hij
+  refine Fin.addCases
+    (motive := fun i =>
+      ∀ j, i < j → Fin.append xs ys i < Fin.append xs ys j) ?_ ?_ i j hij
+  · intro il j hij'
+    refine Fin.addCases
+      (motive := fun j =>
+        Fin.castAdd n il < j →
+          Fin.append xs ys (Fin.castAdd n il) < Fin.append xs ys j)
+      ?_ ?_ j hij'
+    · intro jl hijll
+      have hij_left : il < jl := by exact hijll
+      simpa [Fin.append] using hxs hij_left
+    · intro jr _hijlr
+      simpa [Fin.append] using hcross il jr
+  · intro ir j hij'
+    refine Fin.addCases
+      (motive := fun j =>
+        Fin.natAdd m ir < j →
+          Fin.append xs ys (Fin.natAdd m ir) < Fin.append xs ys j)
+      ?_ ?_ j hij'
+    · intro jl hijrl
+      have hval : m + ir.val < jl.val := by exact hijrl
+      have hm_lt : m < m :=
+        lt_of_le_of_lt (Nat.le_add_right m ir.val) (lt_trans hval jl.isLt)
+      exact False.elim (Nat.lt_irrefl m hm_lt)
+    · intro jr hijrr
+      have hij_right : ir < jr := by
+        simpa [Fin.natAdd_lt_natAdd_iff] using hijrr
+      simpa [Fin.append] using hys hij_right
+
+theorem backlundOrderedRealPartZeros_append {N m n : ℕ} {T a b : ℝ}
+    {xs : Fin m → ℝ} {ys : Fin n → ℝ}
+    (hxs : backlundOrderedRealPartZeros N m T a b xs)
+    (hys : backlundOrderedRealPartZeros N n T a b ys)
+    (hcross : ∀ i j, xs i < ys j) :
+    backlundOrderedRealPartZeros N (m + n) T a b (Fin.append xs ys) := by
+  constructor
+  · exact strictMono_fin_append hxs.1 hys.1 hcross
+  · intro i
+    refine Fin.addCases
+      (motive := fun i => Fin.append xs ys i ∈ backlundRealPartZeroSet N T a b)
+      ?_ ?_ i
+    · intro il
+      simpa [Fin.append] using hxs.2 il
+    · intro ir
+      simpa [Fin.append] using hys.2 ir
+
 theorem backlundOrderedRealPartZeros_count_le {N k : ℕ} {T a b : ℝ} {xs : Fin k → ℝ}
     (hfin : (backlundRealPartZeroSet N T a b).Finite)
     (hxs : backlundOrderedRealPartZeros N k T a b xs) :
