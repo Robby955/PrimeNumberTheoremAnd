@@ -1304,6 +1304,37 @@ theorem nat_mul_error_lt_pairingLoss_succ_mul_pi {N : ℕ} {E : ℝ} (_hE : 0 �
     norm_num
   simpa [hleft, hright] using hmul
 
+theorem cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits {D ε : ℝ}
+    (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
+    {N q m : ℕ} (hN : 0 < N)
+    (hε : (N : ℝ) * ε ≤ ((q + 1 : ℕ) : ℝ) * Real.pi)
+    (hstart : ∀ i : Fin m,
+      v ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < ε)
+    (hright : ∀ i : Fin m,
+      (firstHitRealSet D u
+        (backlundCosZeroTarget N ((i : ℕ) + q + 1))).Nonempty) :
+    ∃ hleft : ∀ i : Fin m,
+      (firstHitRealSet D v (backlundCosZeroTarget N (i : ℕ))).Nonempty,
+      ∀ i : Fin m,
+        firstHit v (backlundCosZeroTarget N (i : ℕ)) (hleft i) ≤
+          firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1)) (hright i) := by
+  have hpair : ∀ i : Fin m,
+      ∃ hleft : (firstHitRealSet D v (backlundCosZeroTarget N (i : ℕ))).Nonempty,
+        firstHit v (backlundCosZeroTarget N (i : ℕ)) hleft ≤
+          firstHit u (backlundCosZeroTarget N ((i : ℕ) + q + 1)) (hright i) := by
+    intro i
+    exact firstHit_le_firstHit_of_abs_error_at_firstHit
+      (u := u) (v := v) hD
+      (leftTarget := backlundCosZeroTarget N (i : ℕ))
+      (rightTarget := backlundCosZeroTarget N ((i : ℕ) + q + 1))
+      (ε := ε) (hright i) (hstart i) herr
+      (backlundCosZeroTarget_add_le_of_mul_le
+        (N := N) (j := (i : ℕ)) (q := q) hN hε)
+  refine ⟨fun i => Classical.choose (hpair i), ?_⟩
+  intro i
+  exact Classical.choose_spec (hpair i)
+
 /-- The guaranteed paired-zero count in Backlund's ordered pairing lemma. -/
 noncomputable def backlundOrderedPairingLowerCount (N n : ℕ) (E : ℝ) : ℕ :=
   n - 2 - backlundPairingLoss N E
