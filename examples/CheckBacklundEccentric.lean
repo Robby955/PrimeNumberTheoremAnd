@@ -5,6 +5,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.zeta_one_line_le_const_mul_log
 #check Backlund.unitNormalize
 #check Backlund.coe_unitNormalize
+#check Backlund.circle_exp_log_im_eq_unitNormalize
+#check Backlund.arg_unitNormalize
 #check Backlund.normalizeNonzeroPath
 #check Backlund.PhaseLift
 #check Backlund.PhaseLift.change
@@ -12,6 +14,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.circlePathOnUnitInterval
 #check Backlund.phaseLiftOfCirclePath
 #check Backlund.phaseLiftOfCirclePath_exp_phase
+#check Backlund.phaseLiftOfCirclePath_phase_eq_of_exp_phase
 #check Backlund.phaseLiftOfNonzeroPath
 #check Backlund.phaseLiftOfNonzeroPath_exp_phase
 #check Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
@@ -41,6 +44,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.deriv_backlundA_horizontal_div_eq_logDeriv
 #check Backlund.hasDerivAt_log_backlundA_horizontal
 #check Backlund.HIntegral_logDeriv_backlundA_eq_log_sub_of_slitPlane
+#check Backlund.backlundAHorizontalPathOn
+#check Backlund.phaseLift_change_eq_backlundAHorizontalArgumentVariation_of_slitPlane
 #check Backlund.backlundAHorizontalPathFrom
 #check Backlund.backlundAHorizontalLeftPathFromCenter
 #check Kadiri.zeta_logDeriv_functional_eq
@@ -215,6 +220,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.zeta_one_line_le_const_mul_log
 #print axioms Backlund.unitNormalize
 #print axioms Backlund.coe_unitNormalize
+#print axioms Backlund.circle_exp_log_im_eq_unitNormalize
+#print axioms Backlund.arg_unitNormalize
 #print axioms Backlund.normalizeNonzeroPath
 #print axioms Backlund.PhaseLift
 #print axioms Backlund.PhaseLift.change
@@ -222,6 +229,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.circlePathOnUnitInterval
 #print axioms Backlund.phaseLiftOfCirclePath
 #print axioms Backlund.phaseLiftOfCirclePath_exp_phase
+#print axioms Backlund.phaseLiftOfCirclePath_phase_eq_of_exp_phase
 #print axioms Backlund.phaseLiftOfNonzeroPath
 #print axioms Backlund.phaseLiftOfNonzeroPath_exp_phase
 #print axioms Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
@@ -251,6 +259,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.deriv_backlundA_horizontal_div_eq_logDeriv
 #print axioms Backlund.hasDerivAt_log_backlundA_horizontal
 #print axioms Backlund.HIntegral_logDeriv_backlundA_eq_log_sub_of_slitPlane
+#print axioms Backlund.backlundAHorizontalPathOn
+#print axioms Backlund.phaseLift_change_eq_backlundAHorizontalArgumentVariation_of_slitPlane
 #print axioms Backlund.backlundAHorizontalPathFrom
 #print axioms Backlund.backlundAHorizontalLeftPathFromCenter
 #print axioms Kadiri.zeta_logDeriv_functional_eq

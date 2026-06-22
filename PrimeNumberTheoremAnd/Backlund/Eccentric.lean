@@ -64,6 +64,26 @@ noncomputable def unitNormalize (z : ℂ) (hz : z ≠ 0) : Circle where
 @[simp] theorem coe_unitNormalize (z : ℂ) (hz : z ≠ 0) :
     ((unitNormalize z hz : Circle) : ℂ) = z / (‖z‖ : ℂ) := rfl
 
+theorem circle_exp_log_im_eq_unitNormalize {z : ℂ} (hz : z ≠ 0) :
+    Circle.exp (Complex.log z).im = unitNormalize z hz := by
+  apply Subtype.ext
+  change Complex.exp ((Complex.log z).im * Complex.I) = z / (‖z‖ : ℂ)
+  rw [Complex.log_im]
+  have hnorm : ((‖z‖ : ℝ) : ℂ) ≠ 0 := by
+    exact_mod_cast norm_ne_zero_iff.mpr hz
+  calc
+    Complex.exp (z.arg * Complex.I)
+        = ((‖z‖ : ℝ) : ℂ) * Complex.exp (z.arg * Complex.I) /
+            ((‖z‖ : ℝ) : ℂ) := by
+          field_simp [hnorm]
+    _ = z / (‖z‖ : ℂ) := by
+          rw [Complex.norm_mul_exp_arg_mul_I]
+
+theorem arg_unitNormalize {z : ℂ} (hz : z ≠ 0) :
+    ((unitNormalize z hz : Circle) : ℂ).arg = z.arg := by
+  rw [coe_unitNormalize, div_eq_mul_inv]
+  simpa using Complex.arg_mul_real (inv_pos.mpr (norm_pos_iff.mpr hz)) z
+
 noncomputable def normalizeNonzeroPath {a b : ℝ} (f : C(Set.Icc a b, ℂ))
     (hf : ∀ x, f x ≠ 0) : C(Set.Icc a b, Circle) where
   toFun x := unitNormalize (f x) (hf x)
@@ -122,6 +142,49 @@ theorem phaseLiftOfCirclePath_exp_phase {a b : ℝ} (h : a < b)
     (γ : C(Set.Icc a b, Circle)) (x : Set.Icc a b) :
     Circle.exp ((phaseLiftOfCirclePath h γ).phase x) = γ x :=
   (phaseLiftOfCirclePath h γ).exp_phase x
+
+theorem phaseLiftOfCirclePath_phase_eq_of_exp_phase {a b : ℝ} (h : a < b)
+    {γ : C(Set.Icc a b, Circle)} (η : C(Set.Icc a b, ℝ))
+    (hη : ∀ x, Circle.exp (η x) = γ x)
+    (hleft : η ⟨a, by constructor <;> linarith⟩ =
+      ((γ ⟨a, by constructor <;> linarith⟩ : Circle) : ℂ).arg) :
+    (phaseLiftOfCirclePath h γ).phase = η := by
+  let xleft : Set.Icc a b := ⟨a, by constructor <;> linarith⟩
+  let γI : C(unitInterval, Circle) := circlePathOnUnitInterval h γ
+  let e0 : ℝ := ((γ xleft : Circle) : ℂ).arg
+  have h0 : γI 0 = Circle.exp e0 := by
+    dsimp [γI, circlePathOnUnitInterval, e0, xleft]
+    have hsymm : ((iccHomeoI a b h).symm (0 : unitInterval) : ℝ) = a := by
+      rw [iccHomeoI_symm_apply_coe]
+      norm_num
+    have hsub : (iccHomeoI a b h).symm (0 : unitInterval) =
+        (⟨a, by constructor <;> linarith⟩ : Set.Icc a b) := by
+      exact Subtype.ext hsymm
+    rw [hsub]
+    exact (Circle.exp_arg (γ ⟨a, by constructor <;> linarith⟩)).symm
+  let ηI : C(unitInterval, ℝ) :=
+    η.comp ((iccHomeoI a b h).symm : C(unitInterval, Set.Icc a b))
+  have hηI :
+      ηI = Circle.isCoveringMap_exp.liftPath γI e0 h0 := by
+    refine (Circle.isCoveringMap_exp.eq_liftPath_iff' (γ_0 := h0)).mpr ⟨?_, ?_⟩
+    · funext t
+      dsimp [ηI, γI, circlePathOnUnitInterval]
+      exact hη ((iccHomeoI a b h).symm t)
+    · dsimp [ηI, e0, xleft]
+      have hsymm : ((iccHomeoI a b h).symm (0 : unitInterval) : ℝ) = a := by
+        rw [iccHomeoI_symm_apply_coe]
+        norm_num
+      have hsub : (iccHomeoI a b h).symm (0 : unitInterval) =
+          (⟨a, by constructor <;> linarith⟩ : Set.Icc a b) := by
+        exact Subtype.ext hsymm
+      rw [hsub]
+      exact hleft
+  ext x
+  dsimp [phaseLiftOfCirclePath]
+  change (Circle.isCoveringMap_exp.liftPath γI e0 h0) ((iccHomeoI a b h) x) = η x
+  rw [← hηI]
+  dsimp [ηI]
+  exact congrArg η ((iccHomeoI a b h).left_inv x)
 
 noncomputable def phaseLiftOfNonzeroPath {a b : ℝ} (h : a < b)
     (f : C(Set.Icc a b, ℂ)) (hf : ∀ x, f x ≠ 0) :
@@ -491,6 +554,28 @@ theorem HIntegral_logDeriv_backlundA_eq_log_sub_of_slitPlane {x₁ x₂ T : ℝ}
     (f' := fun x : ℝ => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
     (fun x hx => hasDerivAt_log_backlundA_horizontal (hs1 x hx) (hslit x hx))
     hint
+
+noncomputable def backlundAHorizontalPathOn (x₁ x₂ T : ℝ)
+    (hs1 : ∀ x ∈ Set.Icc x₁ x₂,
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1) :
+    C(Set.Icc x₁ x₂, ℂ) where
+  toFun x := backlundA ((x : ℝ) + (T : ℂ) * Complex.I)
+  continuous_toFun := by
+    rw [continuous_iff_continuousAt]
+    intro x
+    let p : Set.Icc x₁ x₂ → ℂ :=
+      fun y => ((y : ℝ) : ℂ) + (T : ℂ) * Complex.I
+    have hp_cont : Continuous p := by
+      fun_prop
+    have hp_ne_one : p x ≠ 1 := by
+      simpa [p] using hs1 x x.property
+    have hbacklund_cont : ContinuousAt backlundA (p x) := by
+      unfold backlundA
+      exact ((continuousAt_id.sub continuousAt_const).mul
+        ((differentiableAt_riemannZeta hp_ne_one).continuousAt))
+    have hcomp : ContinuousAt (fun y => backlundA (p y)) x :=
+      hbacklund_cont.comp hp_cont.continuousAt
+    simpa [p] using hcomp
 
 noncomputable def backlundAHorizontalPathFrom (x₀ D T : ℝ) (hT : T ≠ 0) :
     C(Set.Icc (0 : ℝ) D, ℂ) where
@@ -1154,6 +1239,84 @@ theorem backlundAHorizontalArgumentVariation_symm (x₁ x₂ T : ℝ) :
   rw [backlundAHorizontalArgumentVariation, backlundAHorizontalArgumentVariation,
     HIntegral_symm]
   simp
+
+theorem phaseLift_change_eq_backlundAHorizontalArgumentVariation_of_slitPlane
+    {x₁ x₂ T : ℝ} (h : x₁ < x₂)
+    (hs1 : ∀ x ∈ Set.Icc x₁ x₂,
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hslit : ∀ x ∈ Set.Icc x₁ x₂,
+      backlundA ((x : ℂ) + (T : ℂ) * Complex.I) ∈ Complex.slitPlane)
+    (hint :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
+        volume x₁ x₂) :
+    let f := backlundAHorizontalPathOn x₁ x₂ T hs1
+    let hf : ∀ x, f x ≠ 0 := fun x =>
+      Complex.slitPlane_ne_zero (hslit x x.property)
+    (phaseLiftOfNonzeroPath h f hf).change
+        ⟨x₁, by exact ⟨le_rfl, h.le⟩⟩
+        ⟨x₂, by exact ⟨h.le, le_rfl⟩⟩ =
+      backlundAHorizontalArgumentVariation x₁ x₂ T := by
+  dsimp
+  let f := backlundAHorizontalPathOn x₁ x₂ T hs1
+  let hf : ∀ x, f x ≠ 0 := fun x =>
+    Complex.slitPlane_ne_zero (hslit x x.property)
+  let η : C(Set.Icc x₁ x₂, ℝ) := {
+    toFun := fun x =>
+      (Complex.log (backlundA ((x : ℝ) + (T : ℂ) * Complex.I))).im
+    continuous_toFun := by
+      have hA_cont : Continuous fun x : Set.Icc x₁ x₂ =>
+          backlundA (((x : ℝ) : ℂ) + (T : ℂ) * Complex.I) := by
+        rw [continuous_iff_continuousAt]
+        intro x
+        let p : Set.Icc x₁ x₂ → ℂ :=
+          fun y => ((y : ℝ) : ℂ) + (T : ℂ) * Complex.I
+        have hp_cont : Continuous p := by
+          fun_prop
+        have hp_ne_one : p x ≠ 1 := by
+          simpa [p] using hs1 x x.property
+        have hbacklund_cont : ContinuousAt backlundA (p x) := by
+          unfold backlundA
+          exact ((continuousAt_id.sub continuousAt_const).mul
+            ((differentiableAt_riemannZeta hp_ne_one).continuousAt))
+        have hcomp : ContinuousAt (fun y => backlundA (p y)) x :=
+          hbacklund_cont.comp hp_cont.continuousAt
+        simpa [p] using hcomp
+      exact Complex.continuous_im.comp (hA_cont.clog fun x => hslit x x.property) }
+  have hη_exp :
+      ∀ x, Circle.exp (η x) = normalizeNonzeroPath f hf x := by
+    intro x
+    dsimp [η, f, hf, backlundAHorizontalPathOn, normalizeNonzeroPath]
+    exact circle_exp_log_im_eq_unitNormalize
+      (Complex.slitPlane_ne_zero (hslit x x.property))
+  have hη_left :
+      η ⟨x₁, by exact ⟨le_rfl, h.le⟩⟩ =
+        (((normalizeNonzeroPath f hf)
+          ⟨x₁, by exact ⟨le_rfl, h.le⟩⟩ : Circle) : ℂ).arg := by
+    dsimp [η, f, hf, backlundAHorizontalPathOn, normalizeNonzeroPath]
+    rw [Complex.log_im, div_eq_mul_inv]
+    symm
+    simpa using Complex.arg_mul_real
+      (inv_pos.mpr
+        (norm_pos_iff.mpr
+          (Complex.slitPlane_ne_zero
+            (hslit x₁ ⟨le_rfl, h.le⟩))))
+      (backlundA ((x₁ : ℂ) + (T : ℂ) * Complex.I))
+  have hphase :
+      (phaseLiftOfNonzeroPath h f hf).phase = η := by
+    exact phaseLiftOfCirclePath_phase_eq_of_exp_phase h η hη_exp hη_left
+  have hu_to_Icc : ∀ {x : ℝ}, x ∈ [[x₁, x₂]] → x ∈ Set.Icc x₁ x₂ := by
+    intro x hx
+    rcases Set.mem_uIcc.mp hx with hx | hx
+    · exact hx
+    · exact ⟨by linarith [hx.1], by linarith [hx.2]⟩
+  have hH := HIntegral_logDeriv_backlundA_eq_log_sub_of_slitPlane
+    (x₁ := x₁) (x₂ := x₂) (T := T)
+    (fun x hx => hs1 x (hu_to_Icc hx))
+    (fun x hx => hslit x (hu_to_Icc hx))
+    hint
+  rw [PhaseLift.change, hphase, backlundAHorizontalArgumentVariation, hH]
+  simp [η, Complex.sub_im]
 
 /--
 The symmetry defect in Backlund's argument comparison. The intended lemma 4
