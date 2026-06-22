@@ -127,6 +127,54 @@ theorem abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_cons
     (f := backlundArchimedeanSymmetryIntegrand)
     (x₁ := (1 / 2 : ℝ)) (x₂ := σ₁) (y := T) (C := C) hbound
 
+theorem abs_im_HIntegral_le_of_abs_im_le_const_of_le {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
+    (hle : x₁ ≤ x₂)
+    (hint : IntervalIntegrable
+      (fun x : ℝ => f ((x : ℂ) + (y : ℂ) * Complex.I)) volume x₁ x₂)
+    (hbound :
+      ∀ x ∈ Set.Icc x₁ x₂,
+        |(f ((x : ℂ) + (y : ℂ) * Complex.I)).im| ≤ C) :
+    |(HIntegral f x₁ x₂ y).im| ≤ C * (x₂ - x₁) := by
+  let g : ℝ → ℂ := fun x => f ((x : ℂ) + (y : ℂ) * Complex.I)
+  have hint_set : Integrable g (volume.restrict (Set.Ioc x₁ x₂)) := by
+    exact (intervalIntegrable_iff_integrableOn_Ioc_of_le hle).1 hint
+  have him_eq : (HIntegral f x₁ x₂ y).im = ∫ x in x₁..x₂, (g x).im := by
+    unfold HIntegral
+    rw [intervalIntegral.integral_of_le hle, intervalIntegral.integral_of_le hle]
+    simpa [g] using (integral_im (μ := volume.restrict (Set.Ioc x₁ x₂)) hint_set).symm
+  have him_int : IntervalIntegrable (fun x : ℝ => (g x).im) volume x₁ x₂ := by
+    rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hle]
+    exact hint_set.im
+  rw [him_eq]
+  calc
+    |∫ x in x₁..x₂, (g x).im|
+        ≤ ∫ x in x₁..x₂, |(g x).im| :=
+          intervalIntegral.abs_integral_le_integral_abs hle
+    _ ≤ ∫ _x in x₁..x₂, C := by
+          exact intervalIntegral.integral_mono_on hle him_int.abs
+            intervalIntegral.intervalIntegrable_const
+            (fun x hx => by simpa [g] using hbound x hx)
+    _ = C * (x₂ - x₁) := by
+          rw [intervalIntegral.integral_const]
+          ring
+
+theorem abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_abs_im_le_const
+    {σ₁ T C : ℝ}
+    (hle : (1 / 2 : ℝ) ≤ σ₁)
+    (hint : IntervalIntegrable
+      (fun x : ℝ =>
+        backlundArchimedeanSymmetryIntegrand ((x : ℂ) + (T : ℂ) * Complex.I))
+      volume (1 / 2) σ₁)
+    (hbound :
+      ∀ x ∈ Set.Icc (1 / 2 : ℝ) σ₁,
+        |(backlundArchimedeanSymmetryIntegrand
+          ((x : ℂ) + (T : ℂ) * Complex.I)).im| ≤ C) :
+    |(HIntegral backlundArchimedeanSymmetryIntegrand (1 / 2) σ₁ T).im| ≤
+      C * (σ₁ - 1 / 2) := by
+  exact abs_im_HIntegral_le_of_abs_im_le_const_of_le
+    (f := backlundArchimedeanSymmetryIntegrand)
+    (x₁ := (1 / 2 : ℝ)) (x₂ := σ₁) (y := T) (C := C) hle hint hbound
+
 private theorem HIntegral_reflect_one (f : ℂ → ℂ) (a b T : ℝ) :
     HIntegral f (1 - b) (1 - a) (-T) =
       HIntegral (fun s => f (1 - s)) a b T := by
