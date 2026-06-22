@@ -67,6 +67,13 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.midpointReflectedProduct
 #check Backlund.midpointReflectedProductMajorant
 #check Backlund.zetaSurrogate_conj
+#check Backlund.backlundFEntire
+#check Backlund.backlundFEntire_real_eq_re
+#check Backlund.backlundFEntire_eq_backlundF_of_shift_ne_one
+#check Backlund.backlundEccentricJensenIntegrandEntire
+#check Backlund.backlundEccentricJensenIntegralEntire
+#check Backlund.backlundEccentricJensenZeroCountRhsEntire
+#check Backlund.backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage
 #check Backlund.midpointReflectedProduct_zetaSurrogate_eq
 #check Backlund.reflectedShifted_mem_slitPlane_on_verticalClosedStrip
 #check Backlund.reflectedShifted_log_ne_zero_on_verticalClosedStrip
@@ -160,6 +167,13 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.midpointReflectedProduct
 #print axioms Backlund.midpointReflectedProductMajorant
 #print axioms Backlund.zetaSurrogate_conj
+#print axioms Backlund.backlundFEntire
+#print axioms Backlund.backlundFEntire_real_eq_re
+#print axioms Backlund.backlundFEntire_eq_backlundF_of_shift_ne_one
+#print axioms Backlund.backlundEccentricJensenIntegrandEntire
+#print axioms Backlund.backlundEccentricJensenIntegralEntire
+#print axioms Backlund.backlundEccentricJensenZeroCountRhsEntire
+#print axioms Backlund.backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage
 #print axioms Backlund.midpointReflectedProduct_zetaSurrogate_eq
 #print axioms Backlund.reflectedShifted_mem_slitPlane_on_verticalClosedStrip
 #print axioms Backlund.reflectedShifted_log_ne_zero_on_verticalClosedStrip

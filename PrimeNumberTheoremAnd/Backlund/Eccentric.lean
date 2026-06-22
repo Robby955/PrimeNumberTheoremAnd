@@ -61,6 +61,8 @@ theorem backlundA_conj (z : ℂ) :
 /--
 Backlund's real-part auxiliary
 `F_N(z) = (A(z+iT)^N + A(z-iT)^N)/2`.
+This raw version is for horizontal-line real-part bookkeeping; Jensen's theorem
+uses `backlundFEntire`, built from the patched entire surrogate.
 -/
 noncomputable def backlundF (N : ℕ) (T : ℝ) (z : ℂ) : ℂ :=
   (1 / 2 : ℂ) *
@@ -206,19 +208,19 @@ theorem backlundLargeRadius_pos : 0 < backlundLargeRadius := by
 noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
   ((1 + η : ℝ) : ℂ)
 
-/-- The circle integrand `log |F_N(center + R e^{iφ})|` in lemma 6. -/
+/-- The raw circle integrand `log |F_N(center + R e^{iφ})|`. -/
 noncomputable def backlundEccentricJensenIntegrand (N : ℕ) (T η R φ : ℝ) : ℝ :=
   Real.log ‖backlundF N T (circleMap (backlundEccentricCenter η) R φ)‖
 
 /--
-The unnormalized Jensen circle integral
-`J_N = ∫ log |F_N(1+η+R e^{iφ})| dφ`.
+The unnormalized raw circle integral. The Jensen theorem should use
+`backlundEccentricJensenIntegralEntire`.
 -/
 noncomputable def backlundEccentricJensenIntegral (N : ℕ) (T η R : ℝ) : ℝ :=
   ∫ φ in (0 : ℝ)..(2 * Real.pi),
     backlundEccentricJensenIntegrand N T η R φ
 
-/-- The lemma-6 eccentric Jensen bound RHS, with the factor-2 denominator `4π log r`. -/
+/-- Raw RHS shape with the factor-2 denominator `4π log r`. -/
 noncomputable def backlundEccentricJensenZeroCountRhs
     (N : ℕ) (T η R r E : ℝ) : ℝ :=
   backlundEccentricJensenIntegral N T η R / (4 * Real.pi * Real.log r) -
@@ -1474,9 +1476,76 @@ theorem zetaSurrogate_conj (z : ℂ) :
       intro h
       have h' := congrArg (starRingEnd ℂ) h
       exact hz (by simpa [Complex.conj_conj] using h')
-    rw [zetaSurrogate, if_neg hstar]
-    rw [show zetaSurrogate z = (z - 1) * riemannZeta z by simp [zetaSurrogate, hz]]
+    rw [zetaSurrogate, if_neg hstar, zetaSurrogate, if_neg hz]
     simp [riemannZeta_conj]
+
+/--
+The entire Backlund auxiliary used for Jensen's theorem. It uses the patched
+surrogate for `A`, so no removable singularity is present inside the disk.
+-/
+noncomputable def backlundFEntire (N : ℕ) (T : ℝ) (z : ℂ) : ℂ :=
+  (1 / 2 : ℂ) *
+    (zetaSurrogate (z + (T : ℂ) * Complex.I) ^ N +
+      zetaSurrogate (z - (T : ℂ) * Complex.I) ^ N)
+
+theorem backlundFEntire_real_eq_re (N : ℕ) (σ T : ℝ) :
+    backlundFEntire N T (σ : ℂ) =
+      ((zetaSurrogate ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N).re : ℂ) := by
+  have hreflect :
+      (σ : ℂ) - (T : ℂ) * Complex.I =
+        star ((σ : ℂ) + (T : ℂ) * Complex.I) := by
+    apply Complex.ext
+    · simp [Complex.add_re, Complex.sub_re, Complex.mul_re]
+    · simp [Complex.add_im, Complex.sub_im, Complex.mul_im]
+  unfold backlundFEntire
+  rw [hreflect, zetaSurrogate_conj]
+  rw [← star_pow]
+  let w : ℂ := zetaSurrogate ((σ : ℂ) + (T : ℂ) * Complex.I) ^ N
+  change (1 / 2 : ℂ) * (w + star w) = (w.re : ℂ)
+  apply Complex.ext
+  · simp [Complex.mul_re, Complex.add_re]
+    ring
+  · simp [Complex.mul_im, Complex.add_im]
+
+theorem backlundFEntire_eq_backlundF_of_shift_ne_one
+    {N : ℕ} {T : ℝ} {z : ℂ}
+    (hplus : z + (T : ℂ) * Complex.I ≠ 1)
+    (hminus : z - (T : ℂ) * Complex.I ≠ 1) :
+    backlundFEntire N T z = backlundF N T z := by
+  simp [backlundFEntire, backlundF, zetaSurrogate, backlundA, hplus, hminus]
+
+/-- The circle integrand for Jensen's theorem, using the entire auxiliary. -/
+noncomputable def backlundEccentricJensenIntegrandEntire
+    (N : ℕ) (T η R φ : ℝ) : ℝ :=
+  Real.log ‖backlundFEntire N T (circleMap (backlundEccentricCenter η) R φ)‖
+
+/--
+The unnormalized Jensen circle integral for the entire auxiliary
+`F_N = (A(z+iT)^N + A(z-iT)^N)/2`.
+-/
+noncomputable def backlundEccentricJensenIntegralEntire
+    (N : ℕ) (T η R : ℝ) : ℝ :=
+  ∫ φ in (0 : ℝ)..(2 * Real.pi),
+    backlundEccentricJensenIntegrandEntire N T η R φ
+
+/-- The lemma-6 Jensen RHS built from the entire auxiliary. -/
+noncomputable def backlundEccentricJensenZeroCountRhsEntire
+    (N : ℕ) (T η R r E : ℝ) : ℝ :=
+  backlundEccentricJensenIntegralEntire N T η R / (4 * Real.pi * Real.log r) -
+    Real.log ‖backlundFEntire N T (backlundEccentricCenter η)‖ / (2 * Real.log r) +
+      1 / 2 + (N : ℝ) * E / (2 * Real.pi)
+
+theorem backlundEccentricJensenIntegralEntire_eq_two_pi_mul_circleAverage
+    (N : ℕ) (T η R : ℝ) :
+    backlundEccentricJensenIntegralEntire N T η R =
+      (2 * Real.pi) *
+        Real.circleAverage
+          (fun z : ℂ => Real.log ‖backlundFEntire N T z‖)
+          (backlundEccentricCenter η) R := by
+  rw [Real.circleAverage]
+  simp [backlundEccentricJensenIntegralEntire,
+    backlundEccentricJensenIntegrandEntire, smul_eq_mul]
+  field_simp [Real.pi_ne_zero]
 
 theorem midpointReflectedProduct_zetaSurrogate_eq (z : ℂ) :
     midpointReflectedProduct zetaSurrogate z =
