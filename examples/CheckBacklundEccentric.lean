@@ -11,6 +11,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundArchimedeanSymmetryIntegrand
 #check Backlund.reflected_half_ne_neg_nat_of_im_ne_zero
 #check Backlund.backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma
+#check Backlund.arctan_le_self_of_nonneg
+#check Backlund.abs_arctan_le_abs_self
+#check Backlund.arg_eq_arctan_im_div_re_of_re_pos
+#check Backlund.abs_arg_le_abs_im_div_re_of_re_pos
 #check Backlund.abs_im_HIntegral_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
@@ -136,6 +140,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundArchimedeanSymmetryIntegrand
 #print axioms Backlund.reflected_half_ne_neg_nat_of_im_ne_zero
 #print axioms Backlund.backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma
+#print axioms Backlund.arctan_le_self_of_nonneg
+#print axioms Backlund.abs_arctan_le_abs_self
+#print axioms Backlund.arg_eq_arctan_im_div_re_of_re_pos
+#print axioms Backlund.abs_arg_le_abs_im_div_re_of_re_pos
 #print axioms Backlund.abs_im_HIntegral_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le

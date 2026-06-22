@@ -130,6 +130,45 @@ theorem backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma {s : ℂ}
   field_simp [hs0, h1s, hs_sub]
   ring_nf
 
+theorem arctan_le_self_of_nonneg {x : ℝ} (hx : 0 ≤ x) :
+    Real.arctan x ≤ x := by
+  by_cases hsmall : x < Real.pi / 2
+  · have htan : x ≤ Real.tan x := Real.le_tan hx hsmall
+    have hmono : Real.arctan x ≤ Real.arctan (Real.tan x) := Real.arctan_mono htan
+    rwa [Real.arctan_tan (by linarith) hsmall] at hmono
+  · have hpi : Real.pi / 2 ≤ x := le_of_not_gt hsmall
+    exact le_trans (le_of_lt (Real.arctan_lt_pi_div_two x)) hpi
+
+theorem abs_arctan_le_abs_self (x : ℝ) :
+    |Real.arctan x| ≤ |x| := by
+  by_cases hx : 0 ≤ x
+  · have hnonneg : 0 ≤ Real.arctan x := Real.arctan_nonneg.mpr hx
+    rw [abs_of_nonneg hnonneg, abs_of_nonneg hx]
+    exact arctan_le_self_of_nonneg hx
+  · have hxneg : x < 0 := lt_of_not_ge hx
+    have hatan_nonpos : Real.arctan x ≤ 0 := Real.arctan_le_zero.mpr hxneg.le
+    rw [abs_of_nonpos hatan_nonpos, abs_of_neg hxneg]
+    have hpos : 0 ≤ -x := by linarith
+    have h := arctan_le_self_of_nonneg hpos
+    rw [Real.arctan_neg] at h
+    linarith
+
+theorem arg_eq_arctan_im_div_re_of_re_pos {z : ℂ} (hre : 0 < z.re) :
+    z.arg = Real.arctan (z.im / z.re) := by
+  symm
+  apply Real.arctan_eq_of_tan_eq
+  · rw [Complex.tan_arg]
+  · constructor
+    · rw [Complex.neg_pi_div_two_lt_arg_iff]
+      exact Or.inl hre
+    · rw [Complex.arg_lt_pi_div_two_iff]
+      exact Or.inl hre
+
+theorem abs_arg_le_abs_im_div_re_of_re_pos {z : ℂ} (hre : 0 < z.re) :
+    |z.arg| ≤ |z.im / z.re| := by
+  rw [arg_eq_arctan_im_div_re_of_re_pos hre]
+  exact abs_arctan_le_abs_self _
+
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :
       ∀ x ∈ [[x₁, x₂]],
