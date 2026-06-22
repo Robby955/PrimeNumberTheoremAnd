@@ -1312,6 +1312,40 @@ theorem backlundCosZeroFirstHits_orderedRealPartZeros {x₀ D T : ℝ}
       (x₀ := x₀) (D := D) (T := T) hT hf θ N
       (backlundCosZeroTarget_cos_eq_zero hN) (hne i)
 
+theorem backlundCosZeroLeftFirstHits_orderedRealPartZeros {D T : ℝ}
+    (hD : (0 : ℝ) ≤ D) (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θ : PhaseLift (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hf))
+    {N m : ℕ} (hN : 0 < N)
+    (hstart : ∀ i : Fin m,
+      θ.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
+    (hne : ∀ i : Fin m,
+      (firstHitRealSet D θ.phase (backlundCosZeroTarget N (i : ℕ))).Nonempty) :
+    backlundOrderedRealPartZeros N m T ((1 / 2 : ℝ) - D) (1 / 2)
+      (fun i : Fin m =>
+        (1 / 2 : ℝ) -
+          firstHit θ.phase (backlundCosZeroTarget N ((Fin.rev i : Fin m) : ℕ))
+            (hne (Fin.rev i))) := by
+  constructor
+  · have htargets : StrictMono fun i : Fin m => backlundCosZeroTarget N (i : ℕ) :=
+      strictMono_backlundCosZeroTarget hN
+    have hhits :
+        StrictMono fun i : Fin m =>
+          firstHit θ.phase (backlundCosZeroTarget N (i : ℕ)) (hne i) :=
+      firstHit_strictMono_of_strictMono_targets
+        (u := θ.phase)
+        (targets := fun i : Fin m => backlundCosZeroTarget N (i : ℕ))
+        hD hstart htargets hne
+    intro i j hij
+    have hrev : Fin.rev j < Fin.rev i := by
+      exact (Fin.rev_lt_rev (i := j) (j := i)).2 hij
+    have hhit := hhits hrev
+    linarith
+  · intro i
+    exact firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
+      (D := D) (T := T) hT hf θ N
+      (backlundCosZeroTarget_cos_eq_zero hN) (hne (Fin.rev i))
+
 /-- The ordered-pairing loss `⌊N E / π⌋` from the argument-symmetry error. -/
 noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
   Nat.floor ((N : ℝ) * E / Real.pi)
@@ -1417,6 +1451,14 @@ theorem backlundPairingH_pos : 0 < backlundPairingH := by
 
 theorem backlundLargeRadius_pos : 0 < backlundLargeRadius := by
   norm_num [backlundLargeRadius]
+
+theorem firstHit_rightCoordinate_le_one_add_eta {D : ℝ}
+    (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target : ℝ}
+    (hne : (firstHitRealSet D u target).Nonempty)
+    (hDhi : (1 / 2 : ℝ) + D ≤ 1 + backlundEta) :
+    (1 / 2 : ℝ) + firstHit u target hne ≤ 1 + backlundEta := by
+  have hI := firstHit_mem_Icc u target hne
+  linarith [hI.2]
 
 /-- The center `1 + η` of the eccentric Jensen disk. -/
 noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
@@ -1644,6 +1686,59 @@ theorem cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
             (pow_nonneg backlundPairingH_pos.le (q + 1))
     _ = backlundPairingH ^ ((q + 1) + 2 * m) := by
       rw [← pow_add]
+
+theorem backlund_ordered_pairing_from_phase_error
+    {D E T : ℝ} (hD : (0 : ℝ) ≤ D)
+    (hDhi : (1 / 2 : ℝ) + D ≤ 1 + backlundEta)
+    (hT : T ≠ 0)
+    (hfR : ∀ x, backlundAHorizontalPathFrom (1 / 2) D T hT x ≠ 0)
+    (hfL : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θR : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalPathFrom (1 / 2) D T hT) hfR))
+    (θL : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hfL))
+    {N q m : ℕ} (hN : 0 < N)
+    (hE : (N : ℝ) * E ≤ ((q + 1 : ℕ) : ℝ) * Real.pi)
+    (hstartL : ∀ i : Fin m,
+      θL.phase ⟨0, by exact ⟨le_rfl, hD⟩⟩ < backlundCosZeroTarget N (i : ℕ))
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |θR.phase x - θL.phase x| < E)
+    (hright_unpaired : ∀ i : Fin (q + 1),
+      (firstHitRealSet D θR.phase (backlundCosZeroTarget N (i : ℕ))).Nonempty)
+    (hright_pair : ∀ i : Fin m,
+      (firstHitRealSet D θR.phase
+        (backlundCosZeroTarget N ((i : ℕ) + q + 1))).Nonempty) :
+    ∃ hleft : ∀ i : Fin m,
+      (firstHitRealSet D θL.phase (backlundCosZeroTarget N (i : ℕ))).Nonempty,
+      backlundOrderedRealPartZeros N m T ((1 / 2 : ℝ) - D) (1 / 2)
+        (fun i : Fin m =>
+          (1 / 2 : ℝ) -
+            firstHit θL.phase (backlundCosZeroTarget N ((Fin.rev i : Fin m) : ℕ))
+              (hleft (Fin.rev i))) ∧
+      (∏ i : Fin (q + 1),
+          ‖((((1 / 2 : ℝ) +
+              firstHit θR.phase (backlundCosZeroTarget N (i : ℕ))
+                (hright_unpaired i) : ℝ) : ℂ) -
+            backlundEccentricCenter backlundEta)‖) *
+        (∏ i : Fin m,
+          (‖((((1 / 2 : ℝ) +
+                firstHit θR.phase (backlundCosZeroTarget N ((i : ℕ) + q + 1))
+                  (hright_pair i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖ *
+            ‖((((1 / 2 : ℝ) -
+                firstHit θL.phase (backlundCosZeroTarget N (i : ℕ)) (hleft i) : ℝ) : ℂ) -
+              backlundEccentricCenter backlundEta)‖)) ≤
+        backlundPairingH ^ ((q + 1) + 2 * m) := by
+  obtain ⟨hleft, hprod⟩ :=
+    cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
+      (u := θR.phase) (v := θL.phase) hD hN hE hstartL herr
+      hright_unpaired hright_pair
+      (fun i => firstHit_rightCoordinate_le_one_add_eta
+        (u := θR.phase) (hright_unpaired i) hDhi)
+      (fun i => firstHit_rightCoordinate_le_one_add_eta
+        (u := θR.phase) (hright_pair i) hDhi)
+  refine ⟨hleft, ?_, hprod⟩
+  exact backlundCosZeroLeftFirstHits_orderedRealPartZeros
+    (D := D) (T := T) hD hT hfL θL hN hstartL hleft
 
 theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
     {σ₁ x : ℝ}

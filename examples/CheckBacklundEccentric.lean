@@ -94,6 +94,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundOrderedRealPartZeros
 #check Backlund.backlundOrderedRealPartZeros_count_le
 #check Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
+#check Backlund.firstHit_rightCoordinate_le_one_add_eta
+#check Backlund.backlundCosZeroLeftFirstHits_orderedRealPartZeros
 #check Backlund.backlundPairingLoss
 #check Backlund.backlundCosZeroTarget_add_gap
 #check Backlund.backlundCosZeroTarget_add_le_of_mul_le
@@ -101,6 +103,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
 #check Backlund.cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
 #check Backlund.cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
+#check Backlund.backlund_ordered_pairing_from_phase_error
 #check Backlund.backlundOrderedPairingLowerCount
 #check Backlund.backlundOrderedPairingLowerCount_eq_source
 #check Backlund.backlundEta
@@ -296,6 +299,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundOrderedRealPartZeros
 #print axioms Backlund.backlundOrderedRealPartZeros_count_le
 #print axioms Backlund.backlundCosZeroFirstHits_orderedRealPartZeros
+#print axioms Backlund.firstHit_rightCoordinate_le_one_add_eta
+#print axioms Backlund.backlundCosZeroLeftFirstHits_orderedRealPartZeros
 #print axioms Backlund.backlundPairingLoss
 #print axioms Backlund.backlundCosZeroTarget_add_gap
 #print axioms Backlund.backlundCosZeroTarget_add_le_of_mul_le
@@ -303,6 +308,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
 #print axioms Backlund.cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
 #print axioms Backlund.cosZeroTarget_firstHit_unpairedRight_pairs_product_le_pairingH_pow
+#print axioms Backlund.backlund_ordered_pairing_from_phase_error
 #print axioms Backlund.backlundOrderedPairingLowerCount
 #print axioms Backlund.backlundOrderedPairingLowerCount_eq_source
 #print axioms Backlund.backlundEta
