@@ -102,6 +102,34 @@ noncomputable def backlundArchimedeanSymmetryIntegrand (s : ℂ) : ℂ :=
     (1 / 2 : ℂ) * (Complex.digamma (s / 2) +
       Complex.digamma ((1 - s) / 2))
 
+theorem reflected_half_ne_neg_nat_of_im_ne_zero {s : ℂ} (him : s.im ≠ 0) :
+    ∀ n : ℕ, (1 - s) / 2 ≠ -↑n := by
+  intro n h
+  apply him
+  have h_im := congrArg Complex.im h
+  simp [Complex.sub_im] at h_im
+  linarith
+
+theorem backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma {s : ℂ}
+    (hs0 : s ≠ 0) (hs1 : s ≠ 1)
+    (hpoles : ∀ n : ℕ, (1 - s) / 2 ≠ -↑n) :
+    backlundArchimedeanSymmetryIntegrand s =
+      -1 / s + ((Real.log Real.pi : ℝ) : ℂ) -
+        (1 / 2 : ℂ) * (Complex.digamma (s / 2) +
+          Complex.digamma ((3 - s) / 2)) := by
+  have hrec0 := Complex.digamma_apply_add_one ((1 - s) / 2) hpoles
+  have harg : (1 - s) / 2 + 1 = (3 - s) / 2 := by ring
+  rw [harg] at hrec0
+  have hrec : Complex.digamma ((1 - s) / 2) =
+      Complex.digamma ((3 - s) / 2) - ((1 - s) / 2)⁻¹ := by
+    linear_combination -hrec0
+  unfold backlundArchimedeanSymmetryIntegrand
+  rw [hrec]
+  have h1s : (1 : ℂ) - s ≠ 0 := sub_ne_zero.mpr (Ne.symm hs1)
+  have hs_sub : s - 1 ≠ 0 := sub_ne_zero.mpr hs1
+  field_simp [hs0, h1s, hs_sub]
+  ring_nf
+
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :
       ∀ x ∈ [[x₁, x₂]],

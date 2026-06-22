@@ -9,6 +9,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.logDeriv_backlundA_eq_zeta
 #check Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
 #check Backlund.backlundArchimedeanSymmetryIntegrand
+#check Backlund.reflected_half_ne_neg_nat_of_im_ne_zero
+#check Backlund.backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma
 #check Backlund.abs_im_HIntegral_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
@@ -132,6 +134,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.logDeriv_backlundA_eq_zeta
 #print axioms Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
 #print axioms Backlund.backlundArchimedeanSymmetryIntegrand
+#print axioms Backlund.reflected_half_ne_neg_nat_of_im_ne_zero
+#print axioms Backlund.backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma
 #print axioms Backlund.abs_im_HIntegral_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
