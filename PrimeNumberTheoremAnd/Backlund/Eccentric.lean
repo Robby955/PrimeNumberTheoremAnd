@@ -1271,6 +1271,39 @@ theorem backlundCosZeroFirstHits_orderedRealPartZeros {x₀ D T : ℝ}
 noncomputable def backlundPairingLoss (N : ℕ) (E : ℝ) : ℕ :=
   Nat.floor ((N : ℝ) * E / Real.pi)
 
+theorem backlundCosZeroTarget_add_gap {N j q : ℕ} (hN : 0 < N) :
+    backlundCosZeroTarget N (j + q + 1) - backlundCosZeroTarget N j =
+      (((q + 1 : ℕ) : ℝ) * Real.pi) / (N : ℝ) := by
+  have hNne : (N : ℝ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hN
+  unfold backlundCosZeroTarget
+  field_simp [hNne]
+  norm_num [Nat.cast_add, Nat.cast_mul]
+  ring
+
+theorem backlundCosZeroTarget_add_le_of_mul_le {N j q : ℕ} {ε : ℝ}
+    (hN : 0 < N) (hε : (N : ℝ) * ε ≤ ((q + 1 : ℕ) : ℝ) * Real.pi) :
+    backlundCosZeroTarget N j + ε ≤ backlundCosZeroTarget N (j + q + 1) := by
+  have hNpos : (0 : ℝ) < N := by exact_mod_cast hN
+  have hε' : ε ≤ (((q + 1 : ℕ) : ℝ) * Real.pi) / (N : ℝ) := by
+    exact (le_div_iff₀ hNpos).2 (by simpa [mul_comm] using hε)
+  have hgap := backlundCosZeroTarget_add_gap (N := N) (j := j) (q := q) hN
+  linarith
+
+theorem nat_mul_error_lt_pairingLoss_succ_mul_pi {N : ℕ} {E : ℝ} (_hE : 0 ≤ E) :
+    (N : ℝ) * E < ((backlundPairingLoss N E + 1 : ℕ) : ℝ) * Real.pi := by
+  have hpi : 0 < Real.pi := Real.pi_pos
+  have hfloor := Nat.lt_floor_add_one ((N : ℝ) * E / Real.pi)
+  unfold backlundPairingLoss at hfloor ⊢
+  have hmul : ((N : ℝ) * E / Real.pi) * Real.pi <
+      (↑(Nat.floor ((N : ℝ) * E / Real.pi)) + 1) * Real.pi :=
+    mul_lt_mul_of_pos_right hfloor hpi
+  have hleft : ((N : ℝ) * E / Real.pi) * Real.pi = (N : ℝ) * E := by
+    field_simp [hpi.ne']
+  have hright : (↑(Nat.floor ((N : ℝ) * E / Real.pi)) + 1) * Real.pi =
+      ((Nat.floor ((N : ℝ) * E / Real.pi) + 1 : ℕ) : ℝ) * Real.pi := by
+    norm_num
+  simpa [hleft, hright] using hmul
+
 /-- The guaranteed paired-zero count in Backlund's ordered pairing lemma. -/
 noncomputable def backlundOrderedPairingLowerCount (N n : ℕ) (E : ℝ) : ℕ :=
   n - 2 - backlundPairingLoss N E
