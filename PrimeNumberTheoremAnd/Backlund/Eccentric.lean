@@ -243,6 +243,34 @@ theorem backlundArgumentSymmetryDefect_eq_archimedeanIntegral {σ₁ T : ℝ}
   rw [hreflect]
   rw [← Complex.add_im, ← hsum, hcongr]
 
+theorem backlundArgumentSymmetryError_of_archimedeanIntegral_bound {σ₁ T T₀ E : ℝ}
+    (hs0 : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hs1 : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hζ : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      riemannZeta ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hζref : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      riemannZeta (1 - ((x : ℂ) + (T : ℂ) * Complex.I)) ≠ 0)
+    (hint :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
+        volume (1 / 2) σ₁)
+    (hint_ref :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA (1 - ((x : ℂ) + (T : ℂ) * Complex.I)))
+        volume (1 / 2) σ₁)
+    (harch :
+      |(HIntegral backlundArchimedeanSymmetryIntegrand (1 / 2) σ₁ T).im| < E)
+    (hE : E ≤ backlundArgumentSymmetryErrorBound T₀) :
+    |backlundArgumentSymmetryDefect σ₁ T| <
+      backlundArgumentSymmetryErrorBound T₀ := by
+  have hred :=
+    backlundArgumentSymmetryDefect_eq_archimedeanIntegral
+      (σ₁ := σ₁) (T := T) hs0 hs1 hζ hζref hint hint_ref
+  rw [hred]
+  exact harch.trans_le hE
+
 /--
 Zeros of the real part `Re(A(σ+iT)^N)` on a real interval. These are the
 ordered zeros used by Backlund's pairing argument, not zeta zeros.

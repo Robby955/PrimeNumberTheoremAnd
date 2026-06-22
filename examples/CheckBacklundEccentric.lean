@@ -10,6 +10,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
 #check Backlund.backlundArchimedeanSymmetryIntegrand
 #check Backlund.backlundArgumentSymmetryDefect_eq_archimedeanIntegral
+#check Backlund.backlundArgumentSymmetryError_of_archimedeanIntegral_bound
 #check Backlund.backlundF
 #check Backlund.backlundF_real_eq_re
 #check Backlund.backlundF_real_eq_zero_iff
@@ -128,6 +129,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
 #print axioms Backlund.backlundArchimedeanSymmetryIntegrand
 #print axioms Backlund.backlundArgumentSymmetryDefect_eq_archimedeanIntegral
+#print axioms Backlund.backlundArgumentSymmetryError_of_archimedeanIntegral_bound
 #print axioms Backlund.backlundF
 #print axioms Backlund.backlundF_real_eq_re
 #print axioms Backlund.backlundF_real_eq_zero_iff
