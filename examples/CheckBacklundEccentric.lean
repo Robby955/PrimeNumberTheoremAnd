@@ -7,6 +7,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.coe_unitNormalize
 #check Backlund.circle_exp_log_im_eq_unitNormalize
 #check Backlund.arg_unitNormalize
+#check Backlund.circle_exp_im_eq_unitNormalize_of_exp_eq
+#check Backlund.exp_integral_deriv_div_eq_div
 #check Backlund.normalizeNonzeroPath
 #check Backlund.PhaseLift
 #check Backlund.PhaseLift.change
@@ -17,6 +19,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.phaseLiftOfCirclePath_phase_eq_of_exp_phase
 #check Backlund.phaseLiftOfNonzeroPath
 #check Backlund.phaseLiftOfNonzeroPath_exp_phase
+#check Backlund.phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral
 #check Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
 #check Backlund.phaseLiftOfNonzeroPath_re_pow_eq_zero_iff
 #check Backlund.firstHitSubtypeSet
@@ -222,6 +225,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.coe_unitNormalize
 #print axioms Backlund.circle_exp_log_im_eq_unitNormalize
 #print axioms Backlund.arg_unitNormalize
+#print axioms Backlund.circle_exp_im_eq_unitNormalize_of_exp_eq
+#print axioms Backlund.exp_integral_deriv_div_eq_div
 #print axioms Backlund.normalizeNonzeroPath
 #print axioms Backlund.PhaseLift
 #print axioms Backlund.PhaseLift.change
@@ -232,6 +237,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.phaseLiftOfCirclePath_phase_eq_of_exp_phase
 #print axioms Backlund.phaseLiftOfNonzeroPath
 #print axioms Backlund.phaseLiftOfNonzeroPath_exp_phase
+#print axioms Backlund.phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral
 #print axioms Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
 #print axioms Backlund.phaseLiftOfNonzeroPath_re_pow_eq_zero_iff
 #print axioms Backlund.firstHitSubtypeSet

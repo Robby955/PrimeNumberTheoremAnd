@@ -84,6 +84,69 @@ theorem arg_unitNormalize {z : ℂ} (hz : z ≠ 0) :
   rw [coe_unitNormalize, div_eq_mul_inv]
   simpa using Complex.arg_mul_real (inv_pos.mpr (norm_pos_iff.mpr hz)) z
 
+theorem circle_exp_im_eq_unitNormalize_of_exp_eq {w z : ℂ} (hz : z ≠ 0)
+    (hw : Complex.exp w = z) :
+    Circle.exp w.im = unitNormalize z hz := by
+  apply Subtype.ext
+  change Complex.exp (w.im * Complex.I) = z / (‖z‖ : ℂ)
+  have hdecomp :
+      Complex.exp w = (Real.exp w.re : ℂ) * Complex.exp (w.im * Complex.I) := by
+    calc
+      Complex.exp w = Complex.exp ((w.re : ℂ) + w.im * Complex.I) := by
+        rw [Complex.re_add_im]
+      _ = Complex.exp (w.re : ℂ) * Complex.exp (w.im * Complex.I) := by
+        rw [Complex.exp_add]
+      _ = (Real.exp w.re : ℂ) * Complex.exp (w.im * Complex.I) := by
+        rw [← Complex.ofReal_exp]
+  rw [← hw, hdecomp]
+  rw [Complex.norm_mul, Complex.norm_exp_ofReal_mul_I]
+  rw [Complex.norm_of_nonneg (Real.exp_pos w.re).le]
+  have hne : ((Real.exp w.re : ℝ) : ℂ) ≠ 0 := by
+    exact_mod_cast Real.exp_ne_zero w.re
+  field_simp [hne]
+
+theorem exp_integral_deriv_div_eq_div {a b : ℝ} {F F' : ℝ → ℂ}
+    (hF_deriv : ∀ x ∈ Set.uIcc a b, HasDerivAt F (F' x) x)
+    (hF_ne : ∀ x ∈ Set.uIcc a b, F x ≠ 0)
+    (hI : ∀ x ∈ Set.uIcc a b,
+      HasDerivAt (fun u : ℝ => ∫ t in a..u, F' t / F t) (F' x / F x) x) :
+    Complex.exp (∫ x in a..b, F' x / F x) = F b / F a := by
+  let q : ℝ → ℂ := fun x => F' x / F x
+  let I : ℝ → ℂ := fun x => ∫ t in a..x, q t
+  let G : ℝ → ℂ := fun x => F x * Complex.exp (-(I x))
+  have hG_deriv : ∀ x ∈ Set.uIcc a b, HasDerivAt G 0 x := by
+    intro x hx
+    have hF := hF_deriv x hx
+    have hI' : HasDerivAt I (q x) x := by
+      simpa [I, q] using hI x hx
+    have hExp : HasDerivAt (fun y : ℝ => Complex.exp (-(I y)))
+        (Complex.exp (-(I x)) * (-(q x))) x := by
+      simpa using hI'.neg.cexp
+    have hmul := hF.mul hExp
+    refine hmul.congr_deriv ?_
+    dsimp [G, q]
+    field_simp [hF_ne x hx]
+    ring
+  have hzero_int : IntervalIntegrable (fun _ : ℝ => (0 : ℂ)) volume a b :=
+    (continuous_const : Continuous fun _ : ℝ => (0 : ℂ)).intervalIntegrable a b
+  have hconst := intervalIntegral.integral_eq_sub_of_hasDerivAt
+    (f := G) (f' := fun _ : ℝ => (0 : ℂ)) hG_deriv hzero_int
+  have hGbGa : G b = G a := by
+    have hsub : G b - G a = 0 := by
+      simpa using hconst.symm
+    exact sub_eq_zero.mp hsub
+  have hIa : I a = 0 := by
+    simp [I]
+  have hGb : F b * Complex.exp (-(I b)) = F a := by
+    simpa [G, hIa] using hGbGa
+  have hFb : F b = F a * Complex.exp (I b) := by
+    have h := congrArg (fun z : ℂ => z * Complex.exp (I b)) hGb
+    simpa [mul_assoc, ← Complex.exp_add] using h
+  have hFa : F a ≠ 0 := hF_ne a (by simp)
+  change Complex.exp (I b) = F b / F a
+  rw [hFb]
+  field_simp [hFa]
+
 noncomputable def normalizeNonzeroPath {a b : ℝ} (f : C(Set.Icc a b, ℂ))
     (hf : ∀ x, f x ≠ 0) : C(Set.Icc a b, Circle) where
   toFun x := unitNormalize (f x) (hf x)
@@ -196,6 +259,55 @@ theorem phaseLiftOfNonzeroPath_exp_phase {a b : ℝ} (h : a < b)
     Circle.exp ((phaseLiftOfNonzeroPath h f hf).phase x) =
       unitNormalize (f x) (hf x) :=
   (phaseLiftOfNonzeroPath h f hf).exp_phase x
+
+theorem phaseLiftOfNonzeroPath_change_eq_integral_of_exp_integral {a b : ℝ}
+    (h : a < b) {F q : ℝ → ℂ}
+    (hF_cont : Continuous F)
+    (hI_cont : Continuous fun x : ℝ => ∫ t in a..x, q t)
+    (hF_ne : ∀ x ∈ Set.Icc a b, F x ≠ 0)
+    (hExp : ∀ x ∈ Set.Icc a b,
+      Complex.exp (∫ t in a..x, q t) = F x / F a) :
+    let f : C(Set.Icc a b, ℂ) := {
+      toFun := fun x => F x
+      continuous_toFun := hF_cont.comp continuous_subtype_val }
+    let hf : ∀ x, f x ≠ 0 := fun x => hF_ne x x.property
+    (phaseLiftOfNonzeroPath h f hf).change
+        ⟨a, by exact ⟨le_rfl, h.le⟩⟩
+        ⟨b, by exact ⟨h.le, le_rfl⟩⟩ =
+      (∫ t in a..b, q t).im := by
+  dsimp
+  let f : C(Set.Icc a b, ℂ) := {
+    toFun := fun x => F x
+    continuous_toFun := hF_cont.comp continuous_subtype_val }
+  let hf : ∀ x, f x ≠ 0 := fun x => hF_ne x x.property
+  let η : C(Set.Icc a b, ℝ) := {
+    toFun := fun x => (Complex.log (F a) + ∫ t in a..(x : ℝ), q t).im
+    continuous_toFun := by
+      exact Complex.continuous_im.comp
+        (continuous_const.add (hI_cont.comp continuous_subtype_val)) }
+  have hη_exp : ∀ x, Circle.exp (η x) = normalizeNonzeroPath f hf x := by
+    intro x
+    have hFa : F a ≠ 0 := hF_ne a ⟨le_rfl, h.le⟩
+    have hFx : F (x : ℝ) ≠ 0 := hF_ne x x.property
+    have hExpL :
+        Complex.exp (Complex.log (F a) + ∫ t in a..(x : ℝ), q t) = F (x : ℝ) := by
+      rw [Complex.exp_add, Complex.exp_log hFa, hExp x x.property]
+      field_simp [hFa]
+    dsimp [η, f, hf, normalizeNonzeroPath]
+    exact circle_exp_im_eq_unitNormalize_of_exp_eq hFx hExpL
+  have hη_left :
+      η ⟨a, by exact ⟨le_rfl, h.le⟩⟩ =
+        (((normalizeNonzeroPath f hf) ⟨a, by exact ⟨le_rfl, h.le⟩⟩ : Circle) : ℂ).arg := by
+    have hFa : F a ≠ 0 := hF_ne a ⟨le_rfl, h.le⟩
+    dsimp [η, f, hf, normalizeNonzeroPath]
+    rw [Complex.log_im]
+    symm
+    simpa [unitNormalize] using arg_unitNormalize hFa
+  have hphase : (phaseLiftOfNonzeroPath h f hf).phase = η := by
+    exact phaseLiftOfCirclePath_phase_eq_of_exp_phase h η hη_exp hη_left
+  rw [PhaseLift.change, hphase]
+  dsimp [η]
+  simp
 
 theorem re_pow_eq_zero_iff_cos_phase_eq_zero (N : ℕ) {z : ℂ} {θ : ℝ}
     (hz : z ≠ 0) (hθ : Circle.exp θ = unitNormalize z hz) :
