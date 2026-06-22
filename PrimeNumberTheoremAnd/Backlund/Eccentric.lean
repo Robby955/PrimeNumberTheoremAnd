@@ -102,6 +102,31 @@ noncomputable def backlundArchimedeanSymmetryIntegrand (s : ℂ) : ℂ :=
     (1 / 2 : ℂ) * (Complex.digamma (s / 2) +
       Complex.digamma ((1 - s) / 2))
 
+theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
+    (hbound :
+      ∀ x ∈ [[x₁, x₂]],
+        ‖f ((x : ℂ) + (y : ℂ) * Complex.I)‖ ≤ C) :
+    |(HIntegral f x₁ x₂ y).im| ≤ C * |x₂ - x₁| := by
+  calc
+    |(HIntegral f x₁ x₂ y).im|
+        ≤ ‖HIntegral f x₁ x₂ y‖ := Complex.abs_im_le_norm _
+    _ ≤ C * |x₂ - x₁| := by
+          unfold HIntegral
+          exact intervalIntegral.norm_integral_le_of_norm_le_const
+            (fun x hx => hbound x (Set.uIoc_subset_uIcc hx))
+
+theorem abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
+    {σ₁ T C : ℝ}
+    (hbound :
+      ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+        ‖backlundArchimedeanSymmetryIntegrand
+          ((x : ℂ) + (T : ℂ) * Complex.I)‖ ≤ C) :
+    |(HIntegral backlundArchimedeanSymmetryIntegrand (1 / 2) σ₁ T).im| ≤
+      C * |σ₁ - 1 / 2| := by
+  exact abs_im_HIntegral_le_of_norm_le_const
+    (f := backlundArchimedeanSymmetryIntegrand)
+    (x₁ := (1 / 2 : ℝ)) (x₂ := σ₁) (y := T) (C := C) hbound
+
 private theorem HIntegral_reflect_one (f : ℂ → ℂ) (a b T : ℝ) :
     HIntegral f (1 - b) (1 - a) (-T) =
       HIntegral (fun s => f (1 - s)) a b T := by
