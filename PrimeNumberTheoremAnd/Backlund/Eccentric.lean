@@ -535,6 +535,26 @@ theorem firstHit_mem {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
   refine ⟨firstHit_mem_Icc u target hne, ?_⟩
   exact (firstHitPoint_isLeast u target hne).1
 
+theorem firstHit_pos_of_start_lt_target {D : ℝ}
+    (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target : ℝ}
+    (hD : (0 : ℝ) ≤ D)
+    (hstart : u ⟨0, by exact ⟨le_rfl, hD⟩⟩ < target)
+    (hne : (firstHitRealSet D u target).Nonempty) :
+    0 < firstHit u target hne := by
+  have hI : firstHit u target hne ∈ Set.Icc (0 : ℝ) D :=
+    firstHit_mem_Icc u target hne
+  refine lt_of_le_of_ne hI.1 ?_
+  intro hzero
+  have hhit := firstHit_mem u target hne
+  rcases hhit with ⟨hI', hval'⟩
+  have hsub :
+      (⟨firstHit u target hne, hI'⟩ : Set.Icc (0 : ℝ) D) =
+        ⟨0, by exact ⟨le_rfl, hD⟩⟩ := by
+    exact Subtype.ext hzero.symm
+  have hval : u ⟨0, by exact ⟨le_rfl, hD⟩⟩ = target := by
+    simpa [hsub] using hval'
+  linarith
+
 theorem firstHit_isLeast {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
     (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) :
     IsLeast (firstHitRealSet D u target) (firstHit u target hne) := by

@@ -33,6 +33,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHitPoint_isLeast
 #check Backlund.firstHit_mem_Icc
 #check Backlund.firstHit_mem
+#check Backlund.firstHit_pos_of_start_lt_target
 #check Backlund.firstHit_isLeast
 #check Backlund.firstHit_eq_of_nonempty
 #check Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
@@ -312,6 +313,7 @@ example
 #print axioms Backlund.firstHitPoint_isLeast
 #print axioms Backlund.firstHit_mem_Icc
 #print axioms Backlund.firstHit_mem
+#print axioms Backlund.firstHit_pos_of_start_lt_target
 #print axioms Backlund.firstHit_isLeast
 #print axioms Backlund.firstHit_eq_of_nonempty
 #print axioms Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
