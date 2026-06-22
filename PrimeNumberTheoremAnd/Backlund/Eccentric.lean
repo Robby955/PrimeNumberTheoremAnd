@@ -1380,6 +1380,95 @@ theorem midpointReflectedProductMajorant_ne_zero_on_verticalClosedStrip
     · exact reflectedShifted_log_ne_zero_on_verticalClosedStrip
         (Q := Q) (σ₀ := 0) (σ₁ := 1) (by linarith) hz
 
+private lemma norm_ge_of_re_ge {z : ℂ} {A : ℝ} (hz : A ≤ z.re) :
+    A ≤ ‖z‖ :=
+  hz.trans (Complex.re_le_norm z)
+
+private lemma log_le_norm_log_of_re_ge {z : ℂ} {A : ℝ} (hA : (1 : ℝ) < A)
+    (hz : A ≤ z.re) :
+    Real.log A ≤ ‖Complex.log z‖ := by
+  have hA_norm : A ≤ ‖z‖ := norm_ge_of_re_ge hz
+  have hlog_le : Real.log A ≤ Real.log ‖z‖ :=
+    Real.log_le_log (by linarith) hA_norm
+  have hlog_norm_le : Real.log ‖z‖ ≤ ‖Complex.log z‖ := by
+    rw [← Complex.log_re]
+    exact le_trans (le_abs_self _) (Complex.abs_re_le_norm _)
+  exact hlog_le.trans hlog_norm_le
+
+theorem midpointReflectedProductMajorant_norm_lower_on_verticalClosedStrip
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁)
+    {z : ℂ} (hz : z ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1) :
+    (C₀ * C₁) * (Q ^ (5 / 2 : ℝ) * (Real.log Q) ^ 2) ≤
+      ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := by
+  let qz : ℂ := (Q : ℂ) + z
+  let rz : ℂ := (((Q + 1 : ℝ) : ℂ) - z)
+  have hzleft : (0 : ℝ) ≤ z.re := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.1
+  have hzright : z.re ≤ (1 : ℝ) := by
+    simpa [Complex.HadamardThreeLines.verticalClosedStrip] using hz.2
+  have hqz_re : Q ≤ qz.re := by
+    simp [qz, Complex.add_re]
+    linarith
+  have hrz_re : Q ≤ rz.re := by
+    simp [rz, Complex.sub_re]
+    linarith
+  have hqz_ne : qz ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    simp [qz, Complex.add_re] at hre
+    linarith
+  have hqnorm : Q ≤ ‖qz‖ := norm_ge_of_re_ge hqz_re
+  have hrnorm : Q ≤ ‖rz‖ := norm_ge_of_re_ge hrz_re
+  have hqlog : Real.log Q ≤ ‖Complex.log qz‖ :=
+    log_le_norm_log_of_re_ge hQ hqz_re
+  have hrlog : Real.log Q ≤ ‖Complex.log rz‖ :=
+    log_le_norm_log_of_re_ge hQ hrz_re
+  have hlogQ_nonneg : 0 ≤ Real.log Q := (Real.log_pos hQ).le
+  have hqpow :
+      Q ^ (3 / 2 : ℝ) ≤ ‖qz‖ ^ (3 / 2 : ℝ) :=
+    Real.rpow_le_rpow (by linarith) hqnorm (by norm_num)
+  have hcore :
+      Q ^ (3 / 2 : ℝ) * Q * (Real.log Q * Real.log Q) ≤
+        ‖qz‖ ^ (3 / 2 : ℝ) * ‖rz‖ *
+          (‖Complex.log qz‖ * ‖Complex.log rz‖) := by
+    have hright_nonneg : 0 ≤ ‖qz‖ ^ (3 / 2 : ℝ) * ‖rz‖ :=
+      mul_nonneg (Real.rpow_nonneg (norm_nonneg _) _) (norm_nonneg _)
+    exact mul_le_mul
+      (mul_le_mul hqpow hrnorm (by linarith : (0 : ℝ) ≤ Q)
+        (Real.rpow_nonneg (norm_nonneg _) _))
+      (mul_le_mul hqlog hrlog hlogQ_nonneg (norm_nonneg _))
+      (mul_nonneg hlogQ_nonneg hlogQ_nonneg) hright_nonneg
+  have hnorm_eq :
+      ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ =
+        (C₀ * C₁) * (‖qz‖ ^ (3 / 2 : ℝ) * ‖rz‖ *
+          (‖Complex.log qz‖ * ‖Complex.log rz‖)) := by
+    have hcpow :
+        ‖qz ^ (((3 / 2 : ℝ) : ℂ))‖ = ‖qz‖ ^ (3 / 2 : ℝ) := by
+      rw [Complex.norm_cpow_of_ne_zero hqz_ne]
+      norm_num
+    unfold midpointReflectedProductMajorant
+    change
+      ‖((C₀ * C₁ : ℝ) : ℂ) *
+        (qz ^ (((3 / 2 : ℝ) : ℂ)) * rz *
+          Complex.log qz * Complex.log rz)‖ =
+        (C₀ * C₁) * (‖qz‖ ^ (3 / 2 : ℝ) * ‖rz‖ *
+          (‖Complex.log qz‖ * ‖Complex.log rz‖))
+    rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_pos (mul_pos hC₀ hC₁)]
+    ring
+  rw [hnorm_eq]
+  calc
+    (C₀ * C₁) * (Q ^ (5 / 2 : ℝ) * (Real.log Q) ^ 2)
+        = (C₀ * C₁) * (Q ^ (3 / 2 : ℝ) * Q *
+            (Real.log Q * Real.log Q)) := by
+          have hQpow : Q ^ (5 / 2 : ℝ) = Q ^ (3 / 2 : ℝ) * Q := by
+            rw [show (5 / 2 : ℝ) = 3 / 2 + 1 by norm_num, Real.rpow_add (by linarith : 0 < Q)]
+            rw [Real.rpow_one]
+          rw [hQpow, pow_two]
+    _ ≤ (C₀ * C₁) * (‖qz‖ ^ (3 / 2 : ℝ) * ‖rz‖ *
+          (‖Complex.log qz‖ * ‖Complex.log rz‖)) := by
+          exact mul_le_mul_of_nonneg_left hcore (mul_nonneg hC₀.le hC₁.le)
+
 theorem midpointReflectedProductMajorant_diffContOnCl_on_verticalStrip
     {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) :
     DiffContOnCl ℂ (midpointReflectedProductMajorant Q C₀ C₁)
