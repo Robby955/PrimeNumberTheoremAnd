@@ -38,6 +38,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundA_conj
 #check Backlund.differentiableAt_backlundA
 #check Backlund.hasDerivAt_backlundA_horizontal
+#check Backlund.deriv_backlundA_horizontal_div_eq_logDeriv
 #check Backlund.backlundAHorizontalPathFrom
 #check Backlund.backlundAHorizontalLeftPathFromCenter
 #check Kadiri.zeta_logDeriv_functional_eq
@@ -245,6 +246,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundA_conj
 #print axioms Backlund.differentiableAt_backlundA
 #print axioms Backlund.hasDerivAt_backlundA_horizontal
+#print axioms Backlund.deriv_backlundA_horizontal_div_eq_logDeriv
 #print axioms Backlund.backlundAHorizontalPathFrom
 #print axioms Backlund.backlundAHorizontalLeftPathFromCenter
 #print axioms Kadiri.zeta_logDeriv_functional_eq
