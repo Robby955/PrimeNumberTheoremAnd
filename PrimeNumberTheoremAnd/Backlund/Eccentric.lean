@@ -194,6 +194,40 @@ theorem firstHit_isLeast {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
     have hy_sub : (⟨y, hyI⟩ : Set.Icc (0 : ℝ) D) ∈ firstHitSubtypeSet u target := hyu
     exact hleast.2 hy_sub
 
+theorem firstHit_le_of_start_lt_target_of_target_lt_value {D : ℝ}
+    (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target d : ℝ}
+    (hd : d ∈ Set.Icc (0 : ℝ) D)
+    (hstart : u ⟨0, by exact ⟨le_rfl, le_trans hd.1 hd.2⟩⟩ < target)
+    (hvalue : target < u ⟨d, hd⟩) :
+    ∃ hne : (firstHitRealSet D u target).Nonempty,
+      firstHit u target hne ≤ d := by
+  have hD : (0 : ℝ) ≤ D := le_trans hd.1 hd.2
+  let f : ℝ → ℝ := fun x => u (Set.projIcc (0 : ℝ) D hD x)
+  have hf : Continuous f := u.continuous.comp continuous_projIcc
+  have hf0 : f 0 = u ⟨0, by exact ⟨le_rfl, hD⟩⟩ := by
+    dsimp [f]
+    rw [Set.projIcc_of_mem hD]
+  have hfd : f d = u ⟨d, hd⟩ := by
+    dsimp [f]
+    rw [Set.projIcc_of_mem hD hd]
+  have htarget : target ∈ Set.Icc (f 0) (f d) := by
+    exact ⟨by simpa [hf0] using hstart.le, by simpa [hfd] using hvalue.le⟩
+  have hIVT := intermediate_value_Icc hd.1 hf.continuousOn htarget
+  rcases hIVT with ⟨x, hxI, hxval_f⟩
+  have hxD : x ∈ Set.Icc (0 : ℝ) D := ⟨hxI.1, hxI.2.trans hd.2⟩
+  have hxval : u ⟨x, hxD⟩ = target := by
+    have hproj : Set.projIcc (0 : ℝ) D hD x = ⟨x, hxD⟩ :=
+      Set.projIcc_of_mem hD hxD
+    simpa [f, hproj] using hxval_f
+  have hne : (firstHitRealSet D u target).Nonempty := by
+    exact ⟨x, hxD, hxval⟩
+  refine ⟨hne, ?_⟩
+  have hx_hit : x ∈ firstHitRealSet D u target := by
+    exact ⟨hxD, hxval⟩
+  have hfirst_le_x : firstHit u target hne ≤ x :=
+    (firstHit_isLeast u target hne).2 hx_hit
+  exact hfirst_le_x.trans hxI.2
+
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 
 theorem backlundA_conj (z : ℂ) :
