@@ -1469,6 +1469,62 @@ theorem midpointReflectedProductMajorant_norm_lower_on_verticalClosedStrip
           (‖Complex.log qz‖ * ‖Complex.log rz‖)) := by
           exact mul_le_mul_of_nonneg_left hcore (mul_nonneg hC₀.le hC₁.le)
 
+theorem zetaSurrogate_midpointReflectedProduct_norm_le_exp_quadratic :
+    ∃ C > 0, ∀ z : ℂ,
+      ‖midpointReflectedProduct zetaSurrogate z‖ ≤
+        Real.exp (C * ((1 + ‖z‖) ^ (2 : ℝ) +
+          (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) := by
+  obtain ⟨C, hCpos, hC⟩ := zetaSurrogate_log_growth
+  have hnorm : ∀ z : ℂ,
+      ‖zetaSurrogate z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (2 : ℝ)) :=
+    Real.norm_le_exp_mul_rpow_of_log_growth
+      (f := zetaSurrogate) (r := fun z : ℂ => 1 + ‖z‖)
+      (C := C) (ρ := (3 / 2 : ℝ)) (τ := (2 : ℝ))
+      hCpos.le (fun z => by linarith [norm_nonneg z]) (by norm_num) hC
+  refine ⟨C, hCpos, fun z => ?_⟩
+  unfold midpointReflectedProduct
+  rw [norm_mul, norm_star]
+  calc
+    ‖zetaSurrogate z‖ * ‖zetaSurrogate ((1 : ℂ) - star z)‖
+        ≤ Real.exp (C * (1 + ‖z‖) ^ (2 : ℝ)) *
+            Real.exp (C * (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ)) :=
+          mul_le_mul (hnorm z) (hnorm ((1 : ℂ) - star z))
+            (norm_nonneg _) (Real.exp_nonneg _)
+    _ = Real.exp (C * ((1 + ‖z‖) ^ (2 : ℝ) +
+          (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) := by
+          rw [← Real.exp_add]
+          ring_nf
+
+theorem zetaSurrogate_midpointReflectedProduct_quotient_norm_le_exp_quadratic
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁) :
+    ∃ C > 0, ∀ z ∈ Complex.HadamardThreeLines.verticalClosedStrip 0 1,
+      ‖midpointReflectedProduct zetaSurrogate z /
+          midpointReflectedProductMajorant Q C₀ C₁ z‖ ≤
+        Real.exp (C * ((1 + ‖z‖) ^ (2 : ℝ) +
+          (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) /
+          ((C₀ * C₁) * (Q ^ (5 / 2 : ℝ) * (Real.log Q) ^ 2)) := by
+  obtain ⟨C, hCpos, hC⟩ := zetaSurrogate_midpointReflectedProduct_norm_le_exp_quadratic
+  refine ⟨C, hCpos, fun z hz => ?_⟩
+  set D : ℝ := (C₀ * C₁) * (Q ^ (5 / 2 : ℝ) * (Real.log Q) ^ 2)
+  have hDpos : 0 < D := by
+    have hlog : 0 < Real.log Q := Real.log_pos hQ
+    have hpow : 0 < Q ^ (5 / 2 : ℝ) := Real.rpow_pos_of_pos (by linarith) _
+    dsimp [D]
+    positivity
+  have hden :
+      D ≤ ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := by
+    simpa [D] using midpointReflectedProductMajorant_norm_lower_on_verticalClosedStrip
+      hQ hC₀ hC₁ hz
+  rw [norm_div]
+  calc
+    ‖midpointReflectedProduct zetaSurrogate z‖ /
+        ‖midpointReflectedProductMajorant Q C₀ C₁ z‖
+        ≤ ‖midpointReflectedProduct zetaSurrogate z‖ / D :=
+          div_le_div_of_nonneg_left (norm_nonneg _) hDpos hden
+    _ ≤ Real.exp (C * ((1 + ‖z‖) ^ (2 : ℝ) +
+          (1 + ‖(1 : ℂ) - star z‖) ^ (2 : ℝ))) / D :=
+          div_le_div_of_nonneg_right (hC z) hDpos.le
+
 theorem midpointReflectedProductMajorant_diffContOnCl_on_verticalStrip
     {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) :
     DiffContOnCl ℂ (midpointReflectedProductMajorant Q C₀ C₁)
