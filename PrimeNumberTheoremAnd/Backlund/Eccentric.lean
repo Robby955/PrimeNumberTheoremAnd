@@ -23,7 +23,8 @@ route. The analytic Phragmen-Lindelöf, Jensen, and pairing inputs are separate
 from these final numeric weakenings.
 -/
 
-open Real
+open Real MeasureTheory
+open scoped Interval
 
 namespace Backlund
 
@@ -93,6 +94,25 @@ theorem logDeriv_backlundA_add_reflected_eq_archimedean {s : ℂ}
   rw [Complex.ofReal_neg] at hfe
   rw [hs_log, h1s_log]
   linear_combination -hfe
+
+/-- The archimedean integrand left after adding reflected `A` log-derivatives. -/
+noncomputable def backlundArchimedeanSymmetryIntegrand (s : ℂ) : ℂ :=
+  1 / (s - 1) + 1 / ((1 - s) - 1) +
+    ((Real.log Real.pi : ℝ) : ℂ) -
+    (1 / 2 : ℂ) * (Complex.digamma (s / 2) +
+      Complex.digamma ((1 - s) / 2))
+
+private theorem HIntegral_reflect_one (f : ℂ → ℂ) (a b T : ℝ) :
+    HIntegral f (1 - b) (1 - a) (-T) =
+      HIntegral (fun s => f (1 - s)) a b T := by
+  unfold HIntegral
+  rw [← intervalIntegral.integral_comp_sub_left
+    (f := fun x : ℝ => f ((x : ℂ) + ((-T : ℝ) : ℂ) * Complex.I))
+    (a := a) (b := b) (d := 1)]
+  apply intervalIntegral.integral_congr
+  intro x _hx
+  push_cast
+  ring_nf
 
 /--
 Backlund's real-part auxiliary
@@ -173,6 +193,55 @@ theorem backlundArgumentSymmetryErrorBound_pos {T₀ : ℝ} (hT₀ : 0 < T₀) :
     0 < backlundArgumentSymmetryErrorBound T₀ := by
   unfold backlundArgumentSymmetryErrorBound
   positivity
+
+theorem backlundArgumentSymmetryDefect_eq_archimedeanIntegral {σ₁ T : ℝ}
+    (hs0 : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hs1 : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hζ : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      riemannZeta ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hζref : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      riemannZeta (1 - ((x : ℂ) + (T : ℂ) * Complex.I)) ≠ 0)
+    (hint :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
+        volume (1 / 2) σ₁)
+    (hint_ref :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA (1 - ((x : ℂ) + (T : ℂ) * Complex.I)))
+        volume (1 / 2) σ₁) :
+    backlundArgumentSymmetryDefect σ₁ T =
+      (HIntegral backlundArchimedeanSymmetryIntegrand (1 / 2) σ₁ T).im := by
+  have hsum :
+      HIntegral (fun s => logDeriv backlundA s + logDeriv backlundA (1 - s))
+          (1 / 2) σ₁ T =
+        HIntegral (logDeriv backlundA) (1 / 2) σ₁ T +
+          HIntegral (fun s => logDeriv backlundA (1 - s)) (1 / 2) σ₁ T :=
+    HIntegral_add hint hint_ref
+  have hcongr :
+      HIntegral (fun s => logDeriv backlundA s + logDeriv backlundA (1 - s))
+          (1 / 2) σ₁ T =
+        HIntegral backlundArchimedeanSymmetryIntegrand (1 / 2) σ₁ T := by
+    unfold HIntegral
+    apply intervalIntegral.integral_congr
+    intro x hx
+    simpa [backlundArchimedeanSymmetryIntegrand] using
+      logDeriv_backlundA_add_reflected_eq_archimedean
+        (s := (x : ℂ) + (T : ℂ) * Complex.I)
+        (hs0 x hx) (hs1 x hx) (hζ x hx) (hζref x hx)
+  have hreflect :
+      HIntegral (logDeriv backlundA) (1 - σ₁) (1 / 2) (-T) =
+        HIntegral (fun s => logDeriv backlundA (1 - s)) (1 / 2) σ₁ T := by
+    have hreflect0 :=
+      HIntegral_reflect_one (f := logDeriv backlundA)
+        (a := (1 / 2 : ℝ)) (b := σ₁) (T := T)
+    have hhalf : (1 : ℝ) - (2 : ℝ)⁻¹ = (2 : ℝ)⁻¹ := by norm_num
+    simpa [hhalf] using hreflect0
+  rw [backlundArgumentSymmetryDefect]
+  simp only [backlundAHorizontalArgumentVariation]
+  rw [hreflect]
+  rw [← Complex.add_im, ← hsum, hcongr]
 
 /--
 Zeros of the real part `Re(A(σ+iT)^N)` on a real interval. These are the
