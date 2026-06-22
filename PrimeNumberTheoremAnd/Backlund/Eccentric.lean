@@ -458,6 +458,30 @@ noncomputable def backlundAHorizontalPathFrom (x₀ D T : ℝ) (hT : T ≠ 0) :
       hbacklund_cont.comp hp_cont.continuousAt
     simpa [p] using hcomp
 
+noncomputable def backlundAHorizontalLeftPathFromCenter (D T : ℝ) (hT : T ≠ 0) :
+    C(Set.Icc (0 : ℝ) D, ℂ) where
+  toFun d := backlundA ((((1 / 2 : ℝ) - (d : ℝ) : ℝ) : ℂ) + (T : ℂ) * Complex.I)
+  continuous_toFun := by
+    rw [continuous_iff_continuousAt]
+    intro d
+    let p : Set.Icc (0 : ℝ) D → ℂ :=
+      fun d => ((((1 / 2 : ℝ) - (d : ℝ) : ℝ) : ℂ) + (T : ℂ) * Complex.I)
+    have hp_cont : Continuous p := by
+      fun_prop
+    have hp_ne_one : p d ≠ 1 := by
+      intro h
+      have him := congrArg Complex.im h
+      have him' : T = 0 := by
+        simpa [p, Complex.add_im, Complex.mul_im] using him
+      exact hT him'
+    have hbacklund_cont : ContinuousAt backlundA (p d) := by
+      unfold backlundA
+      exact ((continuousAt_id.sub continuousAt_const).mul
+        ((differentiableAt_riemannZeta hp_ne_one).continuousAt))
+    have hcomp : ContinuousAt (fun y => backlundA (p y)) d :=
+      hbacklund_cont.comp hp_cont.continuousAt
+    simpa [p] using hcomp
+
 theorem logDeriv_backlundA_eq_zeta {s : ℂ}
     (hs1 : s ≠ 1) (hζ : riemannZeta s ≠ 0) :
     logDeriv backlundA s = 1 / (s - 1) + deriv riemannZeta s / riemannZeta s := by
@@ -1212,6 +1236,27 @@ theorem firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet {x₀ D T : ℝ
     · simpa [add_comm] using add_le_add_left hI.1 x₀
     · simpa [add_comm] using add_le_add_left hI.2 x₀
   · simpa [backlundAHorizontalPathFrom, firstHit, add_assoc] using hzero
+
+theorem firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
+    {D T : ℝ} (hT : T ≠ 0)
+    (hf : ∀ x, backlundAHorizontalLeftPathFromCenter D T hT x ≠ 0)
+    (θ : PhaseLift
+      (normalizeNonzeroPath (backlundAHorizontalLeftPathFromCenter D T hT) hf))
+    (N : ℕ) {target : ℝ}
+    (hcos : Real.cos ((N : ℝ) * target) = 0)
+    (hne : (firstHitRealSet D θ.phase target).Nonempty) :
+    (1 / 2 : ℝ) - firstHit θ.phase target hne ∈
+      backlundRealPartZeroSet N T ((1 / 2 : ℝ) - D) (1 / 2) := by
+  have hI : firstHit θ.phase target hne ∈ Set.Icc (0 : ℝ) D :=
+    firstHit_mem_Icc θ.phase target hne
+  have hzero := firstHit_phaseLift_re_pow_eq_zero
+    (f := backlundAHorizontalLeftPathFromCenter D T hT) (hf := hf) (θ := θ)
+    (N := N) hcos hne
+  constructor
+  · constructor
+    · linarith [hI.2]
+    · linarith [hI.1]
+  · simpa [backlundAHorizontalLeftPathFromCenter, firstHit] using hzero
 
 noncomputable def backlundRealPartZeroCount (N : ℕ) (T a b : ℝ) : ℕ :=
   (backlundRealPartZeroSet N T a b).ncard

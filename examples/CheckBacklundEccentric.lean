@@ -37,6 +37,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundA
 #check Backlund.backlundA_conj
 #check Backlund.backlundAHorizontalPathFrom
+#check Backlund.backlundAHorizontalLeftPathFromCenter
 #check Kadiri.zeta_logDeriv_functional_eq
 #check Backlund.logDeriv_backlundA_eq_zeta
 #check Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
@@ -87,6 +88,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.mem_backlundRealPartZeroSet_iff
 #check Backlund.mem_backlundRealPartZeroSet_iff_backlundF
 #check Backlund.firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet
+#check Backlund.firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
 #check Backlund.backlundRealPartZeroCount
 #check Backlund.backlundRealPartZeroCount_eq_toFinset_card
 #check Backlund.backlundOrderedRealPartZeros
@@ -237,6 +239,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundA
 #print axioms Backlund.backlundA_conj
 #print axioms Backlund.backlundAHorizontalPathFrom
+#print axioms Backlund.backlundAHorizontalLeftPathFromCenter
 #print axioms Kadiri.zeta_logDeriv_functional_eq
 #print axioms Backlund.logDeriv_backlundA_eq_zeta
 #print axioms Backlund.logDeriv_backlundA_add_reflected_eq_archimedean
@@ -287,6 +290,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.mem_backlundRealPartZeroSet_iff
 #print axioms Backlund.mem_backlundRealPartZeroSet_iff_backlundF
 #print axioms Backlund.firstHit_backlundAHorizontalPathFrom_mem_realPartZeroSet
+#print axioms Backlund.firstHit_backlundAHorizontalLeftPathFromCenter_mem_realPartZeroSet
 #print axioms Backlund.backlundRealPartZeroCount
 #print axioms Backlund.backlundRealPartZeroCount_eq_toFinset_card
 #print axioms Backlund.backlundOrderedRealPartZeros
