@@ -2044,6 +2044,37 @@ theorem nat_mul_error_lt_pairingLoss_succ_mul_pi {N : ℕ} {E : ℝ} (_hE : 0 �
     norm_num
   simpa [hleft, hright] using hmul
 
+noncomputable def backlundRightPairingTarget (α : ℝ) (k : ℕ) : ℝ :=
+  α + (k : ℝ) * Real.pi
+
+noncomputable def backlundLeftPairingTarget (α : ℝ) (k : ℕ) : ℝ :=
+  Real.pi - α + (k : ℝ) * Real.pi
+
+theorem strictMono_backlundRightPairingTarget {m : ℕ} (α : ℝ) :
+    StrictMono fun i : Fin m => backlundRightPairingTarget α (i : ℕ) := by
+  intro i j hij
+  have hijR : ((i : ℕ) : ℝ) < ((j : ℕ) : ℝ) := by exact_mod_cast hij
+  unfold backlundRightPairingTarget
+  simpa [add_comm] using
+    add_lt_add_left (mul_lt_mul_of_pos_right hijR Real.pi_pos) α
+
+theorem strictMono_backlundLeftPairingTarget {m : ℕ} (α : ℝ) :
+    StrictMono fun i : Fin m => backlundLeftPairingTarget α (i : ℕ) := by
+  intro i j hij
+  have hijR : ((i : ℕ) : ℝ) < ((j : ℕ) : ℝ) := by exact_mod_cast hij
+  unfold backlundLeftPairingTarget
+  simpa [add_comm] using
+    add_lt_add_left (mul_lt_mul_of_pos_right hijR Real.pi_pos) (Real.pi - α)
+
+theorem backlundPairingTarget_left_add_le_right_shift
+    {α ε : ℝ} {j q : ℕ}
+    (hα : 0 ≤ α) (hε : ε ≤ (q : ℝ) * Real.pi) :
+    backlundLeftPairingTarget α j + ε ≤
+      backlundRightPairingTarget α (j + q + 1) := by
+  unfold backlundLeftPairingTarget backlundRightPairingTarget
+  norm_num [Nat.cast_add, Nat.cast_one]
+  nlinarith [mul_nonneg (by norm_num : (0 : ℝ) ≤ 2) hα]
+
 theorem firstHits_le_firstHits_of_abs_error_targets {D ε : ℝ}
     (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
     {m : ℕ} {leftTarget rightTarget : Fin m → ℝ}

@@ -113,6 +113,11 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundCosZeroTarget_add_gap
 #check Backlund.backlundCosZeroTarget_add_le_of_mul_le
 #check Backlund.nat_mul_error_lt_pairingLoss_succ_mul_pi
+#check Backlund.backlundRightPairingTarget
+#check Backlund.backlundLeftPairingTarget
+#check Backlund.strictMono_backlundRightPairingTarget
+#check Backlund.strictMono_backlundLeftPairingTarget
+#check Backlund.backlundPairingTarget_left_add_le_right_shift
 #check Backlund.firstHits_le_firstHits_of_abs_error_targets
 #check Backlund.cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
 #check Backlund.cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
@@ -338,6 +343,11 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundCosZeroTarget_add_gap
 #print axioms Backlund.backlundCosZeroTarget_add_le_of_mul_le
 #print axioms Backlund.nat_mul_error_lt_pairingLoss_succ_mul_pi
+#print axioms Backlund.backlundRightPairingTarget
+#print axioms Backlund.backlundLeftPairingTarget
+#print axioms Backlund.strictMono_backlundRightPairingTarget
+#print axioms Backlund.strictMono_backlundLeftPairingTarget
+#print axioms Backlund.backlundPairingTarget_left_add_le_right_shift
 #print axioms Backlund.firstHits_le_firstHits_of_abs_error_targets
 #print axioms Backlund.cosZeroTarget_leftFirstHits_le_rightShiftedFirstHits
 #print axioms Backlund.cosZeroTarget_firstHit_pairs_product_le_pairingH_pow
