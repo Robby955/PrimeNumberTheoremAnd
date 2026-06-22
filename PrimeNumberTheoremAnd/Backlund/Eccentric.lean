@@ -134,6 +134,66 @@ theorem phaseLiftOfNonzeroPath_exp_phase {a b : ℝ} (h : a < b)
       unitNormalize (f x) (hf x) :=
   (phaseLiftOfNonzeroPath h f hf).exp_phase x
 
+def firstHitSubtypeSet {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ)) (target : ℝ) :
+    Set (Set.Icc (0 : ℝ) D) :=
+  {x | u x = target}
+
+def firstHitRealSet (D : ℝ) (u : C(Set.Icc (0 : ℝ) D, ℝ)) (target : ℝ) : Set ℝ :=
+  {d | ∃ hd : d ∈ Set.Icc (0 : ℝ) D, u ⟨d, hd⟩ = target}
+
+private theorem firstHitSubtypeSet_isClosed {D : ℝ}
+    (u : C(Set.Icc (0 : ℝ) D, ℝ)) (target : ℝ) :
+    IsClosed (firstHitSubtypeSet u target) := by
+  unfold firstHitSubtypeSet
+  exact isClosed_eq u.continuous continuous_const
+
+private theorem firstHitSubtypeSet_nonempty_of_real {D : ℝ}
+    {u : C(Set.Icc (0 : ℝ) D, ℝ)} {target : ℝ}
+    (hne : (firstHitRealSet D u target).Nonempty) :
+    (firstHitSubtypeSet u target).Nonempty := by
+  rcases hne with ⟨d, hdI, hdu⟩
+  exact ⟨⟨d, hdI⟩, hdu⟩
+
+noncomputable def firstHitPoint {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) :
+    Set.Icc (0 : ℝ) D :=
+  Classical.choose <|
+    (firstHitSubtypeSet_isClosed u target).isCompact.exists_isLeast
+      (firstHitSubtypeSet_nonempty_of_real hne)
+
+noncomputable def firstHit {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) : ℝ :=
+  firstHitPoint u target hne
+
+theorem firstHitPoint_isLeast {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) :
+    IsLeast (firstHitSubtypeSet u target) (firstHitPoint u target hne) :=
+  Classical.choose_spec <|
+    (firstHitSubtypeSet_isClosed u target).isCompact.exists_isLeast
+      (firstHitSubtypeSet_nonempty_of_real hne)
+
+theorem firstHit_mem_Icc {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) :
+    firstHit u target hne ∈ Set.Icc (0 : ℝ) D :=
+  (firstHitPoint u target hne).property
+
+theorem firstHit_mem {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) :
+    firstHit u target hne ∈ firstHitRealSet D u target := by
+  refine ⟨firstHit_mem_Icc u target hne, ?_⟩
+  exact (firstHitPoint_isLeast u target hne).1
+
+theorem firstHit_isLeast {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne : (firstHitRealSet D u target).Nonempty) :
+    IsLeast (firstHitRealSet D u target) (firstHit u target hne) := by
+  constructor
+  · exact firstHit_mem u target hne
+  · intro y hy
+    rcases hy with ⟨hyI, hyu⟩
+    have hleast := firstHitPoint_isLeast u target hne
+    have hy_sub : (⟨y, hyI⟩ : Set.Icc (0 : ℝ) D) ∈ firstHitSubtypeSet u target := hyu
+    exact hleast.2 hy_sub
+
 noncomputable def backlundA (s : ℂ) : ℂ := (s - 1) * riemannZeta s
 
 theorem backlundA_conj (z : ℂ) :
