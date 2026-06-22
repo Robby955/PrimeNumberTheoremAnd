@@ -859,6 +859,67 @@ theorem backlundPairingH_pos : 0 < backlundPairingH := by
 theorem backlundLargeRadius_pos : 0 < backlundLargeRadius := by
   norm_num [backlundLargeRadius]
 
+/-- The center `1 + η` of the eccentric Jensen disk. -/
+noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
+  ((1 + η : ℝ) : ℂ)
+
+theorem norm_ofReal_sub_backlundEccentricCenter_eq {η x : ℝ}
+    (hx : x ≤ 1 + η) :
+    ‖((x : ℂ) - backlundEccentricCenter η)‖ = 1 + η - x := by
+  unfold backlundEccentricCenter
+  apply (sq_eq_sq₀ (norm_nonneg _) (by linarith)).1
+  rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply]
+  simp [Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im]
+  ring
+
+theorem norm_ofReal_sub_backlundEccentricCenter_le_pairingH {x : ℝ}
+    (hxlo : (1 / 2 : ℝ) ≤ x) (hxhi : x ≤ 1 + backlundEta) :
+    ‖((x : ℂ) - backlundEccentricCenter backlundEta)‖ ≤ backlundPairingH := by
+  rw [norm_ofReal_sub_backlundEccentricCenter_eq hxhi]
+  norm_num [backlundEta, backlundPairingH] at *
+  linarith
+
+theorem norm_pair_of_backlund_reflected_le_pairingH_sq {a b : ℝ}
+    (ha : a ≤ 1 + backlundEta) (hb : b ≤ 1 / 2)
+    (hpair : 1 - b ≤ a) :
+    ‖((a : ℂ) - backlundEccentricCenter backlundEta)‖ *
+        ‖((b : ℂ) - backlundEccentricCenter backlundEta)‖ ≤
+      backlundPairingH ^ 2 := by
+  have hb_center : b ≤ 1 + backlundEta := by
+    norm_num [backlundEta] at *
+    linarith
+  rw [norm_ofReal_sub_backlundEccentricCenter_eq ha,
+    norm_ofReal_sub_backlundEccentricCenter_eq hb_center]
+  have hfactor :
+      1 + backlundEta - a ≤ backlundEta + b := by
+    linarith
+  have hright_nonneg : 0 ≤ 1 + backlundEta - b := by
+    norm_num [backlundEta] at *
+    linarith
+  have hmul :
+      (1 + backlundEta - a) * (1 + backlundEta - b) ≤
+        (backlundEta + b) * (1 + backlundEta - b) :=
+    mul_le_mul_of_nonneg_right hfactor hright_nonneg
+  have hquad :
+      (backlundEta + b) * (1 + backlundEta - b) ≤ backlundPairingH ^ 2 := by
+    norm_num [backlundEta, backlundPairingH]
+    nlinarith [sq_nonneg (b - 1 / 2)]
+  exact hmul.trans hquad
+
+theorem norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
+    {σ₁ x : ℝ}
+    (hσ₁ : σ₁ ≤ 1 + backlundEta) (hx : x ∈ Set.Icc (1 - σ₁) σ₁) :
+    ‖((x : ℂ) - backlundEccentricCenter backlundEta)‖ ≤
+      backlundLargeRadius := by
+  have hxhi : x ≤ 1 + backlundEta := hx.2.trans hσ₁
+  rw [norm_ofReal_sub_backlundEccentricCenter_eq hxhi]
+  have hxl : 1 - σ₁ ≤ x := hx.1
+  have hbound : 1 + backlundEta - x ≤ 1 + 2 * backlundEta := by
+    linarith
+  have hnum : 1 + 2 * backlundEta ≤ backlundLargeRadius := by
+    norm_num [backlundEta, backlundLargeRadius]
+  exact hbound.trans hnum
+
 theorem abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_lt_errorBound
     {σ₁ T T₀ : ℝ}
     (hle : (1 / 2 : ℝ) ≤ σ₁) (hσ₁ : σ₁ ≤ 1 + backlundEta)
@@ -932,10 +993,6 @@ theorem backlund_argument_symmetry_error {σ₁ T T₀ : ℝ}
     (abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_lt_errorBound
       (σ₁ := σ₁) (T := T) (T₀ := T₀) hle hσ₁ hT₀ hT hint_arch)
     le_rfl
-
-/-- The center `1 + η` of the eccentric Jensen disk. -/
-noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
-  ((1 + η : ℝ) : ℂ)
 
 /-- The raw circle integrand `log |F_N(center + R e^{iφ})|`. -/
 noncomputable def backlundEccentricJensenIntegrand (N : ℕ) (T η R φ : ℝ) : ℝ :=

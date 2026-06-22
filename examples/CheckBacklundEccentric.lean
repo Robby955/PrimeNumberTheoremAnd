@@ -71,6 +71,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.backlundSmallRadius_pos
 #check Backlund.backlundPairingH_pos
 #check Backlund.backlundLargeRadius_pos
+#check Backlund.norm_ofReal_sub_backlundEccentricCenter_eq
+#check Backlund.norm_ofReal_sub_backlundEccentricCenter_le_pairingH
+#check Backlund.norm_pair_of_backlund_reflected_le_pairingH_sq
+#check Backlund.norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
 #check Backlund.backlundEccentricCenter
 #check Backlund.backlundEccentricJensenIntegrand
 #check Backlund.backlundEccentricJensenIntegral
@@ -220,6 +224,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.backlundSmallRadius_pos
 #print axioms Backlund.backlundPairingH_pos
 #print axioms Backlund.backlundLargeRadius_pos
+#print axioms Backlund.norm_ofReal_sub_backlundEccentricCenter_eq
+#print axioms Backlund.norm_ofReal_sub_backlundEccentricCenter_le_pairingH
+#print axioms Backlund.norm_pair_of_backlund_reflected_le_pairingH_sq
+#print axioms Backlund.norm_ofReal_sub_backlundEccentricCenter_le_largeRadius
 #print axioms Backlund.backlundEccentricCenter
 #print axioms Backlund.backlundEccentricJensenIntegrand
 #print axioms Backlund.backlundEccentricJensenIntegral
