@@ -14,6 +14,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.phaseLiftOfCirclePath_exp_phase
 #check Backlund.phaseLiftOfNonzeroPath
 #check Backlund.phaseLiftOfNonzeroPath_exp_phase
+#check Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
 #check Backlund.firstHitSubtypeSet
 #check Backlund.firstHitRealSet
 #check Backlund.firstHitPoint
@@ -192,6 +193,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.phaseLiftOfCirclePath_exp_phase
 #print axioms Backlund.phaseLiftOfNonzeroPath
 #print axioms Backlund.phaseLiftOfNonzeroPath_exp_phase
+#print axioms Backlund.re_pow_eq_zero_iff_cos_phase_eq_zero
 #print axioms Backlund.firstHitSubtypeSet
 #print axioms Backlund.firstHitRealSet
 #print axioms Backlund.firstHitPoint

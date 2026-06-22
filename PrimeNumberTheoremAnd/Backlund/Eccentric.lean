@@ -134,6 +134,56 @@ theorem phaseLiftOfNonzeroPath_exp_phase {a b : ℝ} (h : a < b)
       unitNormalize (f x) (hf x) :=
   (phaseLiftOfNonzeroPath h f hf).exp_phase x
 
+theorem re_pow_eq_zero_iff_cos_phase_eq_zero (N : ℕ) {z : ℂ} {θ : ℝ}
+    (hz : z ≠ 0) (hθ : Circle.exp θ = unitNormalize z hz) :
+    (z ^ N).re = 0 ↔ Real.cos ((N : ℝ) * θ) = 0 := by
+  have hnorm_ne : (‖z‖ : ℂ) ≠ 0 := by
+    exact_mod_cast norm_ne_zero_iff.mpr hz
+  have hcoe : Complex.exp (θ * Complex.I) = z / (‖z‖ : ℂ) := by
+    have h := congrArg (fun w : Circle => (w : ℂ)) hθ
+    simpa [unitNormalize] using h
+  have hz_eq : z = (‖z‖ : ℂ) * Complex.exp (θ * Complex.I) := by
+    calc
+      z = (‖z‖ : ℂ) * (z / (‖z‖ : ℂ)) := by
+        field_simp [hnorm_ne]
+      _ = (‖z‖ : ℂ) * Complex.exp (θ * Complex.I) := by
+        rw [← hcoe]
+  have hexp_pow :
+      (Complex.exp (θ * Complex.I)) ^ N =
+        Complex.exp (((N : ℝ) * θ : ℂ) * Complex.I) := by
+    rw [← Complex.exp_nat_mul]
+    congr 1
+    norm_num
+    ring
+  have hpow :
+      z ^ N =
+        ((‖z‖ ^ N : ℝ) : ℂ) *
+          Complex.exp (((N : ℝ) * θ : ℂ) * Complex.I) := by
+    calc
+      z ^ N = ((‖z‖ : ℂ) * Complex.exp (θ * Complex.I)) ^ N :=
+        congrArg (fun w : ℂ => w ^ N) hz_eq
+      _ = (‖z‖ : ℂ) ^ N * (Complex.exp (θ * Complex.I)) ^ N := by
+        rw [mul_pow]
+      _ = ((‖z‖ ^ N : ℝ) : ℂ) *
+          Complex.exp (((N : ℝ) * θ : ℂ) * Complex.I) := by
+        rw [← Complex.ofReal_pow, hexp_pow]
+  have hexp_re :
+      (Complex.exp (((N : ℝ) * θ : ℂ) * Complex.I)).re =
+        Real.cos ((N : ℝ) * θ) := by
+    simpa using Complex.exp_ofReal_mul_I_re ((N : ℝ) * θ)
+  have hre : (z ^ N).re = ‖z‖ ^ N * Real.cos ((N : ℝ) * θ) := by
+    rw [hpow, Complex.mul_re]
+    simp only [Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
+    rw [hexp_re]
+  rw [hre]
+  have hnorm_pow_ne : ‖z‖ ^ N ≠ 0 :=
+    pow_ne_zero N (norm_ne_zero_iff.mpr hz)
+  constructor
+  · intro h
+    exact (mul_eq_zero.mp h).resolve_left hnorm_pow_ne
+  · intro h
+    simp [h]
+
 def firstHitSubtypeSet {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ)) (target : ℝ) :
     Set (Set.Icc (0 : ℝ) D) :=
   {x | u x = target}
