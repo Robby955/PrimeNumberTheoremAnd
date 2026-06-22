@@ -901,6 +901,38 @@ theorem abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_lt_errorBound
     hstep1.trans_lt (hstep2.trans_lt hstep3)
   exact hH.trans_lt hfinal
 
+theorem backlund_argument_symmetry_error {σ₁ T T₀ : ℝ}
+    (hle : (1 / 2 : ℝ) ≤ σ₁) (hσ₁ : σ₁ ≤ 1 + backlundEta)
+    (hT₀ : 1 ≤ T₀) (hT : T₀ ≤ T)
+    (hs0 : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hs1 : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 1)
+    (hζ : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      riemannZeta ((x : ℂ) + (T : ℂ) * Complex.I) ≠ 0)
+    (hζref : ∀ x ∈ [[(1 / 2 : ℝ), σ₁]],
+      riemannZeta (1 - ((x : ℂ) + (T : ℂ) * Complex.I)) ≠ 0)
+    (hint :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
+        volume (1 / 2) σ₁)
+    (hint_ref :
+      IntervalIntegrable
+        (fun x : ℝ => logDeriv backlundA (1 - ((x : ℂ) + (T : ℂ) * Complex.I)))
+        volume (1 / 2) σ₁)
+    (hint_arch : IntervalIntegrable
+      (fun x : ℝ =>
+        backlundArchimedeanSymmetryIntegrand ((x : ℂ) + (T : ℂ) * Complex.I))
+      MeasureTheory.volume (1 / 2) σ₁) :
+    |backlundArgumentSymmetryDefect σ₁ T| <
+      backlundArgumentSymmetryErrorBound T₀ := by
+  exact backlundArgumentSymmetryError_of_archimedeanIntegral_bound
+    (σ₁ := σ₁) (T := T) (T₀ := T₀)
+    hs0 hs1 hζ hζref hint hint_ref
+    (abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_lt_errorBound
+      (σ₁ := σ₁) (T := T) (T₀ := T₀) hle hσ₁ hT₀ hT hint_arch)
+    le_rfl
+
 /-- The center `1 + η` of the eccentric Jensen disk. -/
 noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
   ((1 + η : ℝ) : ℂ)
