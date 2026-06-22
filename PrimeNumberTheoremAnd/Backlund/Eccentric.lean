@@ -1547,6 +1547,43 @@ theorem midpointReflectedProductMajorant_norm_left_boundary
   rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, hreflect]
   simp [mul_comm, mul_left_comm, mul_assoc]
 
+theorem midpointReflectedProductMajorant_norm_right_boundary
+    {Q C₀ C₁ t : ℝ} (hQ : (1 : ℝ) < Q) :
+    ‖midpointReflectedProductMajorant Q C₀ C₁ ((1 : ℂ) + (t : ℂ) * Complex.I)‖ =
+      |C₀| * |C₁| *
+        (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖) *
+        (‖(Q : ℂ) + ((-t : ℝ) : ℂ) * Complex.I‖ *
+          ‖Complex.log ((Q : ℂ) + ((-t : ℝ) : ℂ) * Complex.I)‖) := by
+  let z : ℂ := (1 : ℂ) + (t : ℂ) * Complex.I
+  let qz : ℂ := (Q : ℂ) + z
+  have hqz_re : (0 : ℝ) < qz.re := by
+    simp [qz, z, Complex.add_re, Complex.mul_re]
+    linarith
+  have hqz_ne : qz ≠ 0 := by
+    intro h
+    have hre := congrArg Complex.re h
+    rw [h] at hqz_re
+    simp at hqz_re
+  have hqz_eq :
+      qz = ((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I := by
+    simp [qz, z]
+    ring
+  have hreflect :
+      (((Q + 1 : ℝ) : ℂ) - z) =
+        (Q : ℂ) + ((-t : ℝ) : ℂ) * Complex.I := by
+    apply Complex.ext
+    · simp [z, Complex.sub_re, Complex.add_re, Complex.mul_re]
+    · simp [z, Complex.sub_im, Complex.add_im, Complex.mul_im]
+  have hcpow :
+      ‖qz ^ (((3 / 2 : ℝ) : ℂ) : ℂ)‖ = ‖qz‖ ^ (3 / 2 : ℝ) := by
+    rw [Complex.norm_cpow_of_ne_zero hqz_ne]
+    simp
+  unfold midpointReflectedProductMajorant
+  simp only [z, qz] at *
+  rw [norm_mul, norm_mul, norm_mul, norm_mul, hcpow, hqz_eq, hreflect]
+  simp [mul_comm, mul_left_comm, mul_assoc]
+
 theorem zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_edge_bounds
     {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁)
     (hzero : ∀ t : ℝ,
