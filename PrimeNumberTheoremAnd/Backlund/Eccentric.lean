@@ -252,6 +252,13 @@ theorem firstHit_isLeast {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
     have hy_sub : (⟨y, hyI⟩ : Set.Icc (0 : ℝ) D) ∈ firstHitSubtypeSet u target := hyu
     exact hleast.2 hy_sub
 
+theorem firstHit_eq_of_nonempty {D : ℝ} (u : C(Set.Icc (0 : ℝ) D, ℝ))
+    (target : ℝ) (hne₁ hne₂ : (firstHitRealSet D u target).Nonempty) :
+    firstHit u target hne₁ = firstHit u target hne₂ := by
+  have h₁ := firstHit_isLeast u target hne₁
+  have h₂ := firstHit_isLeast u target hne₂
+  exact le_antisymm (h₁.2 h₂.1) (h₂.2 h₁.1)
+
 theorem firstHit_le_of_start_lt_target_of_target_lt_value {D : ℝ}
     (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target d : ℝ}
     (hd : d ∈ Set.Icc (0 : ℝ) D)
@@ -342,6 +349,22 @@ theorem firstHit_lt_firstHit_of_start_lt_of_target_lt {D : ℝ}
   have hval₁_at_d₂ : u ⟨d₂, hd₂⟩ = target₁ := by
     simpa [hsubeq] using hval₁
   linarith
+
+theorem firstHit_strictMono_of_strictMono_targets {D : ℝ} {m : ℕ}
+    (u : C(Set.Icc (0 : ℝ) D, ℝ)) (targets : Fin m → ℝ)
+    (hD : (0 : ℝ) ≤ D)
+    (hstart : ∀ i : Fin m, u ⟨0, by exact ⟨le_rfl, hD⟩⟩ < targets i)
+    (htargets : StrictMono targets)
+    (hne : ∀ i : Fin m, (firstHitRealSet D u (targets i)).Nonempty) :
+    StrictMono fun i : Fin m => firstHit u (targets i) (hne i) := by
+  intro i j hij
+  obtain ⟨hne_i', hlt⟩ := firstHit_lt_firstHit_of_start_lt_of_target_lt
+    (u := u) (target₁ := targets i) (target₂ := targets j)
+    hD (hstart i) (htargets hij) (hne j)
+  have heq :
+      firstHit u (targets i) hne_i' = firstHit u (targets i) (hne i) :=
+    firstHit_eq_of_nonempty u (targets i) hne_i' (hne i)
+  simpa [← heq] using hlt
 
 theorem firstHit_phaseLift_re_pow_eq_zero {D : ℝ}
     (f : C(Set.Icc (0 : ℝ) D, ℂ)) (hf : ∀ x, f x ≠ 0)
