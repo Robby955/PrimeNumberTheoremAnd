@@ -609,6 +609,44 @@ theorem backlundA_conj (z : ℂ) :
     backlundA (star z) = star (backlundA z) := by
   simp [backlundA, riemannZeta_conj]
 
+theorem deriv_backlundA_conj (z : ℂ) :
+    deriv backlundA (star z) = star (deriv backlundA z) := by
+  have hfun : (fun w : ℂ => star (backlundA (star w))) = backlundA := by
+    funext w
+    simpa using congrArg star (backlundA_conj w)
+  calc
+    deriv backlundA (star z) =
+        deriv (fun w : ℂ => star (backlundA (star w))) (star z) := by
+      exact congrFun (congrArg deriv hfun).symm (star z)
+    _ = star (deriv backlundA z) := deriv_conj_conj' backlundA z
+
+theorem logDeriv_backlundA_conj (z : ℂ) :
+    logDeriv backlundA (star z) = star (logDeriv backlundA z) := by
+  rw [logDeriv_apply, logDeriv_apply, deriv_backlundA_conj, backlundA_conj]
+  exact (map_div₀ (starRingEnd ℂ) (deriv backlundA z) (backlundA z)).symm
+
+theorem HIntegral_logDeriv_backlundA_conj (x₁ x₂ T : ℝ) :
+    HIntegral (logDeriv backlundA) x₁ x₂ (-T) =
+      star (HIntegral (logDeriv backlundA) x₁ x₂ T) := by
+  unfold HIntegral
+  have hconj :
+      (∫ x in x₁..x₂,
+        star (logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))) =
+      star (∫ x in x₁..x₂,
+        logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I)) := by
+    exact intervalIntegral_conj
+  rw [← hconj]
+  apply intervalIntegral.integral_congr
+  intro x _hx
+  have hpoint :
+      ((x : ℂ) + ((-T : ℝ) : ℂ) * Complex.I) =
+        star ((x : ℂ) + (T : ℂ) * Complex.I) := by
+    apply Complex.ext <;>
+      simp [Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im]
+  change logDeriv backlundA ((x : ℂ) + ((-T : ℝ) : ℂ) * Complex.I) =
+    star (logDeriv backlundA ((x : ℂ) + (T : ℂ) * Complex.I))
+  rw [hpoint, logDeriv_backlundA_conj]
+
 theorem differentiableAt_backlundA {s : ℂ} (hs : s ≠ 1) :
     DifferentiableAt ℂ backlundA s := by
   change DifferentiableAt ℂ (fun s : ℂ => (s - 1) * riemannZeta s) s
@@ -1351,6 +1389,19 @@ theorem backlundAHorizontalArgumentVariation_symm (x₁ x₂ T : ℝ) :
   rw [backlundAHorizontalArgumentVariation, backlundAHorizontalArgumentVariation,
     HIntegral_symm]
   simp
+
+theorem backlundAHorizontalArgumentVariation_neg_height (x₁ x₂ T : ℝ) :
+    backlundAHorizontalArgumentVariation x₁ x₂ (-T) =
+      -backlundAHorizontalArgumentVariation x₁ x₂ T := by
+  rw [backlundAHorizontalArgumentVariation, backlundAHorizontalArgumentVariation,
+    HIntegral_logDeriv_backlundA_conj]
+  simp
+
+theorem backlundAHorizontalArgumentVariation_eq_neg_height_symm (x₁ x₂ T : ℝ) :
+    backlundAHorizontalArgumentVariation x₁ x₂ T =
+      backlundAHorizontalArgumentVariation x₂ x₁ (-T) := by
+  rw [backlundAHorizontalArgumentVariation_neg_height,
+    backlundAHorizontalArgumentVariation_symm]
 
 theorem phaseLift_change_eq_backlundAHorizontalArgumentVariation_of_slitPlane
     {x₁ x₂ T : ℝ} (h : x₁ < x₂)
