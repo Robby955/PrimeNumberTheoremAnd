@@ -372,6 +372,116 @@ theorem one_div_six_norm_sq_reflected_half_horizontal_le_inv {x T : ℝ}
   apply one_div_le_one_div_of_le hTpos
   nlinarith [sq_nonneg (3 - x), hT]
 
+theorem abs_im_inv_pair_average_horizontal_le {x T : ℝ} (hT : 0 < T) :
+    let z₁ : ℂ := ((x : ℂ) + (T : ℂ) * Complex.I) / 2
+    let z₂ : ℂ := ((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2
+    |(((z₁⁻¹ + z₂⁻¹) / 2).im)| ≤ 2 / T := by
+  dsimp only
+  have hTne : T ≠ 0 := hT.ne'
+  have h1 := abs_im_inv_half_horizontal_le (x := x) (T := T) hTne
+  have h2 := abs_im_inv_reflected_half_horizontal_le (x := x) (T := T) hTne
+  have hT_abs : |T| = T := abs_of_pos hT
+  rw [hT_abs] at h1 h2
+  let a : ℝ := (((((x : ℂ) + (T : ℂ) * Complex.I) / 2)⁻¹).im)
+  let b : ℝ := (((((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)⁻¹).im)
+  have hdiv :
+      (((((x : ℂ) + (T : ℂ) * Complex.I) / 2)⁻¹ +
+          (((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)⁻¹) / 2).im =
+        (a + b) / 2 := by
+    dsimp [a, b]
+    norm_num [Complex.div_im, Complex.add_im, Complex.normSq]
+  rw [hdiv]
+  have ha : |a| ≤ 2 / T := by
+    change |(((((x : ℂ) + (T : ℂ) * Complex.I) / 2)⁻¹).im)| ≤ 2 / T
+    exact h1
+  have hb : |b| ≤ 2 / T := by
+    change |(((((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)⁻¹).im)| ≤ 2 / T
+    exact h2
+  calc
+    |(a + b) / 2| = |a + b| / 2 := by
+      rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+    _ ≤ (2 / T + 2 / T) / 2 := by
+      exact div_le_div_of_nonneg_right
+        ((abs_add_le a b).trans (add_le_add ha hb)) (by norm_num)
+    _ = 2 / T := by ring
+
+theorem abs_im_digamma_half_add_reflected_half_horizontal_le {x T : ℝ}
+    (hxl : (1 / 2 : ℝ) ≤ x) (hxu : x ≤ 1 + 3 / 50) (hT : 1 ≤ T) :
+    |(Complex.digamma (((x : ℂ) + (T : ℂ) * Complex.I) / 2) +
+        Complex.digamma (((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)).im| ≤
+      6 / T := by
+  let z₁ : ℂ := ((x : ℂ) + (T : ℂ) * Complex.I) / 2
+  let z₂ : ℂ := ((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2
+  have hTpos : 0 < T := by linarith
+  have hz₁re : (1 / 4 : ℝ) ≤ z₁.re := by
+    dsimp [z₁]
+    norm_num [Complex.div_re, Complex.normSq, Complex.add_re, Complex.mul_re]
+    linarith
+  have hz₂re : (1 / 4 : ℝ) ≤ z₂.re := by
+    dsimp [z₂]
+    norm_num [Complex.div_re, Complex.normSq, Complex.sub_re, Complex.add_re,
+      Complex.mul_re]
+    linarith
+  have hR₁ :
+      |(Complex.digamma z₁).im - (Complex.log z₁ - z₁⁻¹ / 2).im| ≤ 1 / T := by
+    have h := abs_im_digamma_sub_log_sub_half_inv_le (z := z₁) hz₁re
+    have hdecay : 1 / (6 * ‖z₁‖ ^ 2) ≤ 1 / T := by
+      simpa [z₁] using one_div_six_norm_sq_half_horizontal_le_inv
+        (x := x) (T := T) hT
+    exact h.trans hdecay
+  have hR₂ :
+      |(Complex.digamma z₂).im - (Complex.log z₂ - z₂⁻¹ / 2).im| ≤ 1 / T := by
+    have h := abs_im_digamma_sub_log_sub_half_inv_le (z := z₂) hz₂re
+    have hdecay : 1 / (6 * ‖z₂‖ ^ 2) ≤ 1 / T := by
+      simpa [z₂] using one_div_six_norm_sq_reflected_half_horizontal_le_inv
+        (x := x) (T := T) hT
+    exact h.trans hdecay
+  have hlog : |(Complex.log z₁ + Complex.log z₂).im| ≤ 2 / T := by
+    simpa [z₁, z₂] using
+      abs_im_log_half_add_log_reflected_half_horizontal_le
+        (x := x) (T := T) hxl hxu hTpos
+  have hinv : |(((z₁⁻¹ + z₂⁻¹) / 2).im)| ≤ 2 / T := by
+    simpa [z₁, z₂] using abs_im_inv_pair_average_horizontal_le
+      (x := x) (T := T) hTpos
+  have hmain_eq :
+      (Complex.log z₁ - z₁⁻¹ / 2).im + (Complex.log z₂ - z₂⁻¹ / 2).im =
+        (Complex.log z₁ + Complex.log z₂).im - (((z₁⁻¹ + z₂⁻¹) / 2).im) := by
+    simp
+    ring
+  have hmain :
+      |(Complex.log z₁ - z₁⁻¹ / 2).im + (Complex.log z₂ - z₂⁻¹ / 2).im| ≤
+        4 / T := by
+    rw [hmain_eq]
+    calc
+      |(Complex.log z₁ + Complex.log z₂).im - (((z₁⁻¹ + z₂⁻¹) / 2).im)|
+          ≤ |(Complex.log z₁ + Complex.log z₂).im| +
+              |(((z₁⁻¹ + z₂⁻¹) / 2).im)| := by
+            simpa [sub_eq_add_neg] using
+              abs_add_le (Complex.log z₁ + Complex.log z₂).im
+                (-(((z₁⁻¹ + z₂⁻¹) / 2).im))
+      _ ≤ 2 / T + 2 / T := add_le_add hlog hinv
+      _ = 4 / T := by ring
+  have hdecomp :
+      (Complex.digamma z₁ + Complex.digamma z₂).im =
+        ((Complex.log z₁ - z₁⁻¹ / 2).im + (Complex.log z₂ - z₂⁻¹ / 2).im) +
+          ((Complex.digamma z₁).im - (Complex.log z₁ - z₁⁻¹ / 2).im) +
+          ((Complex.digamma z₂).im - (Complex.log z₂ - z₂⁻¹ / 2).im) := by
+    simp
+    ring
+  rw [hdecomp]
+  let A : ℝ := (Complex.log z₁ - z₁⁻¹ / 2).im + (Complex.log z₂ - z₂⁻¹ / 2).im
+  let B : ℝ := (Complex.digamma z₁).im - (Complex.log z₁ - z₁⁻¹ / 2).im
+  let C : ℝ := (Complex.digamma z₂).im - (Complex.log z₂ - z₂⁻¹ / 2).im
+  change |A + B + C| ≤ 6 / T
+  have hA : |A| ≤ 4 / T := by simpa [A] using hmain
+  have hB : |B| ≤ 1 / T := by simpa [B] using hR₁
+  have hC : |C| ≤ 1 / T := by simpa [C] using hR₂
+  calc
+    |A + B + C| ≤ |A + B| + |C| := abs_add_le _ _
+    _ ≤ |A| + |B| + |C| := by nlinarith [abs_add_le A B]
+    _ ≤ 4 / T + 1 / T + 1 / T := by nlinarith
+    _ = 6 / T := by ring
+
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :
       ∀ x ∈ [[x₁, x₂]],
