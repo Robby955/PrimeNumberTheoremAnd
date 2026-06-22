@@ -27,6 +27,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.firstHit_eq_of_nonempty
 #check Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
 #check Backlund.firstHit_le_of_abs_error_at_value
+#check Backlund.firstHit_le_firstHit_of_abs_error_at_firstHit
 #check Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #check Backlund.firstHit_strictMono_of_strictMono_targets
 #check Backlund.firstHit_phaseLift_re_pow_eq_zero
@@ -218,6 +219,7 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.firstHit_eq_of_nonempty
 #print axioms Backlund.firstHit_le_of_start_lt_target_of_target_lt_value
 #print axioms Backlund.firstHit_le_of_abs_error_at_value
+#print axioms Backlund.firstHit_le_firstHit_of_abs_error_at_firstHit
 #print axioms Backlund.firstHit_lt_firstHit_of_start_lt_of_target_lt
 #print axioms Backlund.firstHit_strictMono_of_strictMono_targets
 #print axioms Backlund.firstHit_phaseLift_re_pow_eq_zero

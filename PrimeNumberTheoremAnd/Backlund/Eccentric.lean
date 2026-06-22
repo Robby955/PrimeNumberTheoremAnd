@@ -307,6 +307,30 @@ theorem firstHit_le_of_abs_error_at_value {D : ℝ}
   exact firstHit_le_of_start_lt_target_of_target_lt_value
     (u := v) (target := target) (d := d) hd hstart hvalue
 
+theorem firstHit_le_firstHit_of_abs_error_at_firstHit {D : ℝ}
+    (u v : C(Set.Icc (0 : ℝ) D, ℝ)) (hD : (0 : ℝ) ≤ D)
+    {leftTarget rightTarget ε : ℝ}
+    (hright : (firstHitRealSet D u rightTarget).Nonempty)
+    (hstart : v ⟨0, by exact ⟨le_rfl, hD⟩⟩ < leftTarget)
+    (herr : ∀ x : Set.Icc (0 : ℝ) D, |u x - v x| < ε)
+    (hgap : leftTarget + ε ≤ rightTarget) :
+    ∃ hleft : (firstHitRealSet D v leftTarget).Nonempty,
+      firstHit v leftTarget hleft ≤ firstHit u rightTarget hright := by
+  let d : ℝ := firstHit u rightTarget hright
+  have hd : d ∈ Set.Icc (0 : ℝ) D := by
+    simpa [d] using firstHit_mem_Icc u rightTarget hright
+  have hhit := firstHit_mem u rightTarget hright
+  have hvalue : u ⟨d, hd⟩ = rightTarget := by
+    rcases hhit with ⟨hd', hval⟩
+    have hsub : (⟨d, hd'⟩ : Set.Icc (0 : ℝ) D) = ⟨d, hd⟩ :=
+      Subtype.ext rfl
+    simpa [d, hsub] using hval
+  have herr_d : |rightTarget - v ⟨d, hd⟩| < ε := by
+    simpa [hvalue] using herr ⟨d, hd⟩
+  exact firstHit_le_of_abs_error_at_value
+    (v := v) (target := leftTarget) (d := d) (value := rightTarget)
+    (ε := ε) hd (by simpa using hstart) herr_d hgap
+
 theorem firstHit_lt_firstHit_of_start_lt_of_target_lt {D : ℝ}
     (u : C(Set.Icc (0 : ℝ) D, ℝ)) {target₁ target₂ : ℝ}
     (hD : (0 : ℝ) ≤ D)
