@@ -27,6 +27,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.rotatedShiftedLogPowerTwoEdgeNormalizer
 #check Backlund.rotatedShiftedLogPowerTwoEdgeNormalizer_norm_le_of_upperHalf
 #check Backlund.log_phragmen_lindelof_shiftedLogPower_twoEdge
+#check Backlund.midpointReflectedProduct
+#check Backlund.midpointReflectedProductMajorant
+#check Backlund.midpointReflectedProduct_norm_midline
+#check Backlund.midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip
 #check Backlund.zetaSurrogate_shiftedLogPower_PL_inputs
 
 #print axioms Backlund.eccentricHighRhs
@@ -56,4 +60,8 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.rotatedShiftedLogPowerTwoEdgeNormalizer
 #print axioms Backlund.rotatedShiftedLogPowerTwoEdgeNormalizer_norm_le_of_upperHalf
 #print axioms Backlund.log_phragmen_lindelof_shiftedLogPower_twoEdge
+#print axioms Backlund.midpointReflectedProduct
+#print axioms Backlund.midpointReflectedProductMajorant
+#print axioms Backlund.midpointReflectedProduct_norm_midline
+#print axioms Backlund.midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip
 #print axioms Backlund.zetaSurrogate_shiftedLogPower_PL_inputs

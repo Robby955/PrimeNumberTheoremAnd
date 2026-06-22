@@ -1002,6 +1002,94 @@ theorem log_phragmen_lindelof_shiftedLogPower_twoEdge {f : ℂ → ℂ}
               α₁ * ((z.re - σ₀) / (σ₁ - σ₀))) *
             ‖Complex.log (rotatedShiftedBase Q z)‖) := by ring
 
+/-- Reflected product used in the midpoint convexity step. -/
+noncomputable def midpointReflectedProduct (f : ℂ → ℂ) (z : ℂ) : ℂ :=
+  f z * star (f ((1 : ℂ) - star z))
+
+/-- Constant-exponent majorant for the midpoint reflected-product route. -/
+noncomputable def midpointReflectedProductMajorant (Q C₀ C₁ : ℝ) (z : ℂ) : ℂ :=
+  ((C₀ * C₁ : ℝ) : ℂ) *
+    (((Q : ℂ) + z) ^ (((3 / 2 : ℝ) : ℂ)) *
+      (((Q + 1 : ℝ) : ℂ) - z) *
+      Complex.log ((Q : ℂ) + z) *
+      Complex.log ((((Q + 1 : ℝ) : ℂ) - z)))
+
+private theorem one_sub_star_midline (t : ℝ) :
+    (1 : ℂ) - star ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) =
+      (1 / 2 : ℂ) + (t : ℂ) * Complex.I := by
+  apply Complex.ext
+  · simp [Complex.sub_re, Complex.add_re, Complex.mul_re]
+    norm_num
+  · simp [Complex.sub_im, Complex.add_im, Complex.mul_im]
+
+theorem midpointReflectedProduct_norm_midline (f : ℂ → ℂ) (t : ℝ) :
+    ‖midpointReflectedProduct f ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ =
+      ‖f ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ 2 := by
+  unfold midpointReflectedProduct
+  rw [one_sub_star_midline]
+  simp [pow_two]
+
+/--
+Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
+has PL growth and unit boundary control on the two strip edges, its midpoint
+specialization bounds the square of the original function by the midpoint
+majorant.
+-/
+theorem midpoint_reflectedProduct_norm_sq_le_majorant_of_verticalStrip {f : ℂ → ℂ}
+    {Q C₀ C₁ t : ℝ}
+    (hmajorant :
+      midpointReflectedProductMajorant Q C₀ C₁
+        ((1 / 2 : ℂ) + (t : ℂ) * Complex.I) ≠ 0)
+    (hd : DiffContOnCl ℂ
+      (fun w => midpointReflectedProduct f w /
+        midpointReflectedProductMajorant Q C₀ C₁ w)
+      (Complex.HadamardThreeLines.verticalStrip 0 1))
+    (hgrowth : ∃ c < Real.pi / ((1 : ℝ) - 0), ∃ B,
+      (fun w => midpointReflectedProduct f w /
+        midpointReflectedProductMajorant Q C₀ C₁ w)
+        =O[Filter.comap (_root_.abs ∘ Complex.im) Filter.atTop ⊓
+            Filter.principal (Complex.re ⁻¹' Set.Ioo 0 1)]
+          fun w => Real.exp (B * Real.exp (c * |w.im|)))
+    (hleft : ∀ w : ℂ, w.re = 0 →
+      ‖midpointReflectedProduct f w / midpointReflectedProductMajorant Q C₀ C₁ w‖ ≤ 1)
+    (hright : ∀ w : ℂ, w.re = 1 →
+      ‖midpointReflectedProduct f w / midpointReflectedProductMajorant Q C₀ C₁ w‖ ≤ 1) :
+    ‖f ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ ^ 2 ≤
+      ‖midpointReflectedProductMajorant Q C₀ C₁
+        ((1 / 2 : ℂ) + (t : ℂ) * Complex.I)‖ := by
+  let z : ℂ := (1 / 2 : ℂ) + (t : ℂ) * Complex.I
+  have hzre : z.re = (1 / 2 : ℝ) := by
+    simp [z, Complex.add_re, Complex.mul_re]
+  have hzleft : (0 : ℝ) ≤ z.re := by
+    rw [hzre]
+    norm_num
+  have hzright : z.re ≤ (1 : ℝ) := by
+    rw [hzre]
+    norm_num
+  have hquot :
+      ‖midpointReflectedProduct f z / midpointReflectedProductMajorant Q C₀ C₁ z‖ ≤
+        (1 : ℝ) :=
+    PhragmenLindelof.vertical_strip
+      (f := fun w => midpointReflectedProduct f w /
+        midpointReflectedProductMajorant Q C₀ C₁ w)
+      (a := 0) (b := 1) (C := 1) (z := z)
+      hd hgrowth hleft hright hzleft hzright
+  have hmajorant_pos :
+      0 < ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ :=
+    norm_pos_iff.mpr (by simpa [z] using hmajorant)
+  have hproduct :
+      ‖midpointReflectedProduct f z‖ ≤
+        ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ := by
+    rw [norm_div] at hquot
+    have hmul :
+        ‖midpointReflectedProduct f z‖ ≤
+          (1 : ℝ) * ‖midpointReflectedProductMajorant Q C₀ C₁ z‖ :=
+      (div_le_iff₀ hmajorant_pos).mp (by simpa using hquot)
+    simpa [one_mul] using hmul
+  rw [show z = (1 / 2 : ℂ) + (t : ℂ) * Complex.I by rfl] at hproduct
+  rw [midpointReflectedProduct_norm_midline] at hproduct
+  exact hproduct
+
 /--
 The fixed shifted log-power quotient for the entire zeta surrogate has the
 analytic side conditions needed by the PL shell on the strip `0 < re z < 1`.
