@@ -3481,6 +3481,51 @@ theorem eccentric_jensen_zero_count_of_logCounting_lower_bound
     _ ≤ L / (2 * Real.log r) + 1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
       nlinarith
 
+theorem eccentric_jensen_source_count_minus_half_le_of_logCounting_lower_bound
+    {N n : ℕ} {T η R E r : ℝ}
+    (hR : R ≠ 0) (hrlog : 0 < Real.log r) (hE : 0 ≤ E)
+    (hlower :
+      (2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ)) * Real.log r ≤
+        backlundEccentricJensenLogCountingTerm N T η R) :
+    (n : ℝ) - 1 / 2 ≤
+      backlundEccentricJensenZeroCountRhsEntire N T η R r E := by
+  let L := backlundEccentricJensenLogCountingTerm N T η R
+  have hRhs :
+      backlundEccentricJensenZeroCountRhsEntire N T η R r E =
+        L / (2 * Real.log r) + 1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
+    rw [backlundEccentricJensenZeroCountRhsEntire_eq_logCounting_form
+      (N := N) (T := T) (η := η) (R := R) (E := E) hR (ne_of_gt hrlog)]
+    simp only [L, backlundEccentricJensenLogCountingTerm,
+      backlundEccentricTranslatedDivisor]
+    ring
+  have hlowerL :
+      (2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ)) * Real.log r ≤ L := by
+    simpa [L] using hlower
+  have hcount :
+      2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ) ≤ L / Real.log r :=
+    (le_div_iff₀ hrlog).2 hlowerL
+  have hcount_half :
+      (2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ)) / 2 ≤
+        L / (2 * Real.log r) := by
+    have h := div_le_div_of_nonneg_right hcount (by norm_num : (0 : ℝ) ≤ 2)
+    have hden : (L / Real.log r) / 2 = L / (2 * Real.log r) := by
+      field_simp [ne_of_gt hrlog, two_ne_zero]
+    simpa [hden] using h
+  have hloss_half :
+      (backlundPairingLoss N E : ℝ) / 2 ≤ (N : ℝ) * E / (2 * Real.pi) := by
+    have hloss := backlundPairingLoss_le (N := N) hE
+    have h := div_le_div_of_nonneg_right hloss (by norm_num : (0 : ℝ) ≤ 2)
+    have hden : ((N : ℝ) * E / Real.pi) / 2 = (N : ℝ) * E / (2 * Real.pi) := by
+      field_simp [Real.pi_ne_zero, two_ne_zero]
+    simpa [hden] using h
+  rw [hRhs]
+  calc
+    (n : ℝ) - 1 / 2
+        = (2 * (n : ℝ) - 2 - (backlundPairingLoss N E : ℝ)) / 2 +
+            1 / 2 + (backlundPairingLoss N E : ℝ) / 2 := by ring
+    _ ≤ L / (2 * Real.log r) + 1 / 2 + (N : ℝ) * E / (2 * Real.pi) := by
+      nlinarith
+
 theorem eccentric_jensen_zero_count_of_orderedRealPartZeros_product
     {N n m : ℕ} {T η a b R H r E : ℝ} {xs : Fin m → ℝ}
     (hcenter : backlundFEntire N T (backlundEccentricCenter η) ≠ 0)
