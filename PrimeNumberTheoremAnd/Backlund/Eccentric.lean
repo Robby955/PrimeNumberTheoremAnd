@@ -482,6 +482,59 @@ theorem abs_im_digamma_half_add_reflected_half_horizontal_le {x T : ℝ}
     _ ≤ 4 / T + 1 / T + 1 / T := by nlinarith
     _ = 6 / T := by ring
 
+theorem abs_im_backlundArchimedeanSymmetryIntegrand_horizontal_le {x T : ℝ}
+    (hxl : (1 / 2 : ℝ) ≤ x) (hxu : x ≤ 1 + 3 / 50) (hT : 1 ≤ T) :
+    |(backlundArchimedeanSymmetryIntegrand
+        ((x : ℂ) + (T : ℂ) * Complex.I)).im| ≤ 4 / T := by
+  let s : ℂ := (x : ℂ) + (T : ℂ) * Complex.I
+  have hTpos : 0 < T := by linarith
+  have hTne : T ≠ 0 := hTpos.ne'
+  have hs_im : s.im = T := by simp [s, Complex.add_im, Complex.mul_im]
+  have him : s.im ≠ 0 := by simpa [hs_im] using hTne
+  have hs0 : s ≠ 0 := by
+    intro h
+    apply him
+    rw [h]
+    norm_num
+  have hs1 : s ≠ 1 := by
+    intro h
+    apply him
+    rw [h]
+    norm_num
+  have hshift := backlundArchimedeanSymmetryIntegrand_eq_shifted_digamma
+    (s := s) hs0 hs1 (reflected_half_ne_neg_nat_of_im_ne_zero him)
+  have hinv0 : |(s⁻¹).im| ≤ 1 / T := by
+    have h := abs_im_inv_horizontal_le (x := x) (T := T) hTne
+    have hT_abs : |T| = T := abs_of_pos hTpos
+    rw [hT_abs] at h
+    change |(((x : ℂ) + (T : ℂ) * Complex.I)⁻¹).im| ≤ 1 / T
+    exact h
+  have hinv : |((-1 / s).im)| ≤ 1 / T := by
+    have him_eq : (-1 / s).im = -(s⁻¹).im := by
+      simp [div_eq_mul_inv]
+    rw [him_eq, abs_neg]
+    exact hinv0
+  have hdig :
+      |(Complex.digamma (s / 2) + Complex.digamma ((3 - s) / 2)).im| ≤ 6 / T := by
+    simpa [s] using abs_im_digamma_half_add_reflected_half_horizontal_le
+      (x := x) (T := T) hxl hxu hT
+  rw [hshift]
+  let D : ℂ := Complex.digamma (s / 2) + Complex.digamma ((3 - s) / 2)
+  have him_eq : (-1 / s + ↑(Real.log Real.pi) - (1 / 2 : ℂ) * D).im =
+      (-1 / s).im - D.im / 2 := by
+    simp [D]
+    ring
+  rw [him_eq]
+  calc
+    |(-1 / s).im - D.im / 2| ≤ |(-1 / s).im| + |D.im / 2| := by
+      simpa [sub_eq_add_neg] using abs_add_le (-1 / s).im (-(D.im / 2))
+    _ ≤ 1 / T + (6 / T) / 2 := by
+      have hDhalf : |D.im / 2| ≤ (6 / T) / 2 := by
+        rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+        exact div_le_div_of_nonneg_right (by simpa [D] using hdig) (by norm_num)
+      exact add_le_add hinv hDhalf
+    _ = 4 / T := by ring
+
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :
       ∀ x ∈ [[x₁, x₂]],
