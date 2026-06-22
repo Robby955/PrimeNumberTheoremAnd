@@ -1601,6 +1601,28 @@ theorem zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_edge_boun
   rw [norm_div]
   exact (div_le_iff₀ hmajorant_pos).2 (by simpa [hmaj_norm] using hnum)
 
+theorem zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_re_eq_zero
+    {Q C₀ C₁ : ℝ} (hQ : (1 : ℝ) < Q) (hC₀ : 0 < C₀) (hC₁ : 0 < C₁)
+    (hzero : ∀ t : ℝ,
+      ‖zetaSurrogate ((t : ℂ) * Complex.I)‖ ≤
+        C₀ * (‖(Q : ℂ) + (t : ℂ) * Complex.I‖ ^ (3 / 2 : ℝ) *
+          ‖Complex.log ((Q : ℂ) + (t : ℂ) * Complex.I)‖))
+    (hone : ∀ t : ℝ,
+      ‖zetaSurrogate ((1 : ℂ) + (t : ℂ) * Complex.I)‖ ≤
+        C₁ * (‖((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I‖ *
+          ‖Complex.log (((Q + 1 : ℝ) : ℂ) + (t : ℂ) * Complex.I)‖)) :
+    ∀ w : ℂ, w.re = 0 →
+      ‖midpointReflectedProduct zetaSurrogate w /
+        midpointReflectedProductMajorant Q C₀ C₁ w‖ ≤ 1 := by
+  intro w hw
+  have hw_eq : w = (w.im : ℂ) * Complex.I := by
+    apply Complex.ext
+    · simp [hw, Complex.mul_re]
+    · simp [Complex.mul_im]
+  rw [hw_eq]
+  exact zetaSurrogate_midpointReflectedProduct_left_boundary_le_one_of_edge_bounds
+    hQ hC₀ hC₁ hzero hone w.im
+
 /--
 Midpoint reflected-product Phragmen-Lindelöf core. Once the reflected quotient
 has PL growth and unit boundary control on the two strip edges, its midpoint
