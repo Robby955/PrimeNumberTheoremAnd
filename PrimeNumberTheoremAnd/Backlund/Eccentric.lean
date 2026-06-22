@@ -859,6 +859,48 @@ theorem backlundPairingH_pos : 0 < backlundPairingH := by
 theorem backlundLargeRadius_pos : 0 < backlundLargeRadius := by
   norm_num [backlundLargeRadius]
 
+theorem abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_lt_errorBound
+    {σ₁ T T₀ : ℝ}
+    (hle : (1 / 2 : ℝ) ≤ σ₁) (hσ₁ : σ₁ ≤ 1 + backlundEta)
+    (hT₀ : 1 ≤ T₀) (hT : T₀ ≤ T)
+    (hint : IntervalIntegrable
+      (fun x : ℝ =>
+        backlundArchimedeanSymmetryIntegrand ((x : ℂ) + (T : ℂ) * Complex.I))
+      MeasureTheory.volume (1 / 2) σ₁) :
+    |(HIntegral backlundArchimedeanSymmetryIntegrand (1 / 2) σ₁ T).im| <
+      backlundArgumentSymmetryErrorBound T₀ := by
+  have hT1 : 1 ≤ T := by linarith
+  have hT₀pos : 0 < T₀ := by linarith
+  have hσ₁' : σ₁ ≤ 1 + 3 / 50 := by simpa [backlundEta] using hσ₁
+  have hpoint :
+      ∀ x ∈ Set.Icc (1 / 2 : ℝ) σ₁,
+        |(backlundArchimedeanSymmetryIntegrand
+          ((x : ℂ) + (T : ℂ) * Complex.I)).im| ≤ 4 / T := by
+    intro x hx
+    exact abs_im_backlundArchimedeanSymmetryIntegrand_horizontal_le
+      hx.1 (hx.2.trans hσ₁') hT1
+  have hH := abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_abs_im_le_const
+    (σ₁ := σ₁) (T := T) (C := 4 / T) hle hint hpoint
+  have hlen_le : σ₁ - 1 / 2 ≤ 14 / 25 := by
+    linarith
+  have hcoef_nonneg : 0 ≤ 4 / T := by positivity
+  have hstep1 : (4 / T) * (σ₁ - 1 / 2) ≤ (4 / T) * (14 / 25) := by
+    exact mul_le_mul_of_nonneg_left hlen_le hcoef_nonneg
+  have hInv : 1 / T ≤ 1 / T₀ := one_div_le_one_div_of_le hT₀pos hT
+  have hstep2 : (4 / T) * (14 / 25) ≤ (4 / T₀) * (14 / 25) := by
+    calc
+      (4 / T) * (14 / 25) = (56 / 25) * (1 / T) := by ring
+      _ ≤ (56 / 25) * (1 / T₀) := by
+            exact mul_le_mul_of_nonneg_left hInv (by norm_num)
+      _ = (4 / T₀) * (14 / 25) := by ring
+  have hstep3 : (4 / T₀) * (14 / 25) < backlundArgumentSymmetryErrorBound T₀ := by
+    unfold backlundArgumentSymmetryErrorBound
+    field_simp [hT₀pos.ne']
+    norm_num
+  have hfinal : (4 / T) * (σ₁ - 1 / 2) < backlundArgumentSymmetryErrorBound T₀ :=
+    hstep1.trans_lt (hstep2.trans_lt hstep3)
+  exact hH.trans_lt hfinal
+
 /-- The center `1 + η` of the eccentric Jensen disk. -/
 noncomputable def backlundEccentricCenter (η : ℝ) : ℂ :=
   ((1 + η : ℝ) : ℂ)
