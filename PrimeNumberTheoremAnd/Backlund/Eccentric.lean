@@ -339,6 +339,39 @@ theorem abs_im_inv_reflected_half_horizontal_le {x T : ℝ} (hT : T ≠ 0) :
           norm_num [Complex.div_im, Complex.normSq, Complex.sub_im,
             Complex.add_im, Complex.mul_im, abs_div]
 
+theorem norm_sq_half_horizontal (x T : ℝ) :
+    ‖(((x : ℂ) + (T : ℂ) * Complex.I) / 2)‖ ^ 2 =
+      (x ^ 2 + T ^ 2) / 4 := by
+  rw [← Complex.normSq_eq_norm_sq]
+  norm_num [Complex.normSq_apply, Complex.div_re, Complex.div_im, Complex.normSq,
+    Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im]
+  ring
+
+theorem norm_sq_reflected_half_horizontal (x T : ℝ) :
+    ‖(((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)‖ ^ 2 =
+      ((3 - x) ^ 2 + T ^ 2) / 4 := by
+  rw [← Complex.normSq_eq_norm_sq]
+  norm_num [Complex.normSq_apply, Complex.div_re, Complex.div_im, Complex.normSq,
+    Complex.sub_re, Complex.sub_im, Complex.add_re, Complex.add_im,
+    Complex.mul_re, Complex.mul_im]
+  ring
+
+theorem one_div_six_norm_sq_half_horizontal_le_inv {x T : ℝ} (hT : 1 ≤ T) :
+    1 / (6 * ‖(((x : ℂ) + (T : ℂ) * Complex.I) / 2)‖ ^ 2) ≤ 1 / T := by
+  have hTpos : 0 < T := by linarith
+  rw [norm_sq_half_horizontal]
+  apply one_div_le_one_div_of_le hTpos
+  nlinarith [sq_nonneg x, hT]
+
+theorem one_div_six_norm_sq_reflected_half_horizontal_le_inv {x T : ℝ}
+    (hT : 1 ≤ T) :
+    1 / (6 * ‖(((3 : ℂ) - ((x : ℂ) + (T : ℂ) * Complex.I)) / 2)‖ ^ 2) ≤
+      1 / T := by
+  have hTpos : 0 < T := by linarith
+  rw [norm_sq_reflected_half_horizontal]
+  apply one_div_le_one_div_of_le hTpos
+  nlinarith [sq_nonneg (3 - x), hT]
+
 theorem abs_im_HIntegral_le_of_norm_le_const {f : ℂ → ℂ} {x₁ x₂ y C : ℝ}
     (hbound :
       ∀ x ∈ [[x₁, x₂]],

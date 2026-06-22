@@ -26,6 +26,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #check Backlund.abs_im_inv_horizontal_le
 #check Backlund.abs_im_inv_half_horizontal_le
 #check Backlund.abs_im_inv_reflected_half_horizontal_le
+#check Backlund.norm_sq_half_horizontal
+#check Backlund.norm_sq_reflected_half_horizontal
+#check Backlund.one_div_six_norm_sq_half_horizontal_le_inv
+#check Backlund.one_div_six_norm_sq_reflected_half_horizontal_le_inv
 #check Backlund.abs_im_HIntegral_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #check Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
@@ -166,6 +170,10 @@ import PrimeNumberTheoremAnd.Backlund.Eccentric
 #print axioms Backlund.abs_im_inv_horizontal_le
 #print axioms Backlund.abs_im_inv_half_horizontal_le
 #print axioms Backlund.abs_im_inv_reflected_half_horizontal_le
+#print axioms Backlund.norm_sq_half_horizontal
+#print axioms Backlund.norm_sq_reflected_half_horizontal
+#print axioms Backlund.one_div_six_norm_sq_half_horizontal_le_inv
+#print axioms Backlund.one_div_six_norm_sq_reflected_half_horizontal_le_inv
 #print axioms Backlund.abs_im_HIntegral_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_backlundArchimedeanSymmetryIntegrand_le_of_norm_le_const
 #print axioms Backlund.abs_im_HIntegral_le_of_abs_im_le_const_of_le
